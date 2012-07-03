@@ -1,0 +1,205 @@
+
+global proc create_loc_FE()
+{
+	string $sel[] = `ls -sl`;
+
+	string $fluid_shape[] = `listRelatives -s $sel[0]`;
+
+	string $loc[] = `spaceLocator -p 0 0 0`;
+
+	string $loc_shape[] = `listRelatives -s $loc[0]`;
+
+	string $ws = `workspace -q -rd`;
+
+	if ( !`attributeQuery -node $loc_shape -ex "fluid_shape"` ) {
+		addAttr -ln "fluid_shape" -dt "string" $loc_shape[0];
+		setAttr -type "string" ( $loc_shape[0] + ".fluid_shape" ) $fluid_shape[0];
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "tofile"` ) {
+		addAttr -ln "tofile" -dt "string" $loc_shape[0];
+		setAttr -type "string" ( $loc_shape[0] + ".tofile" ) ($ws + "fluid_data");
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "volume_step"` ) {
+		addAttr -ln "volume_step" -at "float" $loc_shape[0];
+		setAttr ( $loc_shape[0] + ".volume_step" ) 0.5;
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "export_density"` ) {
+		addAttr -ln "export_density" -at "bool" $loc_shape[0];
+		setAttr ( $loc_shape[0] + ".export_density" ) true;
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "export_fuel"` ) {
+		addAttr -ln "export_fuel" -at "bool" $loc_shape[0];
+		setAttr ( $loc_shape[0] + ".export_fuel" ) true;
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "export_temperature"` ) {
+		addAttr -ln "export_temperature" -at "bool" $loc_shape[0];
+		setAttr ( $loc_shape[0] + ".export_temperature" ) true;
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "export_velocity"` ) {
+		addAttr -ln "export_velocity" -at "bool" $loc_shape[0];
+		setAttr ( $loc_shape[0] + ".export_velocity" ) false;
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "cube"` ) {
+		addAttr -ln "cube" -at "bool" $loc_shape[0];
+		setAttr ( $loc_shape[0] + ".cube" ) true;
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "binary"` ) {
+		addAttr -ln "binary" -at "bool" $loc_shape[0];
+		setAttr ( $loc_shape[0] + ".binary" ) true;
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "lazy"` ) {
+		addAttr -ln "lazy" -at "bool" $loc_shape[0];
+		setAttr ( $loc_shape[0] + ".lazy" ) false;
+	}
+
+	if ( !`attributeQuery -node $loc_shape -ex "ribBox"` ) {
+		addAttr -ln "ribBox" -dt "string" $loc_shape[0];
+		update_FE $loc_shape[0];
+	}
+}
+
+global proc update_FE(string $loc_shape)
+{
+	string $fluid_shape = `getAttr ($loc_shape + ".fluid_shape")`;
+
+	string $tofile = `getAttr ($loc_shape + ".tofile")`;
+
+	float $volume_step = `getAttr ($loc_shape + ".volume_step")`;
+
+	int $dens = `getAttr ($loc_shape + ".export_density")`;
+	int $fuel = `getAttr ($loc_shape + ".export_fuel")`;
+	int $temp = `getAttr ($loc_shape + ".export_temperature")`;
+	int $velo = `getAttr ($loc_shape + ".export_velocity")`;
+
+	int $cube = `getAttr ($loc_shape + ".cube")`;
+
+	int $binary = `getAttr ($loc_shape + ".binary")`;
+
+	int $lazy = `getAttr ($loc_shape + ".lazy")`;
+
+	int $fr = `currentTime -q`;
+
+	string $base_fname = $tofile + "." + $fr;
+
+	string $dens_fname = "";
+	string $fuel_fname = "";
+	string $temp_fname = "";
+	string $velo_fname = "";
+
+	if($dens)
+	{
+		int $dens_exists = `filetest -r ($base_fname + ".dens.dat")`;
+		$dens_fname = $base_fname + ".dens.dat";
+		if(!($lazy && $dens_exists)) 
+		{
+			evalDeferred ("fluid_data_export -node \"" + $fluid_shape + "\" -dens " + $dens + " -binary " + $binary + " -tofile \"" + $base_fname + "\"");
+		}else
+		{
+			print("Lazy on " + $dens_fname + " !!!\n");
+		}
+	}
+	if($fuel)
+	{
+		int $fuel_exists = `filetest -r ($base_fname + ".fuel.dat")`;
+		$fuel_fname = $base_fname + ".fuel.dat";
+		if(!($lazy && $fuel_exists)) 
+		{
+			evalDeferred ("fluid_data_export -node \"" + $fluid_shape + "\" -fuel " + $fuel + " -binary " + $binary + " -tofile \"" + $base_fname + "\"");
+		}else
+		{
+			print("Lazy on " + $fuel_fname + " !!!\n");
+		}
+	}
+	if($temp)
+	{
+		int $temp_exists = `filetest -r ($base_fname + ".temp.dat")`;
+		$temp_fname = $base_fname + ".temp.dat";
+		if(!($lazy && $temp_exists)) 
+		{
+			evalDeferred ("fluid_data_export -node \"" + $fluid_shape + "\" -temp " + $temp + " -binary " + $binary + " -tofile \"" + $base_fname + "\"");
+		}else
+		{
+			print("Lazy on " + $temp_fname + " !!!\n");
+		}
+	}
+	if($velo)
+	{
+		int $velo_exists = `filetest -r ($base_fname + ".velo.dat")`;
+		$velo_fname = $base_fname + ".velo.dat";
+		if(!($lazy && $velo_exists)) 
+		{
+			evalDeferred ("fluid_data_export -node \"" + $fluid_shape + "\" -velo " + $velo + " -binary " + $binary + " -tofile \"" + $base_fname + "\"");
+		}else
+		{
+			print("Lazy on " + $velo_fname + " !!!\n");
+		}
+	}
+
+
+	float $wm[] = `getAttr ($fluid_shape + ".worldMatrix")`;
+	float $res[] = `getAttr ($fluid_shape + ".resolution")`;
+	float $dim[] = `getAttr ($fluid_shape + ".dimensions")`;
+
+	string $rib_string = "";
+
+	$rib_string += "AttributeBegin ";
+
+		$rib_string += "Transform ["
+				+ $wm[0] + " " + $wm[1] + " " + $wm[2] + " " + $wm[3] + " "
+				+ $wm[4] + " " + $wm[5] + " " + $wm[6] + " " + $wm[7] + " "
+				+ $wm[8] + " " + $wm[9] + " " + $wm[10] + " " + $wm[11] + " "
+				+ $wm[12] + " " + $wm[13] + " " + $wm[14] + " " + $wm[15] + " "
+				+ "] ";
+
+		$rib_string += "TransformBegin "; 
+			
+			$rib_string += "Scale " + ($dim[0] / $res[0]) + " " + ($dim[1] / $res[1]) + " " + ($dim[2] / $res[2]) + " ";
+			
+			$rib_string += "Translate " + (-$res[0] / 2) + " " + (-$res[1] / 2) + " " + (-$res[2] / 2) + " ";
+			
+			$rib_string += "Surface \"shaders/fluid_volume\" " +
+			"\"float binary\" [" + $binary + "] " + 
+			"\"string dens_filename\" [\"" + $dens_fname + "\"] " +
+			"\"string fuel_filename\" [\"" + $fuel_fname + "\"] " +
+			"\"string temp_filename\" [\"" + $temp_fname + "\"] " +
+			"\"string velo_filename\" [\"" + $velo_fname + "\"] " +
+			"\"float wx\" [" + $res[0] + "] " +
+			"\"float wy\" [" + $res[1] + "] " +
+			"\"float wz\" [" + $res[2] + "] " +
+			"\"float volume_step\" [" + $volume_step + "] \"float cube\" [" + $cube + "] ";
+
+		$rib_string += "TransformEnd "; 
+
+		$rib_string += "Scale " + $dim[0] + " " + $dim[1] + " " + $dim[2] + " ";
+
+		if($cube)
+		{
+
+		$rib_string    += "Patch \"bilinear\" \"P\" [-0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 -0.5 0.5 0.5 0.5 0.5] "
+				+ "Patch \"bilinear\" \"P\" [-0.5 -0.5 -0.5 -0.5 0.5 -0.5 0.5 -0.5 -0.5 0.5 0.5 -0.5] "
+				+ "Patch \"bilinear\" \"P\" [-0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5 0.5 -0.5 -0.5 0.5 0.5] "
+				+ "Patch \"bilinear\" \"P\" [0.5 -0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 -0.5 0.5 0.5 0.5] "
+				+ "Patch \"bilinear\" \"P\" [-0.5 0.5 -0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 0.5 0.5 0.5] "
+				+ "Patch \"bilinear\" \"P\" [-0.5 -0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 0.5] ";
+
+		}else
+		{
+		
+		$rib_string += "Patch \"bilinear\" \"P\" [-0.5 -0.5 0 -0.5 0.5 0 0.5 -0.5 0 0.5 0.5 0] ";
+
+		}
+
+	$rib_string += "AttributeEnd ";
+
+
+	setAttr -type "string" ( $loc_shape + ".ribBox" ) $rib_string;
+}

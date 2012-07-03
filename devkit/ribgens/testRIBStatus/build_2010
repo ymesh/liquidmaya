@@ -1,0 +1,7 @@
+#!/bin/bash
+
+make MAYA_VERSION=2010
+make MAYA_VERSION=2010 install
+make MAYA_VERSION=2010 clean
+
+

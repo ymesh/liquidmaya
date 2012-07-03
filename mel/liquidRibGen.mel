@@ -1,0 +1,139 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+
+//
+//  Creation Date:  June 20, 2000
+//
+//
+//  Description:
+//      Liquids RibGen Interface.
+//
+//  Input Arguments:
+//
+//  Returns:
+//
+
+global proc liquidRibGenParameterEditor()
+{
+  string $selectedNode[] = `ls -dag -s -sl`;
+  if ( size($selectedNode) > 0 ) 
+  {
+    string $liquidShaderNode = `getAttr ( $selectedNode[0] + ".liquidRibGen" )`;
+    //liquidParamDialogWindow $liquidShaderNode "surface";
+  } 
+  else 
+    print "No DAG Node Selected...";
+}
+
+global proc liquidRibGenDelete()
+{
+  string $selectedNode[] = `ls -dag -s -sl`;
+  if ( size($selectedNode) > 0 ) 
+  {
+    string $currentNode;
+    for ( $currentNode in $selectedNode ) 
+    {
+      if ( `attributeQuery -node $currentNode -ex "liquidRibGen"`) 
+      {
+        deleteAttr ( $currentNode + ".liquidRibGen" );
+        print "Deleted.";
+      }
+    }
+  } 
+  else 
+    print "No DAG Node Selected...";
+}
+
+global proc string liquidNewRibGen( string $filename )
+{
+  int $i;
+  string $ext = (`about -win`)? ".dll" : ".so";
+  string $shortName = `workspace -pp $filename`;
+  string $longName;
+  string $subShaderName[];
+  tokenize $shortName "." $subShaderName;
+  $longName = $subShaderName[0];
+  for ($i = 1; $i < ( size($subShaderName) - 1 ); $i++)
+    $longName = ( $longName + "." + $subShaderName[$i] );
+  
+  tokenize $longName "/" $subShaderName;
+  $shortName = $subShaderName[( size($subShaderName) - 1)];
+
+  string $newNodeName = ( "liquidRibGen" + $shortName );
+  if ( `objExists $newNodeName` ) 
+  {
+    string $testNodeName = $newNodeName;
+    for( $i = 1;; $i++ ) 
+    {
+      string $cNum = $i;
+      $testNodeName = ( $newNodeName + $cNum );
+      print $testNodeName;
+      if ( !`objExists $testNodeName` ) 
+        break;
+    }
+    $newNodeName = $testNodeName;
+  }
+
+  createNode "oldBlindDataBase" -n $newNodeName;
+
+  addAttr -ln "RibGenSo" -dt "string" $newNodeName;
+  addAttr -m -ln "assignedObjects" -at message $newNodeName;
+  setAttr ( $newNodeName + ".RibGenSo" ) -type "string" ( $longName + $ext );
+
+  return $newNodeName;
+}
+
+global proc int liquidAssignRibGen( string $node, string $ribGenNode )
+{
+
+  if ( `attributeQuery -node $node -ex "liquidRibGen"`) 
+    deleteAttr ( $node + ".liquidRibGen" );
+  
+  addAttr -ln "liquidRibGen" -at message $node;
+  connectAttr -f ( $ribGenNode + ".assignedObjects" ) ( $node + ".liquidRibGen" );
+
+  
+  
+  return true;
+}
+
+global proc liquidAssignRibGenCMD()
+{
+  string $selectedNode[] = `ls -dag -s -sl`;
+  string $ext = (`about -win`)? "*.dll" : "*.so";
+  if ( size($selectedNode) > 0 ) 
+  {
+    string $path = `fileDialog -dm $ext`;
+    if ( `filetest -f $path` ) 
+    {
+      string $ribGenNodeName = `liquidNewRibGen $path`;
+      string $currentNode;
+      for ( $currentNode in $selectedNode ) 
+        liquidAssignRibGen $currentNode $ribGenNodeName;
+    }
+  }
+}
+
+//print "Initialized Liquid RibGen Interface...\n";

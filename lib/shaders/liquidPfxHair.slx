@@ -1,0 +1,135 @@
+surface
+AQSIS_V 1.6.0
+
+
+segment Data
+
+USES 460128
+
+param uniform  float specularPower
+param uniform  float translucence
+param uniform  color specularColor
+output param varying  color pfxHair_vtxColor
+output param varying  color pfxHair_vtxOpacity
+varying  vector T
+varying  vector V
+varying  color Diff
+varying  color Spec
+uniform  string pass
+varying  float b0::b1::theta
+varying  float b0::b1::cosang
+
+
+segment Init
+	pushif 3
+	pop specularPower
+	pushif 0
+	pop translucence
+	pushif 0
+	setfc
+	pop specularColor
+	pushif 0
+	setfc
+	pop pfxHair_vtxColor
+	pushif 1
+	setfc
+	pop pfxHair_vtxOpacity
+
+
+segment Code
+	pushv dPdv
+	normalize
+	pop T
+	pushv I
+	normalize
+	negp
+	pop V
+	pushif 0
+	setfc
+	pop Diff
+	pushif 0
+	setfc
+	pop Spec
+	pushis ""
+	pop pass
+	pushis "user:pass"
+	option pass
+	drop
+	S_CLEAR
+	pushis "deepshadow"
+	pushv pass
+	eqss
+	S_GET
+	RS_PUSH
+	RS_GET
+	RS_JZ 1
+:1
+	RS_INVERSE
+	RS_JZ 0
+	pushv P
+	init_illuminance
+	jz 3
+:2
+	S_CLEAR
+	pushv P
+	pushis ""
+	illuminance
+	S_JZ 4
+	RS_PUSH
+	RS_GET
+	pushv L
+	normalize
+	pushv T
+	dotpp
+	acos
+	pop b0::b1::theta
+	pushv b0::b1::theta
+	sin
+	setfc
+	pushv Cl
+	mulcc
+	pushv Diff
+	addcc
+	pop Diff
+	pushv V
+	pushv T
+	negp
+	dotpp
+	acos
+	pushv b0::b1::theta
+	subff
+	abs
+	cos
+	pop b0::b1::cosang
+	pushv specularPower
+	pushv b0::b1::cosang
+	pow
+	setfc
+	pushv Cl
+	mulcc
+	pushv Spec
+	addcc
+	pop Spec
+	RS_POP
+:4
+	advance_illuminance
+	jnz 2
+:3
+	ambient
+	pushv specularColor
+	pushv Spec
+	mulcc
+	pushv pfxHair_vtxColor
+	pushv Diff
+	mulcc
+	addcc
+	addcc
+	pop Ci
+:0
+	RS_POP
+	pushv pfxHair_vtxOpacity
+	pop Oi
+	pushv Oi
+	pushv Ci
+	mulcc
+	pop Ci

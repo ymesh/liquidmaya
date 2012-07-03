@@ -1,0 +1,425 @@
+2006-10-02 mauritio
+  - Fixed display "quantize" to be a float[4] token (was int[4])
+  - Added "trace:maxdepth" 0 to really switch ray-tracing off
+  - Switched the following files to use boost smart pointers or STL vectors instead of C-style memory allocation:
+    * liqRibMeshData.cpp
+    * liqRibNuCurveData.cpp
+    * liqRibSubdivisionData.cpp
+    * liqRibSurfaceData.cpp
+    * liqTokenPointer.cpp
+  - Switched liqTokenPointer.cpp to use std::string instead of char*
+
+
+2005-10-24 pleprince
+	- fix: liqMaxDiffuseDepth and liqMaxSpecularDepth were defined as float, although they should be ints.
+	- fix: rib attributes are now correctly exported.
+	- fix: substitution is working again
+	- added  $OBJ and $OBJPATH to string substitution
+2005-10-14 geohar
+	- Added support for dag-node attributes Color,Opacity and Matte mode.
+	  The strategy when searching for these is dag first, then shader, then maya shader node
+	- Added Rob's Hypershade -> RSL converter
+	- Fixed an issue (some time ago really) where the texture memory would end up in the rib with
+	  a limited size despite the current setting, causing excessive render times
+	- Added delete crease / hole / stitch group for liquid tagged subdivs
+	- Assigning to the hypershade selection for shaders is now properly supported
+
+2005-03-15 geohar
+	- Fixed a really hard to track down bug where liquidParamDialogWindow's attrColorSliderGrp
+	  controls would crash.  Caused by an attribute being used as a color without -usedAsColor
+	  tagged on the attribute, and when the color is defined as double3.  I now define all
+	  colors as float3 and use -usedAsColor on them.  This is one to watch out for!
+
+2005-03-03 geohar
+	- 3Delight 4.0.1 as default 3Delight to build against
+	- Made Swap_UV match in mel and C++ code
+
+2005-02-12 geohar
+	- Changed liquidPlug to source liquidStartup.mel from LIQUIDHOME if it exists
+	- Updated OSX build to include 3Delight + some tidying
+	- liquidStartup.mel now sources liquidShutdown.mel
+	- Fixed unmake liquidRenderCurve
+	- changed liquid user home to ~/.liquid
+
+Release 1.6.7 ------------------------------------------------------------------
+
+2005-02-11 mauritio
+    - Fixed liqPreviewShader on Linux -- untested on OS X
+    - Linux installer script now compiles Liquid's shaders
+
+
+2005-02-09 mauritio
+
+    - Added global/fixed code for separate camera motion blur control
+
+    - Various attribute UI improvements
+
+
+2005-02-08 mauritio
+    - Fixed bug in liqRibNode that led to early exiting of the attribute scanning loop (and thus no attributes ever ending up in the RIB)
+    - Removed compiledShaderExt/shaderExt redundancy from Globals -- Fluid now always uses the shaderExt set in the Globals' Renderer tab
+    - Merged usability enhancements contributed by Alexandre Paes to liquidGlobals, liquidFileBrowser and liquidParamaDialogWindow
+    - Added Slackware Makeopts and modified Makefile from Alexandre Paes
+
+
+2005-02-04 mauritio
+
+    - Fixed orientation in liqPreviewShader (normals pointed inwards)
+
+
+
+2005-01-30 mauritio
+
+    - Merged cubic point light shadow map support from Yuri in liqRibLightData (compiles ok but yet to be tested)
+
+
+2005-01-20 geohar
+    - Merge to SF repository
+      * Fix LIQDEBUGPRINTF for OSX
+      * swapped final fallback for temp location, as it had windows and nonwindows cases swapped
+      * Fixed Mixed line ending issues - (lots of)
+      * Fixed the Tag as Subdivision surface menu + GUI
+
+
+Release 1.6.6 ------------------------------------------------------------------
+
+2005-01-11 mauritio
+  - Fixed a missing motion blur data initialization bug in the ribNode constructor
+
+2005-01-09 mauritio
+  - Merged first batch of Yuri Meshalkin's cool additions
+    * New subdiv crease interface works for mesh-based subdivs
+    * Selection of different target renderers basically works
+    * New Hider and Jitter globals
+
+
+Release 1.6.5 ------------------------------------------------------------------
+
+2005-01-06 mauritio
+  - Fixed a typo in liquidAttributes.mel
+  - Added support for certain ray tracing attributes on lights:
+    * lightsoures are now enclosed in Attribute blocks in the RIB
+    * RiIlluminate() is used to switch the light on after the block
+  - RIB & display filename from the globals is handled more logical now (I hope):
+    * the scene's name is used as the display name if the latter was omitted
+    * the display name is never used as the RIB basename
+    * the RIB basename is used as the display name if the latter was omitted
+    * the scene's name is used as the RIB basename if the latter was omitted
+
+2005-01-05 mauritio
+  - Added code to support different shutter configs in liqRibTranslator and a new Liquid global to select one of them
+
+2005-01-04 mauritio
+  - Buffed up the commonrules.mk and commonrules.windows.mk to support multiple renderer build targets and automatically creating the resp. setup under Windows
+
+2005-01-03 mauritio
+  - Added new liquidpoint, liquiddistant and liquidspot lightsource shaders
+  - Changed liqRibLightData to instance these shaders by default and to write out any additional Maya light attributes supported by them
+  - Made $LIQUIDHOME/shaders part of the default shader searchpath. This ensures that Liquid's new lightsource shaders are found
+
+2005-01-02 mauritio
+  - Added code for trace set membership management in liqRibNode, liqRibTranslator and added new support MEL scripts
+    * setting .liqTraceSet on a Maya Set to true puts all members of this set into a trace group of the same name in the RIB
+    * the object's full dag path itself is also added to the trace set, thus making it possible to determine self intersections in SL
+  - Makefile now also puts the build date into LIQUIDVERSION
+
+2004-12-29 mauritio
+  - Added code to handle additional Pixie/PRMan attributes in liqRibNode & liqRibTranslator
+  - The Windows makefile now automatically updates the version number in the Windows installer script
+
+2004-12-22 mauritio
+  - Split RIB output in options, lights, coordsys and object blocks in liqRibTranslator to prepare for supporting archived output
+
+2004-12-15 mauritio
+  - Added code to support 3Delight's compact sphere particles
+  - Added code to support setting RMan attributes through Maya's Attribute Editor in liqRibNode & liqRibTranslator
+  - Added initial MEL AE templates
+
+2004-12-09 mauritio
+  - Added code to issue a warning if TMP and TEMP environemnt variables are undefined in liqPreviewShader
+  - Fixed "Auto-Update" in Fluid to account for choosen preview settings
+  - Activated Rob's particle motion blur check code on Windows platform
+  - Liquid now uses inline declartions only. No bloated RIBs with Declare "x" "y" anymore
+    * Switched assignTokenArrays* functions in liqGlobapHelpers.cpp to inline parameter token names
+    * Added new member function getDetailedTokenName() to liqTokenPointer
+    * getTokenName() and the non-private use of getRiDeclare() are deprecated now
+
+2004-10-29 mauritio
+  - Fixed an extremely subtle memory allocation bug that got exposed through the recent changes in liqTokenPointer
+
+
+Release 1.6.4 ------------------------------------------------------------------
+
+2004-09-29 mauritio
+  - Overhaul on st & uv handling for Mesh, SubdivMesh and MayaSubdiv
+    * Fixed PRMan/3Delight code for STs on Maya Subdivs -- works now
+    * Added new Liquid Global outputMeshUVs to control optional additonal output of "u" + "v" for MtoR compatibility
+    * Made "st" always "facevarying" and removed separate "s" + "t" stuff
+
+2004-09-27 mauritio
+  - Fixed code for handling of arrays in liqTokenPointer
+    * Overloaded ::set() method to account for changes
+    * Old ::set() method should be replaced everywhere
+
+2004-09-23 mauritio
+  - Added temporary code to use "facevertex" instead of "facevarying for 3Delight in liqRibSubdivisionData & liqRibMayaSubdivisionData
+  - Added code to improve shader searchpath handling
+    * Automatically set to "rmanshader" if empty
+    * Added '@' (default searchpath)
+  - Fixed RiErrorHandler for 3Delight
+
+
+Release 1.6.3 ------------------------------------------------------------------
+
+2004-09-14 mauritio
+  - Added new options to and buffed up liquidPreviewShader
+    * Added -dd | -displayDriver
+    * Added -dn | -displayName
+    * Added -ds | -displaySize
+    * Added -cube primitive
+    * Added -cylinder primitive
+    * Added -plane primtive
+    * Added -torus primtive
+    * Added -teapot primitive
+    * Added -npb | -noBackPlane
+    * Added -shortShaderNames
+    * Removed -noIt parameter
+    * Added back plane rendering support
+    * Added liquidchecker shader for backplane
+
+
+Release 1.6.2 ------------------------------------------------------------------
+
+2004-08-30 mauritio
+  - Added new global to control writing of all shaders in deep shadow passes
+  - Fixed constructor and destructor in liqRibNode.cpp to account for LIQMAXMOTIONSAMPLES
+  - Made LIQDEBUGPRINTF compatible with gcc variable parameter macro syntax on gcc-supported platforms
+
+2004-07-28 mauritio
+  - added code to automatically substitute baad backslashes on Windows in liquidParamDialogWindow.mel
+
+2004-07-10 geohar
+  - Added Pixie support
+    * Added Sdr Parse mel for Pixie's sdr compiled format
+    * Added preview support for Pixie
+    * Added support for pixie's shader teller
+  - Added OSX support
+    * Guarding Malloc.h includes for OSX and using stdlib.h instead
+    * Adding OSX process launcher
+    * Adding OSX helpers
+    * Added OSX Xcode project, note that some of the paths will need altering for your machine.  In particular, the file sdr.cpp should be removed unless building for pixie (in which case you'll need to locate the file).  Also, you may need to add libraries to the link list for other renderers....
+
+
+Release 1.6.1 ------------------------------------------------------------------
+
+2004-07-25 mauritio
+  - Deactivated the code in liquidReAttachParams.mel that led to flushing of string paramater values on shader reload in Fluid
+  - Fixed Maya Subdivision Surface code (fix submitted by Cedric Paille)
+    * Maya subdivs now work, including creases
+    * Hardness is ignored, this is a limitation of the Maya API
+    * Creased edges and vertices are written with a hardness of 6.0 now, this gives a nice, subtle bevel and ensures that surfaces are still tangent continous at creases
+  - Added support for user Options "shadow" and "deepshadow" in resp. shadow passes for querying in shaders
+  - Added code in liquidTransGetSceneName() to account for the fact that from Maya 6 on unsaved scenes don't have an extension
+    * Liquid compiles and works well now with Maya 6/Windows
+
+2004-07-02 mauritio
+  - Light linking is no longer (erratically) written out in a shadow pass
+  - Lights and light linking can now be written out in a deep shadow pass if the "Output Lightsources" in the "Deep Shadow Maps" rollout of the Liquid Render Globals is checked
+  - Added full support (and new Liquid global) for relative pathnames; RIBs, archives, the job script etc. now all contain relative pathnames if this option is switched on
+  - Added command line support for rendering sequences to the dojob.py Python script
+
+2004-06-25 mauritio
+  - Added simple MEL parameter expression scripting valid in all liquid
+    string input fields; syntax:
+    [MEL code]
+    square brackets must be escaped, e.g.:
+    [getAttr myobj.userArray\[3\]]
+    (CURRENTLY DEACTIVATED, NEEDS SOME FIXING IN THE PARSER!!!)
+  - Fixed uninitialized string array bug with blobbies; blobbies code activated -- blobbies now actually work
+  - Replaced all if(debug... code with LIQDEBUGPRINTF(...
+    - Todo: check if this works everywhere
+  - Fixed Motion Samples glitch; now the maximum number of motion samples is defined in liquid.h:
+    LIQMAXMOTIONSAMPLES 16
+    * There's also a bounds check done against this, when the resp. Liquid global is read
+  - Replaced 'endl' with 'std::endl' in liqRenderScript.h to solve endl problem on win32
+  - Added quotes to render script filename in win32 build
+  - Added binary RIB output support for 3Delight
+  - Added deep shadow support for 3Delight's "dsm" driver
+  - Changed Opacity to be a color instead of a float
+
+2004-06-20 mauritio
+  - Fixed __Pref bug with subdiv-/polygon meshes; __Pref was not initialized correctly and hence never got written out correctly to the RIB
+  - Fixed buffer overflow bug with subdivs that have "interpolateboundary" checked (fix submitted by Olivier Paquet)
+  - Fixed shader preview in Fluid under Windows
+
+2004-06-10 mauritio
+  - Displacement bounds are now explicitly specified in "shader" space; there's no way to currently change this
+  - Added new Liquid global: compiledShaderExt; can be set to e.g. "sdl" for 3Delight or "slo" for PRMan
+  - Liquid now writes out all coordinate systems after the lights but before any other stuff in the RIB
+  - If a Maya light has raytraced shadows switched on, Attribute "light" "string shadows" [ "on" ] is now always written to the RIB
+  - New attribute liquidInvisible; works as mtorInvisible -- tagged objects are ignored by Liquid
+
+2004-05-30 mauritio
+  - Added quotes to all filenames for win32. Now pathnames with spaces will work in bloody Windoze
+  - new Liquid global: preGeom; the contents of this string is written to the RIB after lights and coordinate systems, but before geometry
+  - Liquid now understands the mtorSubdiv attribute
+  - Considerably buffed up resp. changed the entire MEL interface;
+    * Fixed capitalization everywhere
+    * Changed naming to be more MtoR compatible
+    * Added separators and ellipses
+    * Reordered menus where appropriate
+    * Added support for file browser dialogs to Fluid string input fields
+    * Made Pixel Filter a dropdown menu
+  - Removed BMRT tab and options from MEL interface as they are obsolete and should be replaced by a new set of raytrace options as e.g. in MtoR
+  - Fixed 3Delight settings in liqDelightRenderer.cpp (almost all where wrong)
+
+
+Release 1.6 --------------------------------------------------------------------
+
+2004-05-22 chapman
+  - Fixed show last RIB/script for win32, which was trying to use nedit
+
+2004-04-07 pieke
+  - Added deepshadow support based on Pixar's RenderMan spec
+    - Nodes for light shaders now have the following new attributes:
+      * deepShadows (on/off)
+      * pixelSamples (deep shadows can be supersampled - useful for motion)
+      * volumeInterpretation (discrete vs continuous)
+    - If using deep shadows, the shadow RIBs will contain RI motion blocks
+
+2004-04-06 chapman
+  - added support for XML format render scripts
+  - tidied up render-script code considerably (attribute and command line changes below)
+    - render global changed name from 'previewMode' to 'launchRender'
+    - render global changed name from 'lastAlfredScript' to 'lastRenderScript'
+    - render global changed name from 'cleanAlf' to 'cleanRenderScript'
+    - render global changed name from 'ignoreAlfred' to 'useRenderScript' (and meaning reversed)
+    - render global changed name from 'alfredFileName' to 'renderScriptFileName'
+    - render globals added for 'renderScriptFormat' and 'renderScriptCommand'
+    - default alfred key changed from 'maya3.0' to 'maya'
+    - command line params changed from -alf/-noalf to -renderScript -noRenderScript
+    - command line params changed from -preview/-noPreview to -launchRender/-noLaunchRender
+    - added a pre-job command to the render globals (there was already a post-job and pre/post-frame, but no pre-job)
+  - 'About' box added to Liquid menu with some basic info
+  - fixed win32 build to use 'cmd.exe /c del' for cleanup commands rather than /bin/rm
+
+
+
+Release 1.5.5 ------------------------------------------------------------------
+
+2004-02-08 chapman
+  - Maya 5.0 release
+  - fixed Fluid crashing when reading PRMan .slo shaders
+
+2004-02-08 scruby
+  - face-varying normals fixed for subdiv meshes
+
+
+Release 1.5.4 ------------------------------------------------------------------
+
+2003-4-16 chapman
+  - Inverted UVs on subdiv meshes fixed
+  - Added liqCustomNode which people can inherit from when writing custom Maya nodes in order to have
+    liquid output the node to the RIB stream. A mini Liquid SDK.
+  - Reversed order of this file so newest changes are always top of file
+
+
+Release 1.5.3 ------------------------------------------------------------------
+
+2003-3-21 chapman
+  - Added interpolate boundary flag to meshes marked as subdivs - otherwise open surfaces shrink when subdiv
+  - Default Maya spot/directional lights now correctly cast depth mapped shadows (previously you needed to
+    assign custom light shaders)
+
+2003-3-4 sdeverly
+  - Fixed help search path in liquidMenuHelp.mel using LIQUIDHOME or LIQUIDHELPHOME env vars
+
+2003-2-28
+  - Added a new subsystem to handle differing renderer capabilities and
+    requirements at rib-gen time.
+  - synchronized the Pref attribute generating code with the RibSurface
+    and RibMesh output code.
+  - renamed a couple of classes using the new liq prefix
+
+2003-2-26 chapman
+  - Added syntax() for liquid command, so 'help liquid' reports usage in mel
+  - Added liquidWriteArchive command for more flexible (including hierarchical) rib archive exporting
+
+2003-2-24 sdeverly
+  - Added libliquid.a in build phase.
+  - Renamed liquidPreviewShader to liqPreviewShader.
+  - Output error messages to stderr in liqShader.
+  - Shader previewing handled in the same way for all renderers.
+  - Added liquidParseSlShader.mel
+  - Added lib/shaders/empty.sl
+
+
+Release 1.5.2 ------------------------------------------------------------------
+
+2003-2-17 sdeverly
+  - Changed -D_IRIX to -DIRIX in Makefile.irix
+
+2003-2-14 sdeverly
+  - Output in ../liquid<LIQUIDVERSION>/bin/<OS NAME>/<MAYA VERSION>
+  - Added -renderer option to liquidPreviewShader command
+  - Added -sshn option to liquidPreviewShader command ( short shader name )
+
+2003-2-7 sdeverly
+  - Made shader preview work with entropy
+  - Made Liquid work with aqsis
+
+2002-12-17 sdeverly
+  - Added this file
+  - Changed Liquid version to 1.5.1
+  - compilation
+  - Removed conditionnal statements which do not work on irix
+  - Added LIQRMAN env variable defaulted to aqsis
+  - Added default LIQRMANPATH for each LIQRMAN
+  - Added default MAYA_LOCATION value
+  - Added prelimanary checks for MAYA_LOCATION and LIQRMANPATH
+  - Added Makefile.<os name> with specific flags
+  - Corrected compilation flags
+  - Output in ../bin/liquid<LIQUIDVERSION>/<MAYA VERSION>/<OS NAME>
+  - Compilation ok with Entropy on suse 71
+  - Compilation ok with Entropy on irix 6.5.17
+    * cleaned up code
+  - Added LIQDEBUGPRINTF macro
+  - Removed include <slo.h> where not used
+  - Moved rTokenPointer to liqTokenPointer with .h and .cpp
+  - Added liquid prefix to Rib<type>Data classes
+  - Used LIQUIDVERSION defined in Makefile
+  - Removed time check in registerPlugin
+  - Removed share of CVs array with tokens liquidRibSurfaceData
+  - Removed liquidRibParticleData pcolor, pwidth, particles pocap menbers
+  - Removed all sprintf used as strcpy
+  - Removed liquidRibMeshData polyuvparam
+  - Used simple char for MString index and rindex instead of string
+  - Changed ifdef UNIX to ifndef _WIN32
+  - Changed #include <malloc.h> to #include <stdlib.h> for efence when not _WIN32
+  - Removed normalizeNurbsUV global option ( always true )
+  - Changed struct structShader to  class liqShader
+  - Changed SLO_TYPE_* to SHADER_TYPE_*
+
+TODO: --------------------------------------------------------------------------
+  - Compilation ok with PRman
+  - Compilation ok with Air
+  - Compilation ok with Dotc
+  - Compilation ok with 3Delight
+  - Corrected Indentation 2 spaces
+  - Renamed liquidRib<type>Data into liqRib<type>Data
+  - Changed loading message
+  - Added m_ prefix to class members
+  - Added liq prefix to class and struct
+  - Tried to make class member private
+  - Added typedef struct where needed
+  - Use assert only in debug version
+  - Fixed various string overflow
+  - Remove global variables
+  - Remove liquidVersion
+  - Remove isRegistred
+  - Create a lidJobOption class and pass it to data.write( ) to remove last global variables
+  - Rewrote general shader parsing
+  - Check float to int conversion warning messages
+  - Remove all alloca calls
+  - Use const_cast for const char * to char * casting
+  - Fixed bug : crash in fluids editor when the plugin is unloaded and reloaded

@@ -1,0 +1,25 @@
+global proc AEliquidFGGIOverrideFlags(string $node)
+{
+  editorTemplate -beginLayout "Liquid" -collapse true;
+
+    editorTemplate  -beginLayout "Rendering" -collapse false;
+
+      editorTemplate -label "Render Subdivison Mesh" -addControl "liqSubdiv" "AEliquidRenderSubdivisonMeshActive";
+      editorTemplate -label "Interpolate Boundary" -addControl "liqSubdivInterpolateBoundary";
+
+    editorTemplate -endLayout;
+
+  editorTemplate -endLayout;
+}
+
+global proc AEliquidRenderSubdivisonMeshActive(string $node)
+{
+  string $nodes[] = `ls -dag -sl`;
+  string $currentNode;
+    for ( $currentNode in $nodes ) {
+    if ( `attributeQuery -node $currentNode -ex "liqSubdiv"` ){
+      int $dfm = !`getAttr ($node + ".liqSubdiv")`;
+      editorTemplate -dimControl $node "liqSubdivInterpolateBoundary" $dfm;
+    }
+  }
+}

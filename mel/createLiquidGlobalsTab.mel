@@ -1,0 +1,194 @@
+global proc int liquidTabInUnifiedRenderGlobals()
+{
+  string $parentForm = `setParent -query`;
+  return ( gmatch( $parentForm, "unifiedRenderGlobalsWindow*" ) );
+}
+
+global proc liquidCreateMayaGlobalsTab( string $name )
+{
+  if ( !liquidGlobalsExists() ) 
+  liquidCreateGlobals();
+
+  //setUITemplate -pushTemplate attributeEditorTemplate;
+
+  setParent liquidUnifiedRenderGlobalsMainTabLayout;
+  eval( "liquidGlobals" + $name + "Tab" );
+  string $newlayout = ("liquidGlobals"+$name+"Set");
+  if ( `layout -q -ex $newlayout` ) 
+    tabLayout -e -tabLabel $newlayout $name liquidUnifiedRenderGlobalsMainTabLayout;
+
+  //setUITemplate -popTemplate;
+}
+
+global proc liquidCreateMayaGlobalsFrame( string $name )
+{
+  if ( !liquidGlobalsExists() ) 
+  liquidCreateGlobals();
+
+  setParent liquidUnifiedRenderGlobalsMainColumnLayout;
+  frameLayout -label $name -pec ( "liquidExpandGlobalsLayout liquidRenderGlobals" + $name + "Frame;" ) ( "liquidRenderGlobals" + $name + "Frame" );
+    eval( "liquidGlobals" + $name + "Tab" );
+  setParent ..;
+}
+
+
+global proc liquidCreateMainGlobalsTab()
+{
+  if ( !liquidGlobalsExists() ) 
+    liquidCreateGlobals();
+
+  if ( `layout -q -ex liquidTabLayout` ) 
+    layout -e -m true liquidTabLayout;
+
+  setUITemplate -pushTemplate renderGlobalsTemplate;
+  setUITemplate -pushTemplate attributeEditorTemplate;
+
+  // create the main tab layout
+  columnLayout -adjustableColumn true liquidTabColumn;
+  string $cmd = ("tabLayout -e -w (`window -q -w unifiedRenderGlobalsWindow`) -h (`window -q -h unifiedRenderGlobalsWindow`-130) liquidUnifiedRenderGlobalsMainTabLayout;");
+
+  tabLayout -scrollable true -minChildWidth 200
+            -cc $cmd
+            -sc $cmd
+            liquidUnifiedRenderGlobalsMainTabLayout;
+
+  if ( `layout -q -ex liquidTabLayout` ) 
+    layout -e -m true liquidTabLayout;
+
+  liquidCreateMayaGlobalsTab( "Frame" );
+  liquidCreateMayaGlobalsTab( "File" );
+  liquidCreateMayaGlobalsTab( "Image" );
+  liquidCreateMayaGlobalsTab( "Displays" );
+  liquidCreateMayaGlobalsTab( "Rays" );
+  liquidCreateMayaGlobalsTab( "Options" );
+  liquidCreateMayaGlobalsTab( "Job" );
+  liquidCreateMayaGlobalsTab( "Renderer" );
+  liquidCreateMayaGlobalsTab( "Fluid" );
+
+  if ( `layout -q -ex liquidTabLayout` ) 
+    tabLayout -e -cc $cmd -sc $cmd liquidTabLayout;
+
+  if ( `layout -q -ex liquidTabLayout` ) 
+    layout -e -m false liquidTabLayout;
+
+  setUITemplate -popTemplate;
+  setUITemplate -popTemplate;
+}
+
+
+global proc liquidUpdateMayaGlobals()
+{
+  //print ("+++  liquidUpdateMayaGlobals  +++\n");
+
+  if ( `layout -q -ex liquidCommonTab` ) 
+    layout -e -m false -vis false liquidCommonTab;
+
+  float $resx = `getAttr liquidGlobals.xResolution`;
+  float $resy = `getAttr liquidGlobals.yResolution`;
+  setAttr defaultResolution.width $resx;
+  setAttr defaultResolution.height $resy;
+  setAttr defaultResolution.deviceAspectRatio ($resx/$resy);
+}
+
+
+global proc int liquidmayaHasCommonGlobalValue( string $global )
+{
+
+  int 	$isSupported = true;
+
+  switch ( $global )
+  {
+    case "width":
+    case "height":
+    case "pixelAspectRatio":
+    case "preRenderMel":
+    case "postRenderMel":
+      $isSupported = true;
+      break;
+    default:
+      $isSupported = false;
+      break;
+  }
+
+  return $isSupported;
+}
+
+global proc string liquidmayaGetCommonGlobalValue( string $global)
+{
+  //
+  // Description:
+  //	This procedure is called when the current renderer has changed from the
+  //	Maya Software renderer to something else.
+  //	This procedure returns the value of the common global specified by
+  //	$global.
+  //	For a complete list of valid values for the $global argument, and to
+  //	see how this procedure is used, see copyCommonRenderGlobals.mel.
+  //
+  // Returns:
+  //	The value of the specified common global, as a string.
+  //
+
+  string 	$value;
+
+  switch ( $global )
+  {
+    case "width":
+      $value = `getAttr liquidGlobals.xResolution`;
+      break;
+    case "height":
+      $value = `getAttr liquidGlobals.yResolution`;
+      break;
+    case "pixelAspectRatio":
+      $value = `getAttr liquidGlobals.pixelAspectRatio`;
+      break;
+    case "preRenderMel":
+      $value = "";
+      break;
+    case "postRenderMel":
+      $value = "";
+      break;
+    default:
+      warning(
+        "liquidGetCommonGlobalValue() was asked for the value "
+        + "of a global ("
+        + $global
+        + ") it does not support. "
+        + "Modify liquidGetCommonGlobalValue() to fix the problem\n");
+      break;
+  }
+
+  return $value;
+}
+
+global proc liquidmayaSetCommonGlobalValue( string $global, string $value )
+{
+  print ("liquidSetCommonGlobalValue "+$global+"\n");
+
+  int $intValue;
+  float $floatValue;
+
+  switch ($global) {
+    case "width":
+      $intValue = $value;
+      setAttr liquidGlobals.xResolution $intValue;
+      break;
+    case "height":
+      $intValue = $value;
+      setAttr liquidGlobals.yResolution $intValue;
+      break;
+    case "pixelAspectRatio":
+            //
+        // We do not store pixel aspect ratio.  Only device aspect
+            // ratio is stored.
+            //
+      break;
+    case "preRenderMel":
+      if(!`about -evalVersion`)
+        setAttr -type "string" defaultRenderGlobals.preRenderMel $value;
+      break;
+    case "postRenderMel":
+      if(!`about -evalVersion`)
+        setAttr -type "string" defaultRenderGlobals.postRenderMel $value;
+      break;
+  }
+}

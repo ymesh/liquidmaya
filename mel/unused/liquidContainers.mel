@@ -1,0 +1,1005 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Philippe Leprince.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:  June 20, 2000
+//
+//
+//  Description:
+//      Liquids Shader Containers Interface.
+//
+//  Input Arguments:
+//
+//  Returns:
+//
+
+
+
+global proc liquidContainer_notYet()
+{
+  warning ("Not implemented Yet !");
+}
+
+global proc int liquidContainerWindowIsOpen( string $shortContainerName )
+{
+  if ( `window -q -ex ("liquidContainerWindow"+$shortContainerName)` ) return true;
+  else return false;
+}
+
+/**
+ * Container node drag callback.
+ * \return empty string array
+ */
+global proc string[] liquidContainer_nodeDragCB( string $dragControl, int $x, int $y, int $mods )
+{
+  return {};
+}
+
+/**
+ * Container node drop callback.
+ * should allow you to move nodes around in the containers
+ * \warning not implemented yet
+ */
+global proc liquidContainer_nodeDropCB( string $dragControl, string $dropControl, string $msgs[], int $x, int $y, int $type )
+{
+  //string $nodeLayout = substitute("_[a-zA-Z0-9]+$", $dragControl, "" );
+  //string $gridLayout = substitute("|[a-zA-Z0-9_]+$", $nodeLayout, "" );
+  //$gridLayout = substitute("|[a-zA-Z0-9_]+$", $gridLayout, "" );
+  //
+  //// find the new position
+  //float $row = `gridLayout -q -nr $gridLayout`;
+  //float $col = `gridLayout -q -nc $gridLayout`;
+  //float $cellw = `gridLayout -q -cw $gridLayout`;
+  //float $cellh = `gridLayout -q -ch $gridLayout`;
+  //
+  //float $cellx = trunc( $x / $cellw ) + 1;
+  //float $celly = trunc( $y / $cellh ) + 1;
+  //float $newPos = $cellx*$celly;
+  //print ($x+"/"+$cellw+", "+$y+"/"+$cellh+" -> "+$cellx+" "+$celly+" = "+$newPos+"\n");
+  //
+  //gridLayout -e -pos $nodeLayout $newPos $gridLayout;
+}
+
+/**
+ * creates a directory to store old container files so you can roll back.
+ * \return the dir path if successful, otherwise empty string.
+ * \warning does not raise an error if directory creation fails, only a warning.
+ */
+global proc string liquidContainer_getHistoryDir()
+{
+  // retrieve the current project path
+  string $projectPath = `workspace -q -rootDirectory`;
+
+  // check the existence of the preview directory
+  string $historyDir = ($projectPath+"liquidHistory");
+  int $failure = 0;
+  if ( !`filetest -d $historyDir` ) $failure = catch(`sysFile -makeDir $historyDir`);
+
+  if ( $failure ) {
+    warning ("Could not create \""+$historyDir+"\"");
+    return "";
+  }
+  return $historyDir;
+}
+
+/**
+ * Checks if the LCF file has already been loaded.
+ * \return 1 if the matching container already exists.
+ */
+global proc int liquidContainer_import_sanityCheck( string $filePath )
+{
+  string $containerList[] = liquidContainer_getContainerList();
+  int $result = 0;
+  for ( $c in $containerList ) {
+    print ($c+".rmanShaderLong\n");
+    if ( objExists( ($c+".rmanShaderLong") ) && `getAttr ($c+".rmanShaderLong")` == $filePath ) {
+      $result = 1;
+      break;
+    }
+  }
+  return $result;
+}
+
+global proc int liquidContainer_import_doIt( string $shortContainerName, string $filePath, string $fileType )
+{
+  //print ("importing "+$filePath+"\n");
+
+  // file readable ?
+  if ( !`filetest -r $filePath` ) error ("could not open "+$filePath);
+
+  if ( match("\\.[a-zA-Z0-9]+",$filePath ) != ".lcf" ) {
+    error ("This is not a Liquid Container File ! ( *.lcf )");
+  }
+
+  if ( liquidContainer_import_sanityCheck( $filePath ) ) {
+    string $replace = `confirmDialog  -title "Confirm" -message "This Container already exists !"
+                                      -button "Import as new container" -button "Cancel" -defaultButton "Cancel"
+                                      -cancelButton "Cancel" -dismissString "Cancel"`;
+    if ( $replace == "Cancel" ) return 1;
+  }
+
+  float $containerVersion, $containerFileVersion;
+  string $containerName, $containerPath, $containerDate, $containerAuthor;
+  string $loadedShader[];
+  string $loadedShaderPath[];
+  int $i = 0;
+
+  int $fhdl = `fopen $filePath "r"`;
+
+  // read header
+  string $line = strip(`fgetline $fhdl`);
+  while( gmatch( $line, "#*") || $line == "") {
+
+    if ( gmatch( $line, "#*Liquid container File*-*") ) {
+      $containerFileVersion = match("[0-9\\.]+", $line);
+    }
+    if ( gmatch( $line, "#*Name*:*") ) {
+      $containerName = substitute("#[ ]+Name[ ]+:[ ]+", $line, "");
+    }
+    if ( gmatch( $line, "#*Path*:*") ) {
+      $containerPath = substitute("#[ ]+Path[ ]+:[ ]+", $line, "");
+    }
+    if ( gmatch( $line, "#*Version*:*") ) {
+      $containerVersion = match("[0-9\\.]+", $line);
+    }
+    if ( gmatch( $line, "#*Date*:*") ) {
+      $containerDate = substitute("#[ ]+Date[ ]+:[ ]+", $line, "");
+    }
+    if ( gmatch( $line, "#*Author*:*") ) {
+      $containerAuthor = substitute("#[ ]+Author[ ]+:[ ]+", $line, "");
+    }
+    $line = strip(fgetline($fhdl));
+  }
+
+  // create container node
+  string $container = liquidContainer_newNode();
+  //print ("rename "+$container+" to "+$containerName+"\n");
+  string $new = `rename $container $containerName`;
+  setAttr -type "string" ($new+".rmanShader") $new;
+  setAttr -type "string" ($new+".rmanShaderLong") $containerPath;
+  setAttr ($new+".containerVersion") $containerVersion;
+  setAttr -type "string" ($new+".containerDate") $containerDate;
+  setAttr -type "string" ($new+".containerAuthor") $containerAuthor;
+
+  string $currentShader = "";
+  string $currentPath = "";
+
+  // loop over shaders
+  while( !`feof $fhdl` ) {
+
+    if ( gmatch( $line, "*:*") ) {
+
+      string $shader[] = stringToStringArray( $line, ":");
+
+      if ( gmatch( $shader[1], "*ribbox*") ) {
+
+        // Rib Box Case
+        $currentShader = liquidNewRibboxNode( $shader[0] );
+        $currentPath = "ribbox";
+        $loadedShader[$i] = $currentShader;
+        $loadedShaderPath[$i] = "ribbox";
+        $i++;
+      } else {
+
+        // Shader Case
+        if ( `filetest -r $shader[1]` ) {
+          $currentShader = liquidNewShaderNode( $shader[1] );
+          $currentPath = $shader[1];
+          $loadedShader[$i] = $currentShader;
+          $loadedShaderPath[$i] = $shader[1];
+          $i++;
+        } else {
+          warning ("could not load "+$shader[1]+" !");
+        }
+      }
+    }
+
+    if ( !gmatch( $line, "*:*") && $line != "" ) {
+      // set the current shader's attributes
+      if ( $currentPath == "ribbox" ) {
+
+        eval ("setAttr -type \"string\" "+$currentShader+".ribbox "+$line);
+
+      } else {
+
+        string $data[] = stringToStringArray( $line, " ");
+        string $dataType = substitute("\\[[0-9]+\\]", $data[0], "" );
+        string $dataArraySizeString = match("\\[[0-9]+\\]", $data[0]);
+        int $dataArraySize = (size( $dataArraySizeString ))? substituteAllString( substituteAllString( $dataArraySizeString, "[", ""), "]", ""):0;
+
+        switch( $dataType ) {
+
+          case "float":
+            if ( $dataArraySize ) {
+              string $floatData = stringArrayToString( $data, " ");
+              $floatData = substitute("^float\\[[0-9]+\\] [a-zA-Z0-9_]+ ", $floatData, "");
+              eval ( "setAttr -type doubleArray "+$currentShader+"."+$data[1]+" "+$dataArraySize+" "+$floatData );
+            } else {
+              if ( objExists( ($currentShader+"."+$data[1]) ) ) {
+                setAttr ($currentShader+"."+$data[1]) (float($data[2]));
+              }
+            }
+            break;
+
+          case "color":
+          case "point":
+          case "normal":
+          case "vector":
+            if ( $dataArraySize ) {
+              int $d;
+              for ( $d=0; $d<$dataArraySize; $d++ ) {
+                setAttr ($currentShader+"."+$data[1]+"_"+$d) (float($data[3*$d+2])) (float($data[(3*$d+3)])) (float($data[(3*$d+4)]));
+              }
+
+            } else {
+              if ( objExists( ($currentShader+"."+$data[1]) ) ) {
+                setAttr ($currentShader+"."+$data[1]) (float($data[2])) (float($data[3])) (float($data[4]));
+              }
+            }
+            break;
+
+          case "string":
+            if ( objExists( ($currentShader+"."+$data[1]) ) ) {
+                string $fullString = "";
+                for ( $l=2; $l<size( $data ); $l++ ) {
+                  $fullString += ($data[$l] + " ");
+                }
+                eval ("setAttr -type \"string\" "+$currentShader+"."+$data[1]+" "+strip($fullString));
+              }
+            break;
+
+          default:
+            error ("Unknown data type : "+$dataType);
+            break;
+        }
+      }
+    }
+
+    $line = strip(fgetline($fhdl));
+  }
+
+  fclose $fhdl;
+
+  // fill the lists on the container node
+  liquidContainer_assignToContainer( $new, $loadedShader );
+
+  // refresh the list in fluid
+  liquidFluidUpdateList();
+
+  return true;
+}
+
+/**
+ * Exports a given container node as a text file.
+ * It starts by checking if the file already exists. If it does, it will ask whether you want to overwrite it or not.
+ * If you do, the version number will be incremented and the old container moved to an archive directory.
+ * \param $shortContainerName The name of the container node
+ * \param $filePath The full path to the file
+ * \param $fileType The filetype should be "*.lcf"
+ * \return true if successful. The file dialog won't close if true is not returned.
+ */
+global proc int liquidContainer_export_doIt( string $shortContainerName, string $filePath, string $fileType )
+{
+  float $version = 1.0;
+
+  // warning : non-platform-agnostic !! *********************
+  string $date;
+  string $author;
+  if ( `about -os` == "nt" ) {
+    warning "not implemented !!";
+    $date = "some date";
+    $author = "some Author";
+  } else {
+    $date = strip(system("date +%c"));
+    $author = getenv("USER");
+  }
+  int $i, $j, $k;
+  string $value;
+  float $floatVal;
+  float $floatValArray[];
+  string $stringVal;
+  string $stringValArray[];
+
+  // check extension
+  if ( !gmatch( $filePath, "*.lcf") ) $filePath = (substitute("\\.[a-z]+$", $filePath, "")+".lcf");
+
+  if ( `filetest -f $filePath` ) {      // check if the file already exists
+
+    // if the file is not writeable, exit with error.
+    if ( !`filetest -w $filePath` ) error ("You don't have enough priviledges to write to \""+$filePath+"\"");
+
+    // MSG : replace and increment ?
+    string $replace = `confirmDialog  -title "Confirm" -message "Overwrite previous version ?"
+                                      -button "Yes" -button "No" -defaultButton "Yes"
+                                      -cancelButton "No" -dismissString "No"`;
+
+    if ( $replace == "Yes" ) {
+      string $historyDir = liquidContainer_getHistoryDir();
+      if ( $historyDir == "" ) return false;
+
+      // get the current file version
+      int $fhdl = `fopen $filePath "r"`;
+      string $line  = `fgetline $fhdl`;
+      while( !gmatch( $line, "#*Version*:*") ) $line  = `fgetline $fhdl`;
+      fclose $fhdl;
+
+      $version = match("[0-9\\.]+", $line);
+
+      string $backupPath = basenameEx( $filePath );
+      $backupPath = ($historyDir+"/"+$backupPath+"."+$version+"."+"lcp");
+      print ("moving container "+$filePath+" to "+$backupPath+"...\n");
+      sysFile -move $backupPath $filePath;
+      $version++;
+
+    } else return true;
+
+  }
+
+  // get list of shaders in palette
+  string $nodes[] = liquidContainer_getMemberList( $shortContainerName );
+  string $nodePaths[] = liquidContainer_getMembersPath( $shortContainerName );
+
+  // open file
+  int $fileHandle = `fopen $filePath "w"`;
+
+  // write header
+  fprint $fileHandle "# Liquid container File - v1.0\n\n";
+  fprint $fileHandle ("# Name    : "+$shortContainerName+"\n");
+  fprint $fileHandle ("# Path    : "+$filePath+"\n\n");
+  fprint $fileHandle ("# Version : "+$version+"\n");
+  fprint $fileHandle ("# Date    : "+$date+"\n");
+  fprint $fileHandle ("# Author  : "+$author+"\n\n");
+
+  // save shader list
+  for ( $i=0; $i<size( $nodes ); $i++ ) {
+
+    fprint $fileHandle ($nodes[$i]+":"+$nodePaths[$i]+"\n");
+
+    if ( `getAttr ($nodes[$i]+".typeId")` == 303126794 ) {
+      // RIB box
+      $stringVal = `getAttr ($nodes[$i]+".ribbox")`;
+      fprint $fileHandle ("\""+encodeString(strip($stringVal))+"\"\n");
+    } else {
+      // regular shader
+      liquidSlInfoReset();
+      liquidSlSetShader( $nodePaths[$i] );
+
+      int $numOfArgs = liquidSlNumParams();
+
+      for ( $j=0; $j<$numOfArgs; $j++ ) {
+
+        string $type = liquidSlParamType($j);
+        string $name = liquidSlParamName($j);
+        float $arraySize = liquidSlParamArraySize($j);
+        string $arraySizeString = "";
+        $value = "";
+
+        switch( $type ) {
+          case "float":
+            if ( $arraySize > 0 ) {
+              $arraySizeString = ("["+$arraySize+"]");
+              $floatValArray = `getAttr ($nodes[$i]+"."+$name)`;
+              for ( $v in $floatValArray ) {
+                $value += ($v+" ");
+              }
+            } else {
+              $floatVal = `getAttr ($nodes[$i]+"."+$name)`;
+              $value += ($floatVal+" ");
+            }
+            break;
+          case "color":
+          case "point":
+          case "vector":
+          case "normal":
+            if ( $arraySize > 0 ) {
+              $arraySizeString = ("["+$arraySize+"]");
+              for ( $k=0; $k<$arraySize; $k++ ) {
+                $floatValArray = `getAttr ($nodes[$i]+"."+$name+"_"+$k)`;
+                $value += ($floatValArray[0]+" "+$floatValArray[1]+" "+$floatValArray[2]+" ");
+              }
+            } else {
+              $floatValArray = `getAttr ($nodes[$i]+"."+$name)`;
+              $value += ($floatValArray[0]+" "+$floatValArray[1]+" "+$floatValArray[2]+" ");
+            }
+            break;
+          case "string":
+              $stringVal = `getAttr ($nodes[$i]+"."+$name)`;
+              $value += ("\""+$stringVal+"\" ");
+            break;
+        }
+        fprint $fileHandle ($type+$arraySizeString+" "+$name+" "+strip($value)+"\n");
+      }
+    }
+
+    fprint $fileHandle "\n";
+  }
+
+  // close file
+  fclose $fileHandle;
+
+  // update the node
+  if ( !objExists( ($shortContainerName+".containerVersion") ) ) addAttr -at "float" -ln containerVersion $shortContainerName;
+  setAttr ($shortContainerName+".containerVersion") $version;
+  if ( liquidContainerWindowIsOpen( $shortContainerName ) ) window -e -title ($shortContainerName+" v"+$version) ("liquidContainerWindow"+$shortContainerName);
+  if ( !objExists( ($shortContainerName+".containerPath") ) ) addAttr -dt "string" -ln containerPath $shortContainerName;
+  setAttr -type "string" ($shortContainerName+".containerPath") $filePath;
+
+  print ("done!\n");
+
+  return true;
+}
+
+/**
+ * Opens a file browser to save a container file to disk.
+ */
+global proc liquidContainer_fileBrowser( string $mode, string $shortContainerName )
+{
+  global string $gDefaultFileBrowserDir;
+  string $previousPath = $gDefaultFileBrowserDir;
+
+  $gDefaultFileBrowserDir = `workspace -q -rootDirectory`;
+
+  string $callback, $action;
+  int $access;
+
+  switch( $mode ) {
+    case "import":
+      $callback = ("liquidContainer_import_doIt \""+$shortContainerName+"\"");
+      $action = "Import";
+      $access = 0;
+      break;
+    case "export":
+      $callback = ("liquidContainer_export_doIt "+$shortContainerName);
+      $action = "Export";
+      $access = 1;
+      break;
+  }
+
+  fileBrowser( $callback, $action, "*.lcf", $access  );
+
+  if ( `window -q -ex projectViewerWindow` ) {
+    if ( $action == "Export" ) window -e -title ($action+" container \""+$shortContainerName+"\"") projectViewerWindow;
+    else window -e -title ($action+" container...") projectViewerWindow;
+  }
+}
+
+global proc string liquidContainer_getPreviewNodeName( string $shader )
+{
+  if ( objExists( ($shader+"_liqPreview") ) ) return ($shader+"_liqPreview");
+  else return "";
+}
+
+global proc string liquidContainer_getPreviewNodeTex( string $shader )
+{
+  if ( objExists( ($shader+"_liqPreview") ) ) return (getAttr ($shader+"_liqPreview.fileTextureName"));
+  else return (liquidGetHome()+"/icons/noPreview.jpg");
+}
+
+
+// ok
+global proc string[] liquidContainer_getContainerList()
+{
+  string $containerList[];
+  string $FluidNodes[] = `ls -type oldBlindDataBase`;
+  for ( $node in $FluidNodes ) {
+    if ( liquidGetShaderNodeType($node) == "Container" ) $containerList[size( $containerList )] = $node;
+  }
+  return $containerList;
+}
+
+
+/**
+ * returns all members of the container ( short names only )
+ */
+//ok
+global proc string[] liquidContainer_getMemberList( string $shortContainerName )
+{
+  if ( !objExists( $shortContainerName ) ) error ("Container "+$shortContainerName+" dos not exist !");
+  string $result[] = `listConnections -source true ($shortContainerName+".containerMembers")`;
+  return $result;
+}
+
+/**
+ * returns all members' paths of the container ( path to the shader )
+ */
+//ok
+global proc string[] liquidContainer_getMembersPath( string $shortContainerName )
+{
+  string $result[];
+  string $membersList[] = liquidContainer_getMemberList( $shortContainerName );
+  for ( $member in $membersList ) {
+    $result[size( $result )] = `getAttr ($member+".rmanShaderLong")`;
+  }
+  return $result;
+}
+
+
+//ok
+global proc string[] liquidContainerWin_getSelectedNodes( string $shortContainerName )
+{
+  string $result[];
+  string $gridLayout = ("containerLayoutGrid"+$shortContainerName);
+  if ( `layout -q -ex $gridLayout` ) {
+    string $nodes[] = `layout -q -ca $gridLayout`;
+    for ( $n in $nodes ) {
+      string $canvasCtl = ($n+"_bg");
+      float $col[] = `canvas -q -rgbValue $canvasCtl`;
+      if ( $col[0] == 0.0 && $col[1] <= 0.85 && $col[2] == 1.0 ) $result[size( $result )] = substitute( ("liquidContainerNode"+$shortContainerName), $n, "");
+    }
+  }
+  return $result;
+}
+
+/**
+ * \return name of created node
+ */
+global proc string liquidContainer_newNode()
+{
+  string $containerName;
+
+  $containerName = `createNode "oldBlindDataBase" -n "Container_0"`;
+  setAttr ( $containerName + ".typeId" ) 303126795;
+
+  addAttr -ln "rmanShaderLong" -dt "string" $containerName;
+  addAttr -ln "rmanShader" -dt "string" $containerName;
+  addAttr -ln "liquidShaderManager" -at message $containerName;
+  addAttr -m -indexMatters 0 -ln "containerMembers" -at message $containerName;
+
+  addAttr -at "float" -ln "containerVersion" $containerName;
+  addAttr -dt "string" -ln "containerDate" $containerName;
+  addAttr -dt "string" -ln "containerAuthor" $containerName;
+
+
+  if ( !`liquidGlobalsExists` ) liquidCreateGlobals;
+  if ( !objExists( ("liquidGlobals.liquidContainers") ) ) addAttr -ln "liquidContainers" -at message liquidGlobals;
+
+  connectAttr -f "liquidGlobals.liquidContainers" ( $containerName + ".liquidShaderManager" );
+
+  setAttr -type "string" ($containerName+".rmanShaderLong") $containerName;
+  setAttr -type "string" ($containerName+".rmanShader") $containerName;
+  setAttr ($containerName+".containerVersion") 1.0;
+
+  liquidFluidUpdateList();
+
+  return $containerName;
+}
+
+global proc liquidContainer_selectContainer()
+{
+  string $selection[] = `textScrollList -q -si liquidFluidShaderList`;
+  select -cl;
+  select $selection;
+}
+
+global proc int liquidContainer_isInContainer( string $node, string $container )
+{
+  int $result = false;
+
+  string $members[] = liquidContainer_getMemberList( $container );
+  for ( $m in $members ) {
+    if ( $m == $node ) return true;
+  }
+
+  return $result;
+}
+
+global proc liquidContainer_fluidAssignToContainer( string $container )
+{
+  string $selection[] = `textScrollList -q -si liquidFluidShaderList`;
+  if ( !objExists( $container ) ) error ("Container \""+$container+"\" does not exist !!");
+
+  liquidContainer_assignToContainer( $container, $selection );
+}
+
+global proc liquidContainer_assignToContainer( string $container, string $nodes[] )
+{
+  for ( $node in $nodes ) {
+    string $type = liquidGetShaderNodeType($node);
+    switch( $type ) {
+      case "Surface":
+      case "Disp":
+      case "Volume":
+      case "Light":
+      case "Ribbox":
+        // check if the short name is already in the container
+        if ( !liquidContainer_isInContainer( $node, $container ) ) {
+          // add to the container
+          connectAttr -na ($node+".liquidShaderManager") ($container+".containerMembers");
+        } else warning ($node+" is already a member of container "+$container+" !");
+        break;
+    }
+  }
+  liquidContainerWin_refresh( $container, 0 );
+}
+
+global proc liquidContainer_removeFromContainer( string $shader, string $shortContainerName )
+{
+  string $selected[] = ($shader == "")? liquidContainerWin_getSelectedNodes( $shortContainerName ):{$shader};
+
+  if ( size( $selected ) ) print ("remove "+stringArrayToString( $selected, " ")+"\n");
+  else warning ("Select a shader in the container to remove it");
+
+  for ( $sel in $selected ) {
+
+    //delete icon in container window
+    string $layout = ("liquidContainerNode"+$shortContainerName+$sel);
+    if ( `layout -q -ex $layout` ) deleteUI $layout;
+
+    // disconnect
+    disconnectAttr -na ($sel+".liquidShaderManager") ($shortContainerName+".containerMembers");
+
+  }
+
+}
+
+global proc liquidContainer_assignNode( string $shortContainerName )
+{
+  string $selected[] = liquidContainerWin_getSelectedNodes( $shortContainerName );
+  liquidFluidAssign( $selected );
+}
+
+global proc liquidContainer_unAssignNode( string $shortContainerName )
+{
+  string $selected[] = liquidContainerWin_getSelectedNodes( $shortContainerName );
+  liquidFluidUnAssign( $selected[0] );
+}
+
+global proc liquidContainerWin_dropCB( string $dragControl, string $dropControl, string $msgs[], int $x, int $y, int $type )
+{
+  print ("$dragControl : "+$dragControl+"\n");
+  print ("$dropControl : "+$dropControl+"\n");
+  print ("$msgs[] : "+stringArrayToString( $msgs, ", ")+"\n");
+  print ("$x : "+$x+"\n");
+  print ("$y : "+$y+"\n");
+  print ("$type : "+$type+"\n");
+}
+
+global proc liquidContainerWin_iconToggle( string $container, string $shader )
+{
+  //print ("* liquidContainerWin_iconToggle "+$container+" "+$shader+"\n");
+
+  global float $gLiquidContainerSwatchTime;
+  global string $gLiquidContainerSwatchLastSelection;
+
+  string $layout = ("containerLayoutGrid"+$container);
+  string $canvas = ("liquidContainerNode"+$container+$shader+"_bg");
+
+  // simulate double click to edit swatch
+  if ( $shader == $gLiquidContainerSwatchLastSelection ) {
+    if ( `timerX -st $gLiquidContainerSwatchTime` < 0.9 ) {
+      liquidFluidEditNodeCMD ( {$shader} );
+    } else {
+      //print "clic! RESET\n";
+      $gLiquidContainerSwatchTime = `timerX`;
+    }
+    return;
+  } else {
+    //print "clic! RESET\n";
+    $gLiquidContainerSwatchLastSelection = $shader;
+    $gLiquidContainerSwatchTime = `timerX`;
+  }
+
+
+  int $mods = `getModifiers`;
+  //print ("mod: "+$mods+"\n");
+
+  if (($mods / 1) % 2) {
+    // SHIFT modifier : additive selection
+    float $col[] = `canvas -q -rgbValue $canvas`;
+    if ( $col[0]!=0 &&  $col[1]!=0.7 && $col[2]!=1 ) canvas -e -rgbValue 0.0 0.70 1.0 $canvas;
+    else canvas -e -rgbValue 0.85 0.85 0.85 $canvas;
+
+  } else if (($mods / 2) % 2) {
+    // CAPS modifier : substractive selection
+
+  } else if (($mods / 4) % 2) {
+    // CTRL modifier : substractive selection
+    canvas -e -rgbValue 0.85 0.85 0.85 $canvas;
+
+  } else if (($mods / 8) % 2) {
+    // ALT modifier : edit the node
+    string $nodes[] = `layout -q -ca $layout`;
+    for ( $n in $nodes ) {
+      string $canvasCtl = ($n+"_bg");
+      if ( `control -q -ex $canvasCtl` ) {
+        canvas -e -rgbValue 0.85 0.85 0.85 $canvasCtl;
+      }
+    }
+    canvas -e -rgbValue 0.0 0.70 1.0 $canvas;
+    liquidFluidEditNodeCMD( {$shader} );
+
+  } else {
+    // no modifier : deselect other nodes first
+    string $nodes[] = `layout -q -ca $layout`;
+    for ( $n in $nodes ) {
+      string $otherCanvas = ($n+"_bg");
+      if ( `canvas -q -ex $otherCanvas` ) {
+        canvas -e -rgbValue 0.85 0.85 0.85 $otherCanvas;
+      }
+    }
+    canvas -e -rgbValue 0.0 0.70 1.0 $canvas;
+  }
+}
+
+//ok
+global proc liquidContainerWin_IconRefreshSelected( string $shortContainerName, int $force )
+{
+  string $selected[] = liquidContainerWin_getSelectedNodes( $shortContainerName );
+  for ( $sel in $selected ) {
+    liquidContainerWin_IconRefresh( $sel, $shortContainerName, $force );
+  }
+}
+
+//ok
+global proc liquidContainerWin_IconRefreshAll( string $shortContainerName, int $force )
+{
+  string $all[] = liquidContainer_getMemberList( $shortContainerName );
+  for ( $item in $all ) {
+    liquidContainerWin_IconRefresh( $item, $shortContainerName, $force );
+  }
+}
+
+//ok
+global proc liquidContainerWin_IconRefresh( string $shader, string $shortContainerName, int $force )
+{
+  string $swatch =      ("liquidContainerNode"+$shortContainerName+$shader+"_swatch");
+  string $previewDir =  liquidFluidGetPreviewDir();
+  string $image =       ( $previewDir+"/"+$shader+".tif" );
+  int    $shaderType =  `getAttr ($shader+".typeId")`;
+
+  switch( $shaderType ) {
+    case 303126794:
+      $image = (liquidGetHome()+"/icons/ribbox.jpg");
+      break;
+    case 303126792:
+      $image = (liquidGetHome()+"/icons/light.jpg");
+      break;
+    default:
+      if ( $force ) {
+        $image = liquidFluidPreviewShader( $shader );
+      } else {
+        if ( `filetest -r $image` != 1 ) {
+          $image = liquidFluidPreviewShader( $shader );
+        }
+      }
+      break;
+  }
+
+  setAttr ($shader+"_liqPreview.fileTextureName") -type "string" $image;
+}
+
+global proc liquidContainerWin_iconMenuContext( string $shader, string $shortContainerName )
+{
+  string $selected[] = liquidContainerWin_getSelectedNodes( $shortContainerName );
+
+  if ( !size( $selected ) ) {
+    menuItem -e -enable 0 ($shortContainerName+$shader+"_assignMenu");
+    menuItem -e -enable 0 ($shortContainerName+$shader+"_unAssignMenu");
+    menuItem -e -enable 0 ($shortContainerName+$shader+"_editMenu");
+    menuItem -e -enable 0 ($shortContainerName+$shader+"_pickObjMenu");
+    menuItem -e -enable 0 ($shortContainerName+$shader+"_editMenu");
+    menuItem -e -enable 0 ($shortContainerName+$shader+"_renderIconMenu");
+  } else {
+    menuItem -e -enable 1 ($shortContainerName+$shader+"_assignMenu");
+    menuItem -e -enable 1 ($shortContainerName+$shader+"_unAssignMenu");
+    menuItem -e -enable 1 ($shortContainerName+$shader+"_editMenu");
+    menuItem -e -enable 1 ($shortContainerName+$shader+"_pickObjMenu");
+    menuItem -e -enable 1 ($shortContainerName+$shader+"_editMenu");
+    menuItem -e -enable 1 ($shortContainerName+$shader+"_renderIconMenu");
+  }
+
+  if ( size( $selected ) > 1 ) {
+    menuItem -e -enable 0 ($shortContainerName+$shader+"_assignMenu");
+    menuItem -e -enable 0 ($shortContainerName+$shader+"_unAssignMenu");
+    menuItem -e -enable 0 ($shortContainerName+$shader+"_pickObjMenu");
+  }
+
+}
+
+proc liquidContainerWin_iconMenu( string $shader, string $shortContainerName )
+{
+  popupMenu -pmc ("liquidContainerWin_iconMenuContext "+$shader+" "+$shortContainerName)
+            ("liquidContainerNode"+$shortContainerName+$shader+"_menu");
+
+    menuItem -l "Edit" -c ("liquidFluidEditNodeCMD (liquidContainerWin_getSelectedNodes(\""+$shortContainerName+"\"));") ($shortContainerName+$shader+"_editMenu");
+    menuItem -l "Pick Objects" -c ("{string $sel[] = liquidContainerWin_getSelectedNodes(\""+$shortContainerName+"\");liquidFluidPickObjects $sel[0];}") ($shortContainerName+$shader+"_pickObjMenu");
+
+    menuItem -d true;
+
+    menuItem -l "Assign" -c ("liquidContainer_assignNode "+$shortContainerName+";") ($shortContainerName+$shader+"_assignMenu");
+    menuItem -l "Unassign" -c ("liquidContainer_unAssignNode "+$shortContainerName+";") ($shortContainerName+$shader+"_unAssignMenu");
+
+    menuItem -d true;
+
+    menuItem -l "Select Shader Node" -c ("select (liquidContainerWin_getSelectedNodes(\""+$shortContainerName+"\"));") ($shortContainerName+$shader+"_selectShaderNode");
+    menuItem -l "Render Icon" -c ("liquidContainerWin_IconRefreshSelected \""+$shortContainerName+"\" 1") ($shortContainerName+$shader+"_renderIconMenu");
+}
+
+global proc liquidContainerWin_iconRename( string $shader, string $newShaderName )
+{
+  // rename texture preview node
+  string $previewNode = liquidContainer_getPreviewNodeName( $shader );
+  string $newPreviewNode = substitute( $shader, $previewNode, $newShaderName);
+  if ( !objExists( $previewNode ) ) return;
+  rename $previewNode $newPreviewNode;
+
+  // rename the preview file
+  string $previewFile = `getAttr ($newPreviewNode+".fileTextureName")`;
+  if ( `filetest -w $previewFile` ) {
+    string $newfile = (liquidFluidGetPreviewDir()+"/"+$newShaderName+".tif");
+    sysFile -ren $newfile $previewFile;
+    setAttr -type "string" ($newPreviewNode+".fileTextureName") $newfile;
+  }
+
+  // rename gui
+  string $containerList[] = liquidContainer_getContainerList();
+
+  for ( $shortContainerName in $containerList ) {
+    string $topLayout = ( "liquidContainerNode" + $shortContainerName + $shader );
+    if ( `layout -q -ex $topLayout` ) {
+      string $children[] = `layout -q -ca $topLayout`;
+      for ( $c in $children ) {
+        print (">> "+$c+"\n");
+        if ( `text -q -ex $c` ) text -e -l $newShaderName -h 12 $c;
+        if ( `swatchDisplayPort -q -ex $c` ) swatchDisplayPort -e -pressCommand ("liquidContainerWin_iconToggle "+$shortContainerName+" "+$newShaderName) $c;
+        renameUI $c (substitute( $shader, $c, $newShaderName));
+      }
+      renameUI $topLayout ( "liquidContainerNode" + $shortContainerName + $newShaderName );
+    }
+  }
+}
+
+global proc liquidContainerWin_iconNew( string $shader, string $shortContainerName, string $parent)
+{
+  //print ($shader+" "+$shortContainerName+" "+$parent+"\n");
+  if ( !objExists( ($shader+"_liqPreview") ) ) {
+    shadingNode -asTexture file -n ($shader+"_liqPreview");
+    setAttr ($shader+"_liqPreview.filterType") 0;
+  }
+
+  setParent $parent;
+  print ("> > > "+$parent+"\n");
+
+  formLayout ("liquidContainerNode"+$shortContainerName+$shader);
+
+    string $bg = `canvas -rgbValue 0.85 0.85 0.85 ("liquidContainerNode"+$shortContainerName+$shader+"_bg")`;
+    string $lb = `text -h 12 -al "center" -label $shader -font "smallPlainLabelFont" -dpc liquidContainer_nodeDropCB -dgc liquidContainer_nodeDragCB ("liquidContainerNode"+$shortContainerName+$shader+"_label")`;
+    string $sw = `swatchDisplayPort -shadingNode ($shader+"_liqPreview")
+                                    -widthHeight 64 64 -renderSize 64
+                                    -dpc liquidContainer_nodeDropCB -dgc liquidContainer_nodeDragCB
+                                    ("liquidContainerNode"+$shortContainerName+$shader+"_swatch")`;
+    liquidContainerWin_iconMenu( $shader, $shortContainerName );
+
+    swatchDisplayPort -e -pressCommand ("liquidContainerWin_iconToggle "+$shortContainerName+" "+$shader) $sw;
+
+    if ( `about -mac` ){
+       // OSX version has 'issues' with overlapping controls
+      formLayout  -e
+                  -af $bg "top"     68
+                  -af $bg "left"    0
+                  -af $bg "right"   0
+                  -af $bg "bottom"  0
+
+                  -af $sw "top"     4
+                  -af $sw "left"    4
+                  -af $sw "right"   4
+                  -an $sw "bottom"
+
+                  -af $lb "top"     68
+                  -af $lb "bottom"  4
+                  -af $lb "left"    4
+                  -af $lb "right"   4
+                  ("liquidContainerNode"+$shortContainerName+$shader);
+    } else {
+      formLayout  -e
+                  -af $bg "top"     0
+                  -af $bg "left"    0
+                  -af $bg "right"   0
+                  -af $bg "bottom"  0
+                  -af $sw "top"     4
+                  -af $sw "left"    4
+                  -af $sw "right"   4
+                  -af $lb "top"     68
+                  -af $lb "bottom"  4
+                  -af $lb "left"    4
+                  -af $lb "right"   4
+                  ("liquidContainerNode"+$shortContainerName+$shader);
+    }
+}
+
+global proc liquidContainerWin_refresh( string $selectedObj, int $force )
+{
+  string $membersShort[] = liquidContainer_getMemberList( $selectedObj );
+  string $parent = ("containerLayoutGrid"+$selectedObj);
+
+  if ( `layout -q -ex $parent` ) {
+    string $previews[] = `layout -q -ca $parent`;
+    if ( $force && size( $previews ) ) deleteUI $previews;
+
+    for ( $member in $membersShort ) {
+      if ( !`layout -q -ex ("liquidContainerNode"+$selectedObj+$member)` ) liquidContainerWin_iconNew( $member, $selectedObj, $parent );
+    }
+
+    for ( $member in $membersShort ) {
+      liquidContainerWin_IconRefresh( $member, $selectedObj, $force );
+    }
+  }
+}
+
+/**
+ * Draws a Container window and call refresh to fill it.
+ * \param $selectedObj The name of the container node
+ */
+global proc liquidContainerWindow( string $selectedObj )
+{
+  liquidCreateScriptNode();
+  int $i;
+  string $longContainerName = `getAttr ( $selectedObj + ".rmanShaderLong" )`;
+  string $shortContainerName = `getAttr ( $selectedObj + ".rmanShader" )`;
+
+  if ( liquidContainerWindowIsOpen( $selectedObj ) )
+  {
+    deleteUI ( "liquidContainerWindow" + $selectedObj );
+  }
+
+  window -mb 1 -title ( $selectedObj + " Shaders" )
+      -sizeable true
+      -widthHeight 300 200
+      -iconName $shortContainerName
+      ( "liquidContainerWindow" + $selectedObj );
+
+  menu -label "File" -tearOff 0 -aob 0 ("containerMenuFile"+$selectedObj);
+    menuItem -label "Import Container" -c ("liquidContainer_fileBrowser \"import\" \"\"");
+    menuItem -label "Export Container" -c ("liquidContainer_fileBrowser \"export\" \""+$shortContainerName+"\"");
+  menu -label "Edit" -tearOff 0 -aob 0 ("containerMenuEdit"+$shortContainerName+$selectedObj);
+    menuItem -label "Remove Shader" -c ("liquidContainer_removeFromContainer \"\" "+$shortContainerName);
+  menu -label "Refresh" -tearOff 0 -aob 0 ("containerMenuRefresh"+$shortContainerName+$selectedObj);
+    menuItem -label "Selected swatch" -c ("liquidContainerWin_IconRefreshSelected \""+$shortContainerName+"\" 1");
+    menuItem -label "All swatches" -c ("liquidContainerWin_IconRefreshAll\""+$shortContainerName+"\" 1");
+
+    string $top = `scrollLayout -childResizable true
+                                -dpc liquidContainer_nodeDropCB -dgc liquidContainer_nodeDragCB
+                                ("containerLayoutTop"+$selectedObj)`;
+    string $grid = `gridLayout  -autoGrow             true
+                                -columnsResizable     true
+                                -numberOfRowsColumns  4 6
+                                -allowEmptyCells      false
+                                -cellWidthHeight      72 84
+                                -dpc                  liquidContainer_nodeDropCB
+                                -dgc                  liquidContainer_nodeDragCB
+                                ("containerLayoutGrid"+$selectedObj)`;
+
+   showWindow ( "liquidContainerWindow" + $selectedObj );
+
+   liquidContainerWin_refresh( $selectedObj, 0 );
+
+}
+
+global proc liquidEditAllContainers()
+{
+  string $containers[] = liquidContainer_getContainerList();
+  for ( $c in $containers ) {
+    if ( !liquidContainerWindowIsOpen( $c ) ) liquidContainerWindow( $c );
+  }
+}

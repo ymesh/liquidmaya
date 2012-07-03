@@ -1,0 +1,73 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): baptiste sansierra
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:
+//
+//  Procedure Name:
+//
+//
+//  Description: Attribute Editor Template for the liquidSurfaceSwitcher node
+//
+
+
+global proc AEliquidSurfaceSwitcherTemplate( string $nodeName )
+{
+	layout -e -vis false "AEcontrolFormLayout";
+	editorTemplate -beginScrollLayout;
+
+	editorTemplate -callCustom "AEliquidSwitcherRelatedDefaultShaderNew" "AEliquidSwitcherRelatedDefaultShaderReplace" "defaultShader" "Surface";
+
+    editorTemplate -beginLayout "RIB";
+      editorTemplate -addControl "color";
+      editorTemplate -addControl "opacity";
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Switcher" -collapse 0;
+		editorTemplate -callCustom "AEliquidSwitcherRelatedConditionListNew" "AEliquidSwitcherRelatedConditionListReplace" "message" "Surface";
+
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Maya Renderer" -collapse 1;
+		editorTemplate -addControl "mayaIgnoreLights";
+		editorTemplate -addControl "mayaKa";
+		editorTemplate -addControl "mayaKd";
+    editorTemplate -endLayout;
+	
+	editorTemplate -suppress switchShader;
+	editorTemplate -suppress Ci;
+	editorTemplate -suppress Oi;
+	editorTemplate -suppress transparency;
+	editorTemplate -suppress outputInShadow;
+	editorTemplate -suppress caching;
+	editorTemplate -suppress nodeState;
+	editorTemplate -suppress liqAssignedObjects;
+
+    editorTemplate -addExtraControls;
+
+	editorTemplate -endScrollLayout;
+
+	layout -e -vis true "AEcontrolFormLayout";
+}
+

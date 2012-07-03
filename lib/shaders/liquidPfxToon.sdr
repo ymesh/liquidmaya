@@ -1,0 +1,12 @@
+#!version 2.2.6
+surface
+#!parameters:
+output	varying	color	pfxToon_vtxColor	=	0.0
+output	varying	color	pfxToon_vtxOpacity	=	1.0
+#!variables:
+#!Init:
+	return            
+#!Code:
+	movevv            	Oi pfxToon_vtxOpacity
+	mulvv             	Ci pfxToon_vtxColor Oi
+	return            

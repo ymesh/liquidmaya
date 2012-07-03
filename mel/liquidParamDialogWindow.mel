@@ -1,0 +1,288 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:    May 11, 2000
+//
+//  Procedure Name:
+//  liquidParamDialogWindow
+//
+//  Description:
+//  creates a pretty window for editing the rman shader parameters
+//
+
+
+
+
+
+/**
+ *  STRINGS  --  COMPATIBLE with arrays
+ */
+
+global proc liquidAddTextureViewerMenu( string $textFieldGrp, string $nodeDotAttr )
+{
+	string $viewer = "";
+	if ( objExists("liquidGlobals") )
+	{
+		$viewer = `getAttr liquidGlobals.viewTexture`;
+	}
+  if ( $viewer != "" ) 
+	{
+    string $attr = match("[A-Za-z0-9_]+$", $nodeDotAttr);
+    popupMenu -button 3 -postMenuCommand ("liquidAE_LifStringOverrideEnabler ($gLiquid_currentAENode+\"."+$attr+"\") "+$textFieldGrp) ($textFieldGrp+"PopupMenu");
+      menuItem  -l ("View")
+                -c ("{\n"+
+                    "  string $file = `textFieldGrp -q -tx "+$textFieldGrp+"`;"+
+                    "  liquidTextureViewer( $file );"+
+                    "}");
+  }
+}
+
+
+global proc liquidChangeTextAttr ( string $selectedObj, string $argName, string $fieldName )
+{
+  string $fieldValue = `textFieldGrp -q -text $fieldName`;
+  setAttr ( $selectedObj + "." + $argName ) -type "string" $fieldValue;
+  liquidParamAU $selectedObj;
+}
+
+/**
+ *  pops up a file picker and updates the corresponding attribute
+ *  If the control was shift-clicked, it will open at the current path location, otherwise at the textureDirectory.
+ */
+global proc liquidChangeTextFileAttr ( string $selectedObj, string $argName, string $fieldName )
+{
+  string $currentAttrValue = `getAttr ($selectedObj+"."+$argName)`;
+  string $defaultPath = (`getAttr liquidGlobals.textureDirectory`);
+  if(gmatch($defaultPath, "*`*"))  // if there's a mel procedure, we must eval!...
+  {
+	  $defaultPath = eval(substituteAllString($defaultPath, "`", ""));
+  }
+
+  string $fileSpec;
+  if ( `about -os` == "linux" || `about -os` == "linux64" ) $fileSpec += "*.tex";
+  else $fileSpec += "*.tex;*.tif;*.dsts";
+
+  liquidChangeTextFileAttrPlus ( $selectedObj, $argName, $fieldName, $defaultPath, $fileSpec );
+  liquidParamAU $selectedObj;
+}
+
+global proc liquidChangeTextFileAttrPlus ( string $selectedObj, string $argName, string $fieldName, string $defaultPath, string $fileSpec )
+{
+  string $currentAttrValue = `getAttr ($selectedObj+"."+$argName)`;
+
+  string $MapDir = ($currentAttrValue == "" || liquidGetModifiersState() == "Shift" )? $defaultPath : (dirname($currentAttrValue));
+
+  // we might have a relative path
+  if ( !gmatch( $MapDir, "/*") ) $MapDir = ( `workspace -q -rd` + $MapDir);
+
+  if( $MapDir != "" ) {
+    if ( `filetest -d $MapDir` ) {
+      if ( `match "[^\/]$" $MapDir` != "" ) $MapDir += "/";
+    }
+  }
+
+  // Callback called by the file browser. filename and filetype will be appended to the end
+  string $cmd = "liquidChangeTextFileAttrPlusCB \"" + $selectedObj + "\" \"" + $argName + "\" \"" + $fieldName + "\" ";
+
+
+  liquidFileBrowserWindow( $defaultPath, $fileSpec, encodeString($cmd) );
+
+}
+
+/*
+	call back for the fileBrowser opened by liquidChangeTextFileAttrPlus
+*/
+
+global proc int liquidChangeTextFileAttrPlusCB ( string $selectedObj, string $argName, string $fieldName, string $filename, string $fileType )
+{
+
+  if ( $filename != "" ) 
+	{
+  	$filename = `workspace -projectPath $filename`; // get relative name if possible
+  	string $currentDir = `workspace -q -dir`;
+    retainWorkingDirectory ($currentDir);
+
+    // fix bloody Windows backslashes
+    if (`about -win`) 
+      while ( `match "[\\]" $filename` != "" ) 
+        $filename = `substitute "[\\]" $filename "/"`;
+
+    if ( `textFieldGrp -q -ex $fieldName` ) textFieldGrp -e -text $filename $fieldName;
+    setAttr ( $selectedObj + "." + $argName ) -type "string" $filename;
+
+    if ( $argName == "rmanShaderLong" ) eval("liquidShaderNodes_initParams( \""+$selectedObj+"\" );");
+  }
+  return true;
+}
+
+global proc liquidLifCoordSysBrowserFilter()
+{
+  string $list[] = `ls -type liquidCoordSys`;
+  string $filter = `textField -q -tx liquidLifCoordSysBrowserTF`;
+  if ( !size( $filter ) ) $filter = "*";
+
+  textScrollList -e -removeAll liquidLifCoordSysBrowserTSL;
+  for ( $l in $list ) {
+    if ( gmatch( $l, $filter ) ) textScrollList -e -append $l liquidLifCoordSysBrowserTSL;
+  }
+}
+
+global proc liquidLifCoordSysBrowser( string $selectedObj, string $argName, string $fieldName )
+{
+  string $coordSys[] = `ls -type liquidCoordSys`;
+
+  // use curly braces in cmd to avoid alloacting stuff in global space
+  string $selectCmd = (   "{\n"
+                        + "string $sel[] = `textScrollList -q -si liquidLifCoordSysBrowserTSL`;"
+                        + "textFieldGrp -e -text $sel[0] "+$fieldName+";"
+                        + "setAttr "+$selectedObj+"."+$argName+" -type \"string\" $sel[0];"
+                        + "deleteUI liquidLifCoordSysBrowserW;"
+                        + "liquidParamAU "+$selectedObj+";"
+                        + "}\n");
+  string $filterCmd = "liquidLifCoordSysBrowserFilter();";
+
+  if ( `window -q -ex liquidLifCoordSysBrowserW` ) deleteUI liquidLifCoordSysBrowserW;
+  if ( `windowPref -ex liquidLifCoordSysBrowserW` ) windowPref -remove liquidLifCoordSysBrowserW;
+
+  window -title "CoordSys" -w 200 -h 300 liquidLifCoordSysBrowserW;
+    formLayout -nd 100 liquidLifCoordSysBrowserFL;
+      textField -tx "*" -cc $filterCmd -ec $filterCmd liquidLifCoordSysBrowserTF;
+      textScrollList -numberOfRows 8 -allowMultiSelection false liquidLifCoordSysBrowserTSL;
+      button -l "Select" -c $selectCmd liquidLifCoordSysBrowserSB;
+      button -l "Cancel" -c ("deleteUI liquidLifCoordSysBrowserW") liquidLifCoordSysBrowserCB;
+    setParent ..;
+    formLayout  -e
+                -af liquidLifCoordSysBrowserTF    "top"     2
+                -af liquidLifCoordSysBrowserTF    "left"    2
+                -af liquidLifCoordSysBrowserTF    "right"   2
+                -ac liquidLifCoordSysBrowserTSL   "top"     2   liquidLifCoordSysBrowserTF
+                -af liquidLifCoordSysBrowserTSL   "left"    2
+                -af liquidLifCoordSysBrowserTSL   "right"   2
+                -af liquidLifCoordSysBrowserTSL   "bottom"  30
+                -af liquidLifCoordSysBrowserSB    "bottom"  0
+                -af liquidLifCoordSysBrowserSB    "left"    0
+                -ap liquidLifCoordSysBrowserSB    "right"   0   50
+                -af liquidLifCoordSysBrowserCB    "bottom"  0
+                -af liquidLifCoordSysBrowserCB    "right"   0
+                -ap liquidLifCoordSysBrowserCB    "left"    0   50
+                liquidLifCoordSysBrowserFL;
+
+  for ( $c in $coordSys ) {
+    textScrollList -e -append $c liquidLifCoordSysBrowserTSL;
+  }
+  showWindow liquidLifCoordSysBrowserW;
+}
+
+
+global proc liquidParamAU( string $selectedObj )
+{
+  if ( `optionVar -ex liquidAE_autoRefresh` && `optionVar -q liquidAE_autoRefresh` ) {
+    trace ("+ liquidParamAU "+$selectedObj);
+    liquidShaderNodePreview $selectedObj;
+  }
+}
+
+
+global proc liquidFluidBuildLifFile( string $longShaderName )
+{
+  $longShaderName = `workspace -expandName $longShaderName`; // get absolute name from relative
+  
+  print ("[liquidFluidBuildLifFile] $longShaderName = " + $longShaderName + "\n");
+  
+  string $longLifName = substitute( "\\..+$", $longShaderName, ".lif" );
+  string $shortShaderName = basenameEx( $longShaderName );
+
+  if ( !`filetest -d (dirname($longLifName))` ) 
+    error ("Directory \""+(dirname($longLifName))+"\" does not exist !");
+
+  string $desc = "desc \"\";\n";
+
+  liquidSlSetShader( $longShaderName );
+  string $shadertype = liquidSlShaderType();
+  
+  int $fileHdl = `fopen $longLifName "w"`;
+  
+  string $lower_stype = `tolower $shadertype`;
+  $lower_stype = ($lower_stype == "disp")? "displacement":$lower_stype;
+
+  fprint $fileHdl ($lower_stype+" \""+$shortShaderName+"\";\n");
+  fprint $fileHdl $desc;
+  fprint $fileHdl ("\n");
+
+  int $numShaderArgs = liquidSlNumParams();
+  for ( $i=0; $i < $numShaderArgs; $i++ ) 
+  {
+    string $argName = liquidSlParamName($i);
+    fprint $fileHdl ("param \""+$argName+"\";\n");
+    fprint $fileHdl ("name \""+liquidToUI($argName)+"\";\n");
+    fprint $fileHdl $desc;
+
+    string $argType =liquidSlParamType($i);
+    if ( $argType == "float" ) fprint $fileHdl ("type \"slider\";\n");
+
+    fprint $fileHdl ("\n");
+  }
+
+  fclose $fileHdl;
+}
+
+global proc liquidFluidEditLifFile( string $selectedObj )
+{
+  string $longShaderName = `getAttr ( $selectedObj + ".rmanShaderLong" )`;
+  $longShaderName = `workspace -expandName $longShaderName`; // get absolute name from relative
+  string $longLifName = substitute( "\\..+$", $longShaderName, ".lif" );
+  string $shortShaderName = basenameEx( $longShaderName );
+
+  if ( !`filetest -r $longLifName` ) 
+  {
+    string $answer = `confirmDialog -title "No Matching LIF File" -message ("Could not find a lif file for "+$shortShaderName+".\nDo you want to create one ?")
+                                    -button "Yes" -button "No" -defaultButton "Yes"
+                                    -cancelButton "No" -dismissString "No"`;
+    if ( $answer == "Yes" ) liquidFluidBuildLifFile( $longShaderName );
+    else return;
+  }
+
+  string $os = `about -os`;
+
+  switch( $os ) 
+  {
+    case "linux":
+    case "linux64":
+    case "irix":
+      string $editor =  getenv( "EDITOR" );
+      if ( $editor == "" ) 
+        $editor = "nedit";
+      system( ($editor + " " + $longLifName + " &") );
+      break;
+    case "mac":
+      system( ("open -e " + $longLifName + " &") );
+      break;
+    default:
+      system( ("start notepad " + $longLifName) );
+      break;
+  }
+}
+
+

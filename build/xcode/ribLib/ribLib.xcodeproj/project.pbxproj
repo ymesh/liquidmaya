@@ -1,0 +1,285 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4711EA9112F6078600160155 /* error.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4711EA8B12F6078600160155 /* error.cpp */; };
+		4711EA9312F6078600160155 /* ri.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4711EA8D12F6078600160155 /* ri.cpp */; };
+		4711EA9412F6078600160155 /* ribOut.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4711EA8E12F6078600160155 /* ribOut.cpp */; };
+		4711EA9512F6078600160155 /* riInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4711EA8F12F6078600160155 /* riInterface.cpp */; };
+		4711EA9612F6078600160155 /* variable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4711EA9012F6078600160155 /* variable.cpp */; };
+		4711EAA012F607DA00160155 /* common.h in Headers */ = {isa = PBXBuildFile; fileRef = 4711EA9812F607DA00160155 /* common.h */; };
+		4711EAA112F607DA00160155 /* error.h in Headers */ = {isa = PBXBuildFile; fileRef = 4711EA9912F607DA00160155 /* error.h */; };
+		4711EAA212F607DA00160155 /* ri.h in Headers */ = {isa = PBXBuildFile; fileRef = 4711EA9A12F607DA00160155 /* ri.h */; };
+		4711EAA312F607DA00160155 /* ribOut.h in Headers */ = {isa = PBXBuildFile; fileRef = 4711EA9B12F607DA00160155 /* ribOut.h */; };
+		4711EAA412F607DA00160155 /* riInterface.h in Headers */ = {isa = PBXBuildFile; fileRef = 4711EA9C12F607DA00160155 /* riInterface.h */; };
+		4711EAA512F607DA00160155 /* variable.h in Headers */ = {isa = PBXBuildFile; fileRef = 4711EA9D12F607DA00160155 /* variable.h */; };
+		4711EABF12F60C6200160155 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 4711EABE12F60C6200160155 /* libz.dylib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		4711EA8412F606FB00160155 /* librib-x64.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "librib-x64.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4711EA8B12F6078600160155 /* error.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = error.cpp; path = ../../../ribLib/error.cpp; sourceTree = SOURCE_ROOT; };
+		4711EA8D12F6078600160155 /* ri.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ri.cpp; path = ../../../ribLib/ri.cpp; sourceTree = SOURCE_ROOT; };
+		4711EA8E12F6078600160155 /* ribOut.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ribOut.cpp; path = ../../../ribLib/ribOut.cpp; sourceTree = SOURCE_ROOT; };
+		4711EA8F12F6078600160155 /* riInterface.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = riInterface.cpp; path = ../../../ribLib/riInterface.cpp; sourceTree = SOURCE_ROOT; };
+		4711EA9012F6078600160155 /* variable.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = variable.cpp; path = ../../../ribLib/variable.cpp; sourceTree = SOURCE_ROOT; };
+		4711EA9812F607DA00160155 /* common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = common.h; path = ../../../ribLib/common.h; sourceTree = SOURCE_ROOT; };
+		4711EA9912F607DA00160155 /* error.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = error.h; path = ../../../ribLib/error.h; sourceTree = SOURCE_ROOT; };
+		4711EA9A12F607DA00160155 /* ri.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ri.h; path = ../../../ribLib/ri.h; sourceTree = SOURCE_ROOT; };
+		4711EA9B12F607DA00160155 /* ribOut.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ribOut.h; path = ../../../ribLib/ribOut.h; sourceTree = SOURCE_ROOT; };
+		4711EA9C12F607DA00160155 /* riInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = riInterface.h; path = ../../../ribLib/riInterface.h; sourceTree = SOURCE_ROOT; };
+		4711EA9D12F607DA00160155 /* variable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = variable.h; path = ../../../ribLib/variable.h; sourceTree = SOURCE_ROOT; };
+		4711EABE12F60C6200160155 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = /usr/lib/libz.dylib; sourceTree = "<absolute>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4711EA8212F606FB00160155 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4711EABF12F60C6200160155 /* libz.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4711EA7512F6069800160155 = {
+			isa = PBXGroup;
+			children = (
+				4711EA9712F6078C00160155 /* include */,
+				4711EA7F12F606A100160155 /* source */,
+				4711EA8512F606FB00160155 /* Products */,
+				4711EABE12F60C6200160155 /* libz.dylib */,
+			);
+			sourceTree = "<group>";
+		};
+		4711EA7F12F606A100160155 /* source */ = {
+			isa = PBXGroup;
+			children = (
+				4711EA8B12F6078600160155 /* error.cpp */,
+				4711EA8D12F6078600160155 /* ri.cpp */,
+				4711EA8E12F6078600160155 /* ribOut.cpp */,
+				4711EA8F12F6078600160155 /* riInterface.cpp */,
+				4711EA9012F6078600160155 /* variable.cpp */,
+			);
+			name = source;
+			sourceTree = SOURCE_ROOT;
+		};
+		4711EA8512F606FB00160155 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4711EA8412F606FB00160155 /* librib-x64.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4711EA9712F6078C00160155 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				4711EA9812F607DA00160155 /* common.h */,
+				4711EA9912F607DA00160155 /* error.h */,
+				4711EA9A12F607DA00160155 /* ri.h */,
+				4711EA9B12F607DA00160155 /* ribOut.h */,
+				4711EA9C12F607DA00160155 /* riInterface.h */,
+				4711EA9D12F607DA00160155 /* variable.h */,
+			);
+			name = include;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		4711EA8012F606FB00160155 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4711EAA012F607DA00160155 /* common.h in Headers */,
+				4711EAA112F607DA00160155 /* error.h in Headers */,
+				4711EAA212F607DA00160155 /* ri.h in Headers */,
+				4711EAA312F607DA00160155 /* ribOut.h in Headers */,
+				4711EAA412F607DA00160155 /* riInterface.h in Headers */,
+				4711EAA512F607DA00160155 /* variable.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		4711EA8312F606FB00160155 /* rib */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4711EA8812F606FC00160155 /* Build configuration list for PBXNativeTarget "rib" */;
+			buildPhases = (
+				4711EA8012F606FB00160155 /* Headers */,
+				4711EA8112F606FB00160155 /* Sources */,
+				4711EA8212F606FB00160155 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = rib;
+			productName = librib;
+			productReference = 4711EA8412F606FB00160155 /* librib-x64.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4711EA7712F6069800160155 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
+			buildConfigurationList = 4711EA7A12F6069800160155 /* Build configuration list for PBXProject "ribLib" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 4711EA7512F6069800160155;
+			productRefGroup = 4711EA8512F606FB00160155 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4711EA8312F606FB00160155 /* rib */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4711EA8112F606FB00160155 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4711EA9112F6078600160155 /* error.cpp in Sources */,
+				4711EA9312F6078600160155 /* ri.cpp in Sources */,
+				4711EA9412F6078600160155 /* ribOut.cpp in Sources */,
+				4711EA9512F6078600160155 /* riInterface.cpp in Sources */,
+				4711EA9612F6078600160155 /* variable.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		4711EA7812F6069800160155 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DEPLOYMENT_LOCATION = YES;
+				DSTROOT = "$(LIQUIDCODE)/ribLib/";
+				GCC_MODEL_PPC64 = YES;
+				GCC_MODEL_TUNING = "";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					_BOOL,
+					REQUIRE_IOSTREAM,
+					_CRT_SECURE_NO_DEPRECATE,
+					YY_NO_UNISTD_H,
+					HAVE_ZLIB,
+				);
+				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = YES;
+				INSTALL_PATH = /lib/osx;
+				LIQUIDCODE = "~/Documents/code/maya/liquidmaya";
+				PRODUCT_NAME = "rib-x64";
+			};
+			name = Debug;
+		};
+		4711EA7912F6069800160155 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(NATIVE_ARCH_ACTUAL)";
+				COPY_PHASE_STRIP = YES;
+				DEPLOYMENT_LOCATION = YES;
+				DSTROOT = "$(LIQUIDCODE)/ribLib/";
+				GCC_MODEL_PPC64 = YES;
+				GCC_MODEL_TUNING = "";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					_BOOL,
+					REQUIRE_IOSTREAM,
+					_CRT_SECURE_NO_DEPRECATE,
+					YY_NO_UNISTD_H,
+					HAVE_ZLIB,
+				);
+				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = YES;
+				INSTALL_PATH = /lib/osx;
+				LIQUIDCODE = "~/Documents/code/maya/liquidmaya";
+				MACH_O_TYPE = staticlib;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "rib-x64";
+				SDKROOT = macosx;
+				VALID_ARCHS = x86_64;
+			};
+			name = Release;
+		};
+		4711EA8612F606FC00160155 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = NO;
+				DSTROOT = "$(LIQUIDCODE)/ribLib/";
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "";
+				INSTALL_PATH = /lib/osx;
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "rib-x64";
+			};
+			name = Debug;
+		};
+		4711EA8712F606FC00160155 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DSTROOT = "$(LIQUIDCODE)/ribLib/";
+				GCC_MODEL_TUNING = G5;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "";
+				INSTALL_PATH = /lib/osx;
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "rib-x64";
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4711EA7A12F6069800160155 /* Build configuration list for PBXProject "ribLib" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4711EA7812F6069800160155 /* Debug */,
+				4711EA7912F6069800160155 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4711EA8812F606FC00160155 /* Build configuration list for PBXNativeTarget "rib" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4711EA8612F606FC00160155 /* Debug */,
+				4711EA8712F606FC00160155 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4711EA7712F6069800160155 /* Project object */;
+}

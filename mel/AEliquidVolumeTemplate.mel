@@ -1,0 +1,53 @@
+
+global proc AEliquidVolumeTemplate( string $nodeName )
+{
+  layout -e -vis false "AEcontrolFormLayout";
+
+  editorTemplate -callCustom "liquidPreviewSwatchNew" "liquidPreviewSwatchReplace" "message";
+
+  editorTemplate -beginScrollLayout;
+
+    editorTemplate -ccu "liquidShaderPickerNew" "liquidShaderPickerReplace" "rmanShaderLong";
+
+    editorTemplate -beginLayout "Preview";
+      editorTemplate -addControl "previewPrimitive";
+      editorTemplate -ccu "liquidShaderNodesCustomPrimitiveNew \"Custom Primitive\" "
+                          "liquidShaderNodesCustomPrimitiveReplace \"Custom Primitive\" "
+                          "previewCustomPrimitive";
+      editorTemplate -addControl "previewObjectSize";
+      editorTemplate -addControl "previewShadingRate";
+      editorTemplate -addControl "previewShadingRate";
+      editorTemplate -addControl "previewBackplane";
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "RIB";
+      
+      editorTemplate -addControl "volumeType";
+      editorTemplate -label "Color (Ci)" -addControl "color";
+      editorTemplate -label "Opacity (Oi)" -addControl "opacity";
+      editorTemplate -addControl "transparency";
+      editorTemplate -addControl "displacementBound";
+      editorTemplate -addControl "shaderSpace";
+      editorTemplate -addControl "outputInShadow";
+      editorTemplate -label "Use VisiblePoints Shader" -ann "available in PRMan 16.x"  -addControl "useVisiblePoints" ; // 
+      
+      editorTemplate -ccu ("liquidLargeFieldNew " + $nodeName + " \"RIB Box\"") ("liquidLargeFieldReplace " + $nodeName + " \"RIB Box\"") "liqRIBBox";
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Parameters" -collapse 0;
+      editorTemplate -ccu "liquidShaderNodesParamsNew" "liquidShaderNodesParamsReplace" "rmanShaderLong";
+    editorTemplate -endLayout;
+
+    editorTemplate -suppress rmanShader;
+    editorTemplate -suppress rmanShaderLong;
+    editorTemplate -suppress rmanShaderLif;
+    editorTemplate -suppress rmanParams;
+    editorTemplate -suppress rmanArraySizes;
+    editorTemplate -suppress rmanLifCmds;
+
+    editorTemplate -addExtraControls;
+
+  editorTemplate -endScrollLayout;
+  layout -e -vis true "AEcontrolFormLayout";
+}
+

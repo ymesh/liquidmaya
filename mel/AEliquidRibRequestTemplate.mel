@@ -1,0 +1,61 @@
+global proc AEliquidRibRequestTemplate( string $nodeName )
+{
+	string $msg = "preFrame&preWorld&postWorld&preGeom";
+
+	editorTemplate -suppress "preFrame";
+	editorTemplate -suppress "preWorld";
+	editorTemplate -suppress "postWorld";
+	editorTemplate -suppress "preGeom";
+
+	editorTemplate -beginLayout "Liquid RIB Request" -collapse false;
+	editorTemplate -callCustom ( "liquidRibRequestEditorNew " + $nodeName ) ( "liquidRibRequestEditorReplace " + $nodeName ) $msg;
+	editorTemplate -addExtraControls;
+ 	editorTemplate -endLayout;
+}
+global proc liquidRibRequestEditorNew( string $nodeName, string $strmsg )
+{
+	string $msg[] = stringToStringArray( $strmsg, "&" );
+	string $tmp[] = stringToStringArray( $msg[0], "." );
+	$msg[0] = $tmp[1];
+	setUITemplate -pst attributeEditorTemplate;
+		text -align "left" -l "preFrame";
+		scrollField -wordWrap false -font smallFixedWidthFont -h 80 liquidRibRequestPreFrameField;
+		text -align "left" -l "preWorld";
+		scrollField -wordWrap false -font smallFixedWidthFont -h 80 liquidRibRequestPreWorldField;
+		text -align "left" -l "postWorld";
+		scrollField -wordWrap false -font smallFixedWidthFont -h 80 liquidRibRequestPostWorldField;
+		text -align "left" -l "preGeom";
+		scrollField -wordWrap false -font smallFixedWidthFont -h 80 liquidRibRequestPreGeomField;
+	setUITemplate -ppt;
+	liquidRibRequestEditorReplace( $nodeName, $strmsg );
+}
+
+global proc liquidRibRequestEditorReplace( string $nodeName, string $strmsg )
+{
+	string $msg[] = stringToStringArray( $strmsg, "&" );
+	string $tmp[] = stringToStringArray( $msg[0], "." );
+	$nodeName = $tmp[0];
+	$msg[0] = $tmp[1];
+	scrollField -e
+              -tx ( `getAttr ( $nodeName + "." + $msg[0] )` )
+              -cc ( "{ string $s = `scrollField -q -tx liquidRibRequestPreFrameField`; setAttr -type \"string\" " + $nodeName + "." + $msg[0] + "$s; }" )
+              -ec ( "{ string $s = `scrollField -q -tx liquidRibRequestPreFrameField`; setAttr -type \"string\" " + $nodeName + "." + $msg[0] + "$s; }" )
+              liquidRibRequestPreFrameField;
+              
+	scrollField -e
+              -tx ( `getAttr ( $nodeName + "." + $msg[1] )` )
+              -cc ( "{ string $s = `scrollField -q -tx liquidRibRequestPreWorldField`; setAttr -type \"string\" " + $nodeName + "." + $msg[1] + " $s; }" )
+              -ec ( "{ string $s = `scrollField -q -tx liquidRibRequestPreWorldField`; setAttr -type \"string\" " + $nodeName + "." + $msg[1] + " $s; }" )
+              liquidRibRequestPreWorldField;
+	scrollField -e
+              -tx ( `getAttr ( $nodeName + "." + $msg[2] )` )
+              -cc ( "{ string $s = `scrollField -q -tx liquidRibRequestPostWorldField`; setAttr -type \"string\" " + $nodeName + "." + $msg[2] + " $s; }" )
+              -ec ( "{ string $s = `scrollField -q -tx liquidRibRequestPostWorldField`; setAttr -type \"string\" " + $nodeName + "." + $msg[2] + " $s; }" )
+              liquidRibRequestPostWorldField;
+	scrollField -e
+              -tx ( `getAttr ( $nodeName + "." + $msg[3] )` )
+              -cc ( "{ string $s = `scrollField -q -tx liquidRibRequestPreGeomField`; setAttr -type \"string\" " + $nodeName + "." + $msg[3] + " $s; }" )
+              -ec ( "{ string $s = `scrollField -q -tx liquidRibRequestPreGeomField`; setAttr -type \"string\" " + $nodeName + "." + $msg[3] + " $s; }" )
+              liquidRibRequestPreGeomField;
+}
+

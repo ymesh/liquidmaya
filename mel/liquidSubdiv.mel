@@ -1,0 +1,390 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+
+//
+//  Creation Date:    January 18th, 2001
+//
+//  Description:
+//	An interface for working with Subdivision Surfaces with Liquid
+//
+
+global proc liquidMakeSubdivUI()
+{
+	int $i;
+	if (`window -exists liqSubdivWindow`)
+	{
+		deleteUI liqSubdivWindow;
+	}
+	if (`windowPref -ex liqSubdivWindow`)
+	{
+		windowPref -r liqSubdivWindow;
+	}
+
+	window -widthHeight 340 180 -t "Liquid Subdivision Surface Attributes" -rtf true "liqSubdivWindow";
+		string $form = formLayout();
+
+			int $ck = `optionVar -q liqSubdiv`;
+			string $subdivCb = `checkBoxGrp -label "Subdivison Mesh" -l1 "" -v1 $ck`;
+
+			$ck = `optionVar -q liqSubdivInterpolateBoundary`;
+			string $liqBoundaryModes[] = {"Off", "Sharp", "Smooth"};
+			string $liqSubdivInterpolateOm = `optionMenuGrp -cal 1 "right" -label "Interpolate Boundary"`;
+			for( $i = 0; $i < 3; ++$i )
+			{
+				menuItem -data $i -label $liqBoundaryModes[ $i ];
+			}
+			$ck += 1; // wtf -v doesn't work -- have to go through the selection
+			optionMenuGrp -e -sl $ck $liqSubdivInterpolateOm;
+
+			$ck = `optionVar -q liqSubdivUVInterpolation`;
+			string $liqUVinterpModes[];
+			$liqUVinterpModes = {"True Facevarying", "New Facevarying", "Facevertex"};
+			string $liqSubdivUVOm = `optionMenuGrp -cal 1 "right" -label "UV Interpolation"`;
+			for( $i = 0; $i < 3; ++$i )
+			{
+				menuItem -data $i -label $liqUVinterpModes[ $i ];
+			}
+			$ck += 1; // wtf -v doesn't work -- have to go through the selection
+			optionMenuGrp -e -sl $ck $liqSubdivUVOm;
+
+			if( `optionVar -ex liqHierarchicalSubdiv` )
+			{
+				$ck = `optionVar -q liqHierarchicalSubdiv`;
+			}
+			else
+			{
+				$ck = 0;
+			}
+			string $useHierarchicalSubdivCb = `checkBoxGrp -adj 1 -label "Use Hierarchical Subdiv" -l1 "" -v1 $ck`;
+
+			string $closeBut = `button -w 150 -h 30 -l "Close"`;
+			string $applyBut = `button -w 150 -h 30 -l "Apply"`;
+			button -e -c ("liquidMakeSubdivDoIt " + $subdivCb + " " + $liqSubdivInterpolateOm + " " + $liqSubdivUVOm + " " + $useHierarchicalSubdivCb ) $applyBut;
+			button -e -c "deleteUI liqSubdivWindow" $closeBut;
+
+		formLayout -e
+					-af $subdivCb "top" 10
+					-af $subdivCb "left" 10
+
+					-ac $liqSubdivInterpolateOm "top" 5 $subdivCb
+					-af $liqSubdivInterpolateOm "left" 10
+
+					-ac $liqSubdivUVOm "top" 5 $liqSubdivInterpolateOm
+					-af $liqSubdivUVOm "left" 10
+
+					-ac $useHierarchicalSubdivCb "top" 5 $liqSubdivUVOm
+					-af $useHierarchicalSubdivCb "left" 10
+
+					-af $closeBut "bottom" 10
+					-af $closeBut "left" 10
+
+					-af $applyBut "bottom" 10
+					-af $applyBut "right" 10
+					$form;
+	showWindow liqSubdivWindow;
+}
+
+global proc liquidMakeSubdivDoIt(string $liqSubdivCb, string $liqSubdivInterpolateOm, string $liqSubdivUVOm, string $useHierarchicalSubdivCb )
+{
+  int $r = `checkBoxGrp -q -v1 $liqSubdivCb`;
+  optionVar -iv "liqSubdiv" $r;
+
+  $r = `optionMenuGrp -q -sl $liqSubdivInterpolateOm` - 1;
+  optionVar -iv "liqSubdivInterpolateBoundary" $r;
+
+  $r = `optionMenuGrp -q -sl $liqSubdivUVOm` - 1;
+  optionVar -iv "liqSubdivUVInterpolation" $r;
+
+  $r = `checkBoxGrp -q -v1 $useHierarchicalSubdivCb`;
+  optionVar -iv "liqHierarchicalSubdiv" $r;
+
+  deleteUI liqSubdivWindow;
+  liquidMakeSubdiv();
+}
+
+global proc liquidMakeSubdiv()
+{
+  string $selected[] = `ls -dag -type mesh -type subdiv -sl`;
+  string $current;
+  int $render = `optionVar -q "liqSubdiv"`;
+  int $fv = `optionVar -q "liqSubdivUVInterpolation"`;
+  int $interp = `optionVar -q "liqSubdivInterpolateBoundary"`;
+  int $hierarc = `optionVar -q "liqHierarchicalSubdiv"`;
+
+  for ( $current in $selected )
+  {
+    if ( !`attributeQuery -node $current -ex "liqSubdiv"`) {
+      addAttr -ln liqSubdiv -at bool $current;
+    }
+    if ( `attributeQuery -node $current -ex "liqSubdiv"`) {
+      setAttr ( $current + ".liqSubdiv" ) $render;
+    }
+    if ( `attributeQuery -node $current -ex "mtorSubdiv"` ) {
+      setAttr ( $current + ".mtorSubdiv" ) true;
+    }
+    if ( !`attributeQuery -node $current -ex "liqSubdivUVInterpolation"`) {
+      addAttr -ln liqSubdivUVInterpolation -at short $current;
+    }
+    if ( `attributeQuery -node $current -ex "liqSubdivUVInterpolation"`) {
+      setAttr ( $current + ".liqSubdivUVInterpolation" ) $fv;
+    }
+    if ( !`attributeQuery -node $current -ex "liqSubdivInterpolateBoundary"`) {
+      addAttr -ln liqSubdivInterpolateBoundary -at short $current;
+    }
+    if ( `attributeQuery -node $current -ex "liqSubdivInterpolateBoundary"`) {
+      setAttr ( $current + ".liqSubdivInterpolateBoundary" ) $interp;
+    }
+    if ( !`attributeQuery -node $current -ex "liqHierarchicalSubdiv"`) {
+      addAttr -ln liqHierarchicalSubdiv -at bool $current;
+    }
+    if ( `attributeQuery -node $current -ex "liqHierarchicalSubdiv"`) {
+      setAttr ( $current + ".liqHierarchicalSubdiv" ) $hierarc;
+    }
+  }
+}
+
+global proc liquidUnMakeSubdiv()
+{
+  string $selected[] = `ls -dag -type mesh -type subdiv -sl`;
+  string $current;
+  for ( $current in $selected )
+  {
+
+    if ( `attributeQuery -node $current -ex "liqSubdiv"`)
+      deleteAttr ( $current + ".liqSubdiv" );
+
+    if ( `attributeQuery -node $current -ex "liqSubdivUVInterpolation"`)
+      deleteAttr ( $current + ".liqSubdivUVInterpolation" );
+
+    if ( `attributeQuery -node $current -ex "liqSubdivInterpolateBoundary"`)
+      deleteAttr ( $current + ".liqSubdivInterpolateBoundary" );
+
+    if ( `attributeQuery -node $current -ex "liqHierarchicalSubdiv"`)
+      deleteAttr ( $current + ".liqHierarchicalSubdiv" );
+  }
+}
+
+global proc string liqSubdivAddAttribute( string $node, string $attr, string $type, int $keyable )
+{
+    string $nm = ($node + "." + $attr);
+    string $result[] = `listAttr -r -st $attr $node`;
+    if ( 0 == size($result))  {
+
+  addAttr -at $type -ln $attr $node;
+  if( $keyable ) 	{
+      setAttr -e -keyable true $nm;
+  }
+    }
+    return $nm;
+}
+
+global proc liquidSubdivCreaseUI() {
+
+  if (`window -exists liqSubdivCreaseWin`)
+    deleteUI liqSubdivCreaseWin;
+  if (`windowPref -ex liqSubdivCreaseWin`)
+    windowPref -r liqSubdivCreaseWin;
+  window -widthHeight 320 60 -t "Liquid Subdivision Crease" -rtf true "liqSubdivCreaseWin";
+  columnLayout -co "both" 5 -adj 1 -rs 5 c1;
+    rowLayout -nc 3 parameters;
+      floatSliderGrp -width 340 -cw 1 100 -cw 2 40
+        -field true -l "Hardness"
+        -min 0 -max 20
+        -v `optionVar -q liqSubdivCrease`
+        hardness;
+    setParent ..;
+    separator;
+    rowColumnLayout -nc 2 -cw 1 160 -cw 2 160 buttons;
+      button -l "Close" cancelButton;
+      button -l "Apply" okButton;
+      button -e -c "deleteUI liqSubdivCreaseWin" cancelButton;
+      button -e -c "liquidSubdivCreaseDoIt" okButton;
+    setParent ..;
+  showWindow liqSubdivCreaseWin;
+}
+
+global proc liquidSubdivCreaseDoIt() {
+
+  int $r = `floatSliderGrp -q -v "liqSubdivCreaseWin|c1|parameters|hardness"`;
+  optionVar -iv "liqSubdivCrease" $r;
+      liquidSubdivCreaseApply;
+}
+
+global proc liquidSubdivCreaseApply() {
+
+  int $crease = `optionVar -q "liqSubdivCrease"`;
+      string $partitions[] = `ls -pr liquidCreasePartition`;
+  if ($partitions[0] == "")
+    partition -name liquidCreasePartition;
+
+  string $newSet = `sets -name liquidCrease -edges 1 -empty`;
+  partition -e -addSet liquidCreasePartition $newSet;
+  sets -edit -forceElement $newSet;
+
+  string $attr = liqSubdivAddAttribute( $newSet, "liqSubdivCrease", "float", 1 );
+  setAttr $attr $crease;
+  select -noExpand $newSet;
+}
+
+global proc liquidSubdivCornerUI() {
+
+  if (`window -exists liqSubdivCornerWin`)
+    deleteUI liqSubdivCornerWin;
+  if (`windowPref -ex liqSubdivCornerWin`)
+    windowPref -r liqSubdivCornerWin;
+      window -widthHeight 320 60 -t "Liquid Subdivision Corners" -rtf true "liqSubdivCornerWin";
+  columnLayout -co "both" 5 -adj 1 -rs 5 c1;
+    rowLayout -nc 3 parameters;
+      floatSliderGrp -width 340 -cw 1 100 -cw 2 40
+        -field true -l "Hardness"
+        -min 0 -max 20
+        -v `optionVar -q liqSubdivCorner`
+        hardness;
+    setParent ..;
+    separator;
+    rowColumnLayout -nc 2 -cw 1 160 -cw 2 160 buttons;
+      button -l "Close" cancelButton;
+      button -l "Apply" okButton;
+      button -e -c "deleteUI liqSubdivCornerWin" cancelButton;
+      button -e -c "liquidSubdivCornerDoIt" okButton;
+    setParent ..;
+  showWindow liqSubdivCornerWin;
+}
+
+global proc liquidSubdivCornerDoIt() {
+
+  int $r = `floatSliderGrp -q -v "liqSubdivCornerWin|c1|parameters|hardness"`;
+  optionVar -iv "liqSubdivCorner" $r;
+      liquidSubdivCornerApply;
+}
+
+global proc liquidSubdivCornerApply() {
+
+  int $Corner = `optionVar -q "liqSubdivCorner"`;
+  string $partitions[] = `ls -pr liqCornerPartition`;
+  if ($partitions[0] == "")
+    partition -name liqCornerPartition;
+
+  string $newSet = `sets -name liqCorner -vertices 1 -empty`;
+  partition -e -addSet liqCornerPartition $newSet;
+  sets -edit -forceElement $newSet;
+
+  string $attr = liqSubdivAddAttribute( $newSet, "liqSubdivCorner", "float", 1 );
+  setAttr $attr $Corner;
+  select -noExpand $newSet;
+}
+
+global proc liquidSubdivHoleUI() {
+
+  if (`window -exists liqSubdivHoleWin`)
+    deleteUI liqSubdivHoleWin;
+  if (`windowPref -ex liqSubdivHoleWin`)
+    windowPref -r liqSubdivHoleWin;
+      window -widthHeight 320 60 -t "Liquid Subdivision Hole" -rtf true "liqSubdivHoleWin";
+  columnLayout -co "both" 5 -adj 1 -rs 5 c1;
+    rowLayout -nc 3 parameters;
+      int $ck = `optionVar -q liqSubdivHole`;
+      checkBoxGrp -label "Hole" -l1 "" -v1 $ck hole;
+    setParent ..;
+    separator;
+    rowColumnLayout -nc 2 -cw 1 160 -cw 2 160 buttons;
+      button -l "Close" cancelButton;
+      button -l "Apply" okButton;
+      button -e -c "deleteUI liqSubdivHoleWin" cancelButton;
+      button -e -c "liquidSubdivHoleDoIt" okButton;
+    setParent ..;
+  showWindow liqSubdivHoleWin;
+}
+
+global proc liquidSubdivHoleDoIt() {
+
+  int $r = `checkBoxGrp -q -v1 "hole"`;
+  optionVar -iv "liqSubdivHole" $r;
+      liquidSubdivHoleApply;
+}
+
+global proc liquidSubdivHoleApply() {
+
+  int $Hole = `optionVar -q "liqSubdivHole"`;
+      string $partitions[] = `ls -pr liqHolePartition`;
+  if ($partitions[0] == "")
+    partition -name liqHolePartition;
+
+  string $newSet = `sets -name liqHole -facets 1 -empty`;
+  partition -e -addSet liqHolePartition $newSet;
+  sets -edit -forceElement $newSet;
+
+  string $attr = liqSubdivAddAttribute( $newSet, "liqSubdivHole", "short", 1 );
+  setAttr $attr $Hole;
+  select -noExpand $newSet;
+}
+
+global proc liquidSubdivStitchUI() {
+
+  if (`window -exists liqSubdivStitchWin`)
+    deleteUI liqSubdivStitchWin;
+  if (`windowPref -ex liqSubdivStitchWin`)
+    windowPref -r liqSubdivStitchWin;
+      window -widthHeight 320 60 -t "Liquid Subdivision Stitch" -rtf true "liqSubdivStitchWin";
+  columnLayout -co "both" 5 -adj 1 -rs 5 c1;
+    rowLayout -nc 3 parameters;
+
+      intFieldGrp  -width 340 -cw 1 100 -cw 2 40
+        -l "Unique ID:"
+        -v1 `optionVar -q liqSubdivStitch`
+        uid;
+    setParent ..;
+    separator;
+    rowColumnLayout -nc 2 -cw 1 160 -cw 2 160 buttons;
+      button -l "Close" cancelButton;
+      button -l "Apply" okButton;
+      button -e -c "deleteUI liqSubdivStitchWin" cancelButton;
+      button -e -c "liquidSubdivStitchDoIt" okButton;
+    setParent ..;
+  showWindow liqSubdivStitchWin;
+}
+
+global proc liquidSubdivStitchDoIt() {
+
+  int $r = `intFieldGrp -q -v1 "liqSubdivStitchWin|c1|parameters|uid"`;
+  optionVar -iv "liqSubdivStitch" $r;
+      liquidSubdivStitchApply;
+}
+
+global proc liquidSubdivStitchApply() {
+
+  int $Stitch = `optionVar -q "liqSubdivStitch"`;
+      string $partitions[] = `ls -pr liqStitchPartition`;
+  if ($partitions[0] == "")
+    partition -name liqStitchPartition;
+
+  string $newSet = `sets -name liqStitch -vertices 1 -empty`;
+  partition -e -addSet liqStitchPartition $newSet;
+  sets -edit -forceElement $newSet;
+
+  string $attr = liqSubdivAddAttribute( $newSet, "liqSubdivStitch", "short", 1 );
+  setAttr $attr $Stitch;
+  select -noExpand $newSet;
+}

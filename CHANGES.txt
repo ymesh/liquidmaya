@@ -1,0 +1,252 @@
+2.3.5
+- MEL change for Maya 2009
+- compatibility fixes for linux
+- output of plugin shapes in RIB, so they can be used as placeholders
+- working xcodeproj file for MAC, thanks to Brian Sundman
+
+2.3.4
+- RIReadArchive Mel command updated, the -inline(i) flag inlines the Read Archive into the RIB
+- liquidCleanup command script modified so confirm dialog can be supressed (to use it in scripts)
+- wiki link changed in globals
+- "Render All Curves" global option fixed, global switch for curve rendering
+- the Maya Subdiv render module is fixed, maya subdivs are now ouput properly, with the following limitations:
+  - only the base mesh (level 0) is output (no hierarchy edits)
+  - level 0 edge/vertex creases are always hard (crease value 7), all other levels are ignored
+ - maya subdivs can be tagged like polygons through the liquid menu which gives access to the boundary interpolation options
+
+2.3.3
+- liquidGeneratePlace3dTexture( int scoped ) mel command available - maya 3d textures will be output in RIB as scoped or standard coordinate systems
+- liquid curves can be assigned a base and tip width
+- new liquid curves group creates a single RiCurves primitive for a group of nurbs curves
+- new liquid bounding box locator that resizes automatically to its children used for the curves group
+
+2.3.2
+- custom shading group integrated in the shading attributes, you can now connect a shading group to any object, like locators etc
+- liquidGeneratePlace2dTexture.mel to be used in postWorldMel slot/Render Globals will output all pace2dTexure nodes in RIB (for Prman)
+- othreshold and zthreshold as color values in globals
+- Paint Effects group integrated in attribute editor, assignment of individual shading groups to tubes, leafs and petals now possible
+- fixed a bug in the PRMAN build, the Rib output of the "P" parameter got lost if a rib object got used more than once, i.e. for shadows or motionblur
+
+2.3.1
+- adapted to maya2008 uvs for polys and subdivs
+- applied patch for Aqsis settings
+
+2.3.0
+- added prePosterous group - mel binding for preTransform,
+  postTransform, preShape and postShape scripts
+- 4 Mel insertion points combining with the rib boxes in the globals
+- 60 + Ri commands added
+- Maya2008 edge and corner creases supported
+
+2.2.14
+- 3Delight subsurface scatter group completed
+
+2.2.13
+
+- support for aggregate shadowmaps
+- subdiv surface inspector
+- aggregate shadowmaps using light name when using autoshadow and camera name when using autoshadow 0, 1 etc
+- first shadowcam outputs always with "aggregate" set to 0 to overwrite old map if it exists
+- fixed naming when using shadow sets
+- error message "problem using shader..." fixed
+- paint effects exporter extension - shader assignment to paint effects, uniform width, camera facing and curve id implemented
+- paint effects menu item to add/remove these attributes to pfx strokes
+- added more shadow controls, subd menu updated
+- added support for mid-point ratio attribute on a camera
+- implementation of inclusive/exclusive light linking similar to "illuminate by default" on/off in maya, in the liquid globals
+- liquid rib request node, holds preWorld/preFrame etc. attributes and can be saved with a file, main use for inline archives (instancing)
+- liquid light linker - fast alternative to maya light linker
+- subdiv tag error corrected causing many error messages
+  
+
+1.6.7 (on sourceforge again!)
+
+- Fixed shader preview for Linux platform (untested on OS X!)
+- Linux installer script now automatically compiles the Liquid shaders for all
+    installed renderers
+- Added new global to allow separate control for camera motion blur
+- UI improvements for all file browser dialogs (including Fluid's browser)
+    thanks to Alexandre Paes
+- Fixed a bug that led to attributes not being recorded properly for RIB output
+- Fix to Subdivision UI
+
+
+1.6.6 (not on sourceforge):
+
+- Support for creases/corners/holes on subdivison meshes including a nice
+    Subdivision Surface Inspector panel    
+- Support for arbitrary renderer configurations in the Liquid Render Globals
+- Support for rendering dependent files w/o the need to use a Job Script
+    anymore (e.g. shadow passes)
+- Several different Liquid plug-ins can now be installed on the same machine
+- Added support for certain ray tracing attributes on lights    
+- RIB & display filename from the Liquid Render Globals is handled more
+    logical now (hopefully):
+    - The scene's name is used as the display name if the latter was omitted
+    - The display name is never used as the RIB basename
+    - The RIB basename is used as the display name if the latter was omitted
+    - The scene's name is used as the RIB basename if the latter was omitted    
+- Pathnames are now santized everywhere in the RIB
+- Fixed a bug that caused motion blur to be switched off randomly
+    (Thx for reporting & providing a Maya scene exposing it go to Christopher)
+
+
+1.6.5 (not on sourceforge):
+
+- New code for correct handling of particle motion blur
+- Fixed a bad memory handling bug that led to crashes with the improved
+    uv code on subdivs and polygon-/subdivision meshes
+- RIB size improvements (smaller RIBs):
+    - Liquid now uses RIB inline parameter declarations only
+    - Support of 3Delight's more compact "sphere"-type RiPoint particles
+- RIB Attribute support through a new 'Attributes' pop-up in the Liquid menu
+    and a new 'Liquid' roll-out in Maya's Attribute Editor
+- Trace set membership support through a new 'Set Attributes' pop-up in the
+    Liquid menu and a new 'Liquid' roll-out for objectSets in Maya's Attribute
+    Editor
+- Buffed up Maya lights support. Point-, distant- and spotlights now use a
+    liquid* variant of the resp. shader. Most Maya light attributes are handled
+    as a user would expect (particularly Decay)
+- New Liquid global 'Shutter Config'. Allows to choose if the shutter opens on
+    frame, is centered on frame, is centered between frames or closes on the
+    next frame (do I hear someone bitch about not enough shutter
+    configurations? ;>)
+- Lights too can now have ray tracing attributes attached through the Light
+    menu
+
+
+1.6.4 (not on sourceforge):
+
+- Added new Liquid global "Output Mesh UVs" to control writing of redundant uv
+    data to RIBs
+- Fixed uv code for Maya subdivision surfaces
+- Switched uv interpolation scheme for 3Delight from "facevarying" to
+    "facevertex" -- this should solve all uv warping/interpolation problems on
+    subdivison surfaces
+- Added default behaviour for undefined shader searchpath and added default
+    shader searchpath to the searchpath written to the RIB
+    
+
+1.6.3 (not on sourceforge):
+
+- Added new options to and buffed up Liquid's shader preview
+- Moved Fluid options to their own tab in the Liquid Render Globals
+- Minor bugfixes in Liquid's curve code
+- Added code to support curves in 3Delight
+
+
+1.6.2 (not on sourceforge):
+
+- Liquid now automatically substitutes backslashes on Windows in Fluid's file
+    chooser dialog
+- New sprite particle support
+- Pixie support
+- OSX support
+- Added new Liquid global to control output of shaders in deep shadow passes
+- Fixed initialization and cleanup code to account for more than five motion
+    samples
+
+
+1.6.1-5 (not on sourceforge):
+
+- Deactivated the code in liquidReAttachParams.mel that led to flushing of
+    string paramater values on shader reload in Fluid
+- Fixed Maya Subdivision Surface code -- Maya subdivs now work, including
+    Maya's creasing system. Hardness is ignored, this is a limitation of the
+    Maya API. Creased edges and vertices are written with a hardness of 6.0 now
+      -- this gives a nice, subtle bevel and ensures that surfaces are still
+      tangent continous at creases
+
+
+1.6.1-4 (not on sourceforge):
+
+- light linking is no longer (erratically) written out in a shadow pass
+- lights and light linking can now be written out in a deep shadow pass if the
+    "Output Lightsources" in the "Deep Shadow Maps" rollout of the Liquid
+    Render Globals is checked
+- added full support (and new Liquid global) for relative pathnames;
+    RIBs, archives, the job script etc. now all contain relative pathnames if
+    this option is switched on
+- added command line support for rendering sequences to the dojob.py Python
+    script
+
+
+1.6.1-3 (not on sourceforge):
+
+- Fixed uninitialized string array bug with blobbies; blobbies code activated
+    -- blobbies now actually work
+- Fixed Motion Samples glitch; now the maximum number of motion samples is 16
+- Added quotes to render script filename in win32 build
+- Added binary RIB output support for 3Delight
+- Added deep shadow support for 3Delight's "dsm" driver
+- Changed Opacity to be a color instead of a float
+
+
+1.6.1-2 (not on sourceforge):
+
+- Fixed __Pref bug with subdiv-/polygon meshes; __Pref was not initialized
+    correctly and hence never got written out correctly to the RIB
+- Interpolate Boundary on subdivs works now
+- Fixed shader preview in Fluid
+
+
+1.6.1 (not on sourceforge):
+
+- Displacement bounds are now explicitly specified in "shader" space;
+    there's no way to currently change this; maybe add another Liquid global?
+- Added new Liquid global: compiledShaderExt; can be set to e.g. "sdl" for
+    3Delight or "slo" for PRMan
+- Liquid now writes out all coordinate systems after the lights but before any
+    other stuff in the RIB; previously coordinate systems where written out
+    scattered between the other geometry according to the order in the Maya
+    Outliner
+- If a Maya light has raytraced shadows switched on,
+    Attribute "light" "string shadows" [ "on" ]
+    is now written to the RIB regardless of BMRT being used or not
+- New attribute liqInvisible; works as mtorInvisible -- tagged objects are
+    ignored by Liquid
+
+
+1.6:
+
+- Maya 6.0 build
+- Maya OSX build
+- XML format render script output
+- View last RIB/render-script fixed for win32
+- Shadow map (including deep shadows) fixes
+- Other stuff
+
+
+1.5.6 (not on sourceforge):
+
+- Added quotes to all filenames for win32. Now pathnames with spaces will work
+    in bloody Windoze
+- new Liquid global: preGeom; the contents of this string is written to the RIB
+    after lights and coordinate systems, but before geometry
+- Liquid now understands the mtorSubdiv attribute
+- /Considerably/ buffed up resp. changed the entire MEL interface;
+    changed naming to be more MtoR compatible: added separators and ellipses,
+    reordered menus where appropriate and added support for file browser
+    dialogs to Fluid string input fields
+- Removed BMRT tab and options from MEL interface as they are obsolete and
+    should be replaced by a new set of raytrace options as e.g. in MtoR
+- Fixed 3Delight settings in liqDelightRenderer.cpp (almost all where wrong)
+- Aghiles Kheffache: VC++ project settings to compile Liquid with 3Delight
+
+
+1.5.5:
+
+- Polygon mesh export overhaul for efficiency and facevarying UVs on subdivs
+- Crasher bug in Fluid shader editor fixed
+- Many other fixes from the last few months
+
+
+1.5.2:
+
+- Initial release cleaned up with some minor fixes.
+
+
+1.0:
+
+- Initial release of the source code for the Liquid Rendering Toolkit
+

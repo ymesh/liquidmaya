@@ -1,0 +1,88 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  By Colin Doncaster
+//
+//  Creation Date:    July 31st, 2000
+//
+//  Procedure Name:
+//	liquidReAttachParams
+//
+//  Description:
+//	same as reloading, it updates the parameters on the nodes
+//
+
+global proc liquidReAttachParams ( string $currentNodeName, string $oldShader )
+{
+  int $i;
+  string $shaderFileName = `getAttr ( $currentNodeName + ".rmanShaderLong" )`;
+
+  string $nodeType = `objectType $currentNodeName`;
+  if ( $oldShader == "surface" ) 
+	{
+    if ( !`attributeQuery -n $currentNodeName -ex ( "color" ) `) 
+		{
+      addAttr -longName "color" -usedAsColor -at float3 $currentNodeName;
+      addAttr -defaultValue 0.5 -longName "red" -at "float" -parent "color" $currentNodeName;
+      addAttr -defaultValue 0.5 -longName "green" -at "float" -parent "color" $currentNodeName;
+      addAttr -defaultValue 0.5 -longName "blue" -at "float" -parent "color" $currentNodeName;
+      setAttr ( $currentNodeName + ".color" ) -type float3 1.0 1.0 1.0;
+    }
+    if ( !`attributeQuery -n $currentNodeName -ex ( "opacity" ) `) 
+		{
+      addAttr -longName "opacity" -usedAsColor -at float3 $currentNodeName;
+      addAttr -defaultValue 1.0 -longName "redO" -at "float" -parent "opacity" $currentNodeName;
+      addAttr -defaultValue 1.0 -longName "greenO" -at "float" -parent "opacity" $currentNodeName;
+      addAttr -defaultValue 1.0 -longName "blueO" -at "float" -parent "opacity" $currentNodeName;
+      setAttr ( $currentNodeName + ".opacity" ) -type float3 1.0 1.0 1.0;
+    }
+  }
+
+  if ( $oldShader == "light" ) 
+	{
+    if ( !`attributeQuery -n $currentNodeName -ex ( "shadowCamera" ) `) 
+      addAttr -longName "shadowCamera" -dt "string" $currentNodeName;
+    
+    if ( !`attributeQuery -n $currentNodeName -ex ( "deepShadows" ) `) 
+      addAttr -longName "deepShadows" -at bool $currentNodeName;
+    
+    if ( !`attributeQuery -n $currentNodeName -ex ( "pixelSamples" ) `) 
+      addAttr -longName "pixelSamples" -at byte -minValue 1 -maxValue 16 -defaultValue 1 $currentNodeName;
+    
+    if ( !`attributeQuery -n $currentNodeName -ex ( "volumeInterpretation" ) `) 
+      addAttr -longName "volumeInterpretation" -at byte -minValue 1 -maxValue 2 -defaultValue 1 $currentNodeName;
+  }
+
+  if ( $oldShader == "disp" || $oldShader == "surface" ) 
+    if ( !`attributeQuery -n $currentNodeName -ex ( "displacementBound" ) `) 
+      addAttr -ln displacementBound -at "float" -dv 0.0 $currentNodeName;
+
+  liquidAttachShaderParams( $currentNodeName, $shaderFileName );
+
+  // if connection is broken, fix it.
+  if ( !size( `connectionInfo -sfd ( $currentNodeName + ".liquidShaderManager" )` ) ) 
+    connectAttr -f ("liquidGlobals.liquid"+(capitalizeString($oldShader))+"Shaders") ( $currentNodeName + ".liquidShaderManager" );
+  
+}

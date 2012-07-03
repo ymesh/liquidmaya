@@ -1,0 +1,26 @@
+global proc AEliquidNurbsCurveShape(string $node)
+{
+	editorTemplate -beginLayout "Liquid"   -collapse true;
+	
+		editorTemplate -beginLayout "Rendering"  -collapse false;
+		
+			editorTemplate -label "Render Curve" -addDynamicControl "liqCurve" "AEliquidRenderasCurveActive";
+			
+			editorTemplate -label "Curve Width" -addDynamicControl "liqCurveWidth";
+			
+		editorTemplate -endLayout;
+	
+	editorTemplate -endLayout;
+}
+
+global proc AEliquidRenderasCurveActive(string $node)
+{
+	string $nodes[] = `ls -dag -sl`;
+	string $currentNode;
+	for ( $currentNode in $nodes ) {
+		if ( `attributeQuery -node $currentNode -ex "liqCurve"` ){
+			int $dfm = !`getAttr ($node + ".liqCurve")`;
+			editorTemplate -dimControl $node "liqCurveWidth" $dfm;
+		}		
+	}
+}

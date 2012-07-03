@@ -1,0 +1,119 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Philippe Leprince.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:  February 13th, 2006
+//
+//
+//  Description:
+//      Attribute editor Template extension for the distantLight, spotLight and pointLight Node.
+//
+//  Input Arguments:
+//
+//  Returns:
+//
+
+
+
+
+global proc liquidLightViewShadowNew( string $nodeDotAttr )
+{
+  string $node = basenameEx($nodeDotAttr);
+  string $ctlname = ("liqViewShad"+nodeType($node));
+  button -l "View Shadow Map" -c ("liquidViewShadowMap "+$node) $ctlname;
+}
+
+global proc liquidLightViewShadowReplace( string $nodeDotAttr )
+{
+  string $node = basenameEx($nodeDotAttr);
+  string $ctlname = ("liqViewShad"+nodeType($node));
+  button -e -c ("liquidViewShadowMap "+$node) $ctlname;
+}
+
+global proc AEliquidShadowControls( string $node )
+{
+  editorTemplate -beginLayout "Liquid" -collapse false;
+
+    editorTemplate -beginLayout "Output" -collapse false;
+      editorTemplate -label "Light Category" -addDynamicControl "__category";
+      editorTemplate -label "Light ID" -addDynamicControl "lightID";
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Shadows" -collapse false;
+
+      editorTemplate -ccu ("liquidLightViewShadowNew ") ("liquidLightViewShadowReplace ") "dummy";
+
+      editorTemplate -label "Shadow Map Samples" -addDynamicControl "liqShadowMapSamples";
+
+      editorTemplate -beginLayout "Deep Shadows" -collapse false;
+        editorTemplate -label "Deep Shadows"          -addDynamicControl "deepShadows";
+        editorTemplate -label "Shadow Blur"           -addDynamicControl "liqShadowBlur";
+        editorTemplate -label "Pixel Samples"         -addDynamicControl "pixelSamples";
+        editorTemplate -label "Volume Interpretation" -addDynamicControl "volumeInterpretation";
+        editorTemplate -label "Display Mode" -addDynamicControl "liqDeepShadowsDisplayMode";
+      editorTemplate -endLayout;
+
+      editorTemplate -label "Every Frame"         -addDynamicControl "everyFrame";
+      editorTemplate -label "Render At Frame"     -addDynamicControl "renderAtFrame";
+      editorTemplate -label "Geometry Set"        -addDynamicControl "geometrySet";
+      editorTemplate -label "Shading Rate Factor" -addDynamicControl "shadingRateFactor";
+
+      editorTemplate -label "Near Clip Plane"     -addDynamicControl "nearClipPlane";
+      editorTemplate -label "Far Clip Plane"      -addDynamicControl "farClipPlane";
+
+    editorTemplate -endLayout;
+
+    if ( nodeType($node) == "spotLight" ) {
+
+      editorTemplate -beginLayout "Decay Regions" -collapse false;
+
+        editorTemplate -label "Start Distance 1 Intensity"     -addDynamicControl "startDistanceIntensity1";
+        editorTemplate -label "End Distance 1 Intensity"       -addDynamicControl "endDistanceIntensity1";
+        editorTemplate -label "Start Distance 2 Intensity"     -addDynamicControl "startDistanceIntensity2";
+        editorTemplate -label "End Distance 2 Intensity"       -addDynamicControl "endDistanceIntensity2";
+        editorTemplate -label "Start Distance 3 Intensity"     -addDynamicControl "startDistanceIntensity3";
+        editorTemplate -label "End Distance 3 Intensity"       -addDynamicControl "endDistanceIntensity3";
+
+      editorTemplate -endLayout;
+
+    }
+
+    editorTemplate -beginLayout "Shadow RIB" -collapse false;
+
+      editorTemplate -ccu ("liquidLargeFieldNew "+$node+" \"Job Options RIB\"") ("liquidLargeFieldReplace "+$node+" \"Job Options RIB\"") "liqRIBOptions";
+      editorTemplate -ccu ("liquidLargeFieldNew "+$node+" \"Job Frame RIB\"")   ("liquidLargeFieldReplace "+$node+" \"Job Frame RIB\"")   "liqRIBFrame";
+      editorTemplate -suppress "liqRIBOptions";
+      editorTemplate -suppress "liqRIBFrame";
+
+    editorTemplate -endLayout;
+    
+    editorTemplate -beginLayout "3Delight";
+      editorTemplate -label "Emit Photons" -addDynamicControl "liqDelightLightEmitphotons";
+      editorTemplate -label "Automatic Shadows" -addDynamicControl "liqDelightLightShadows";
+      editorTemplate -label "Automatic Shadows Samples" -addDynamicControl "liqDelightLightSamples";
+      editorTemplate -label "Area Light Sampling Strategy" -addDynamicControl "liqDelightLightSamplingStrategy";
+    editorTemplate -endLayout;
+
+  editorTemplate -endLayout;
+}

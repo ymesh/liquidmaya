@@ -1,0 +1,54 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Alf Kraus.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:  February 13th, 2006
+//
+//
+//  Description:
+//      Attribute editor Template extension for the stroke Node.
+//
+//  Input Arguments:
+//
+//  Returns:
+//
+
+
+global proc AEliquidPaintEffects( string $node )
+{
+  editorTemplate -beginLayout "Liquid" -collapse true;
+
+    editorTemplate -ccu ("liquidSGMessageNew "+$node+" \"Tube Shading Group\"") ("liquidSGMessageReplace "+$node ) "liquidTubeShadingGroup";
+    editorTemplate -ccu ("liquidSGMessageNew "+$node+" \"Leaf Shading Group\"") ("liquidSGMessageReplace "+$node ) "liquidLeafShadingGroup";
+    editorTemplate -ccu ("liquidSGMessageNew "+$node+" \"Petal Shading Group\"") ("liquidSGMessageReplace "+$node ) "liquidPetalShadingGroup";
+    editorTemplate -label "Tube Camera Facing" -addControl "liquidTubeCameraFacing";
+    editorTemplate -label "Leaf Camera Facing" -addControl "liquidLeafCameraFacing";
+    editorTemplate -label "Petal Camera Facing" -addControl "liquidPetalCameraFacing";
+    editorTemplate -label "Tube Uniform Width" -addControl "liquidTubeUniformWidth";
+    editorTemplate -label "Leaf Uniform Width" -addControl "liquidLeafUniformWidth";
+    editorTemplate -label "Petal Uniform Width" -addControl "liquidPetalUniformWidth";
+    editorTemplate -label "Curve ID" -addControl "liquidCurveID";
+
+  editorTemplate -endLayout;
+}

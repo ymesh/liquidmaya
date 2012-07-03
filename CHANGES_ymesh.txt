@@ -1,0 +1,64 @@
+Liquid 	2.4.0 (ymesh)
+
+- merged last sources from duran-duboi branch
+
+Liquid 	2.3.6b (ymesh)
+
+- liquidAttributeManager.mel replaces a tree of menu for liquid attributes attachment/detachment.
+- build configuration files moved to $LIQUIDHOME/build directory
+- zlibwapi.dll (1.2.5) is needed if linking with generic ribLib 
+- Fixed code for nurbs surfaces with pt.w != 1 
+- String variable $TEX for texture file extension from Render Globals
+- .textureExt attribute in liquidGlobals
+- .shadowMainCamera attribute in liqLightNode allows to specify alternative camera for shadow
+  generation (instead of maya defauly lightsource camera)
+- in liqGlobalHelpers.cpp added a set of functions "liquidGetPlugElementValue" for different value types
+  (The purpose is to reduce and unify code for reading secondary displays and display channels attributes)     
+- "generateShadowArchiveName" replaced by call to "generateFileName" with case "fgm_shadow_archive"
+- code for setting RenderLayer moved from "liqRibTranslator::doIt" to "liqRibTranslator::setRenderLayer" 
+- code for output shadow/beauty rib moved from "liqRibTranslator::doIt" to "liqRibTranslator::ribOutput" 
+- fixed dirmaps usage in Alfred scripts
+
+Liquid 	2.3.5 (ymesh)
+
+- Cross-platform CMAKE support
+Source files and directories are rearanged for
+compiling liquidmaya with CMAKE from command line on all
+platforms
+
+Code for display drivers moved to /src/displayDrivers
+Common source files moved to /src/src (this helps to organize file list from directory for CMAKE)
+Only liquidBin.cpp, liquidPlug.cpp, liquid.version (and CMakeLists.txt) are in /src.  
+
+Directories shaders, scripts, textures, plugins, previewRibFiles are placed in /lib 
+
+- boost removed from include (it's supposed that boost library is installed in system)
+
+- in liqGlobalHelpers.cpp added a set of functions "liquidGetPlugValue" for different value types and "liquidGetPlugNumElements".
+  (The purpose is to reduce and unify code for reading maya atrributes.)  
+
+- Fixed code for trimmed curves on planar nurbs
+- added noNormalizeNurbsUV attribute
+- fix nurbs UV to match maya textures  (exept non normalize case)
+- fix string sanitizeNodeName( const string& name ) on MacOSX 10.6 Maya2011 ( error in replace_all )
+- liqMayaRenderView: fix abs for OSX x64 
+- fix shader FileBrowser for Maya2011
+- fix ConnectControl for TextFieldGrp in Secondary Displays for Maya2011x64
+- fix shader browser preview
+- relative to project shader and textures pathes
+
+- added dirmaps support in Render Globals and Alfred scripts
+
+- Launch alfred on Win 7 
+- using liquidproxy for launch 64-bit liquid bin from 32-bit alfred on windows
+- Support RenderLayers overrides for Boolean Attributes Render Globals
+
+- Support coshaders from duran-duboi branch
+- Light shaders are treated as instances from liqShaderFactory. liqRibLightData.cpp dosn't need
+code for parsing shader parameters 
+
+- Generic ribLib changes:
+ -- DisplayChannel RiCall (correct ribLib -> ribOut.cpp)
+ -- DisplayChannel output for Generic Lib
+ 
+ - many source files have only cosmetic changes for cleaning code readability

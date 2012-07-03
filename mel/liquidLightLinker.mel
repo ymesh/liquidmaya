@@ -1,0 +1,614 @@
+//----------------------------------------------------------------------------------------------//
+//																								//
+//		THE FACTORY - Liquid Light Linker - LLL													//
+//																								//
+//		By: Daniel Smith - kungfuelmosan@gmail.com												//
+//		Build: 2.0.0																			//
+//																								//
+//----------------------------------------------------------------------------------------------//
+
+
+//--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=
+//---------------------------------------------------------------------------------
+//									  MAIN
+//---------------------------------------------------------------------------------
+//--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=
+
+
+//------------------------->
+//	LLL_lightCentricUI
+//------------------------->
+
+global proc string LLL_lightCentricUI()
+{
+
+	string $liquidGlobals[] = `ls -type liquidGlobals`;
+	if ( !size( $liquidGlobals ) )
+		createNode "liquidGlobals" -n "liquidGlobals";
+
+	string $toolName = "liquidLightLinker";
+    string $windowName = ($toolName+"Window");
+    if (`window -q -ex $windowName`) deleteUI $windowName;
+	if (!`objExists "liquidGlobals.illuminateByDefault"`) error ("LLL : The attribute illuminateByDefault could not be found on node liquidGlobals");
+	string $window = `window -title ("Liquid Light Linker") $windowName`; setParent $window;
+	string $form = `formLayout`;
+	string $menu = `optionMenu -p $form`;
+		menuItem -l "Liquid Light Linking";
+		menuItem -l "Liquid Set Editing";
+	string $frame = `frameLayout -lv false -h 500 -bv false -p $form`;
+	optionMenu -e -cc ("setParent \""+$frame+"\"; LLL_menuCase(\"#1\");") $menu;
+	formLayout -e
+
+		-attachForm		$menu	"top"	3
+		-attachForm		$menu	"left"	3
+		-attachNone		$menu	"right"
+		-attachNone		$menu	"bottom"
+
+		-attachControl	$frame	"top"	3 $menu
+		-attachForm		$frame	"left"	3
+		-attachForm		$frame	"right"	3
+		-attachForm		$frame	"bottom"3
+
+	$form;
+	setParent $frame;
+	if (`getAttr "liquidGlobals.illuminateByDefault"`)
+		LLL_exclusiveUI;
+	else
+		LLL_inclusiveUI;
+
+	showWindow $window;
+	return $window;
+
+}
+
+global proc LLL_menuCase( string $value )
+{
+
+	switch ($value) {
+	    case "Liquid Set Editing":
+	        LLL_setsUI;
+	        break;
+	    case "Liquid Light Linking":
+	        LLL_lightCentricUI;
+	        break;
+	}
+
+}
+
+//--------------->
+//	LLL_link
+//--------------->
+
+global proc LLL_link( string $lightShape, string $set )
+{
+    if (!`objExists($set+".liqLinkedLights")`)
+        addAttr -h true -ln liqLinkedLights -multi -indexMatters false $set;
+    string $connections[] = `connectionInfo -dfs ($lightShape+".message")`;
+    int $match = 0;
+    for ($cnct in $connections)
+        if (`gmatch $cnct ($set+".liqLinkedLights*")`)
+            $match = 1;
+    if (!$match)
+        connectAttr -f -na ($lightShape+".message") ($set+".liqLinkedLights");
+}
+
+//---------------->
+//	LLL_unlink
+//---------------->
+
+global proc LLL_unlink( string $lightShape, string $set )
+{
+
+    if (`objExists($set+".liqLinkedLights")`) {
+        string $connections[] = `connectionInfo -dfs ($lightShape+".message")`;
+        for ($cnct in $connections)
+            if (`gmatch $cnct ($set+".liqLinkedLights*")`)
+                disconnectAttr ($lightShape+".message") $cnct;
+    }
+
+}
+
+//--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=
+//---------------------------------------------------------------------------------
+//									INCLUSIVE
+//---------------------------------------------------------------------------------
+//--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=
+
+//--------------------->
+//	LLL_inclusiveUI
+//--------------------->
+
+global proc LLL_inclusiveUI()
+{
+
+
+	string $liquidGlobals[] = `ls -type liquidGlobals`;
+	if ( !size( $liquidGlobals ) )
+		createNode "liquidGlobals" -n "liquidGlobals";
+
+	if (!`objExists "liquidGlobals.liquidSetLightLinking"`) error ("LLL : The attribute liquidSetLightLinking could not be found on node liquidGlobals");
+	if (!`objExists "liquidGlobals.illuminateByDefault"`) error ("LLL : The attribute illuminateByDefault could not be found on node liquidGlobals");
+
+    string $parent = `setParent -q`;
+	string $children[] = `layout -q -ca $parent`;
+	for ($child in $children)
+		deleteUI $child;
+
+	setParent $parent;
+    string $form = `formLayout`;
+	string $topBar = `columnLayout -adj true -h 50`;
+	rowColumnLayout -numberOfRows 1 -rowHeight 1 25 -p $topBar;
+	string $setLinkChk = `checkBox -v 1 -l "Liquid Set Light Linking"`; connectControl $setLinkChk "liquidGlobals.liquidSetLightLinking";
+	string $exclusiveLinkChk = `checkBox -v 0 -l "Illuminate By Default"`; connectControl $exclusiveLinkChk "liquidGlobals.illuminateByDefault"; checkBox -e -cc ("if (#1) { setParent \""+$parent+"\"; LLL_exclusiveUI; }") $exclusiveLinkChk; setAttr "liquidGlobals.illuminateByDefault" 0;
+    string $panes = `paneLayout -cn "vertical2" -p $form`;
+
+    formLayout -e
+
+        -attachForm $topBar "top" 5
+        -attachForm $topBar "left" 5
+        -attachForm $topBar "right" 5
+        -attachNone $topBar "bottom"
+
+        -attachControl $panes "top" 0 $topBar
+        -attachForm $panes "left" 5
+        -attachForm $panes "right" 5
+        -attachForm $panes "bottom" 5
+
+        $form;
+
+    if (`itemFilter -q -ex "liquidLightLinkerFilterLights"`) delete liquidLightLinkerFilterLights;
+    if (`itemFilter -q -ex "liquidLightLinkerFilterSets"`) delete liquidLightLinkerFilterSets;
+    string $lightsFilter = `itemFilter -cat "liquidLightLinkerFilter" -bt "spotLight" -bt "directionalLight" -bt "pointLight" -bt "ambientLight" -bt "volumeLight" -bt "areaLight" liquidLightLinkerFilterLights`;
+    string $setsFilter = `itemFilter -cat "liquidLightLinkerFilter" -bs "LLL_setsFilterScript" -bt "objectSet" liquidLightLinkerFilterSets`;
+
+    string $lightsOutliner = `outlinerEditor
+			-f $lightsFilter
+			-mainListConnection "worldList"
+			-showSetMembers true`;
+    string $setsOutliner = `outlinerEditor
+			-f $setsFilter
+			-mainListConnection "worldList"
+			-ats true
+			-showSetMembers false
+			-setFilter defaultSetFilter`;
+
+	if (`selectionConnection -q -ex "liquidLightLinkerLightsSelConnection"`) deleteUI "liquidLightLinkerLightsSelConnection";
+    if (`selectionConnection -q -ex "liquidLightLinkerSetsSelConnection"`) deleteUI "liquidLightLinkerSetsSelConnection";
+    string $lightsSelConnection = `selectionConnection liquidLightLinkerLightsSelConnection`;
+    string $setsSelConnection = `selectionConnection liquidLightLinkerSetsSelConnection`;
+    editor -edit -selectionConnection $lightsSelConnection $lightsOutliner;
+    editor -edit -selectionConnection $setsSelConnection $setsOutliner;
+	outlinerEditor -e -sec ("LLL_lc_lights_addCallback \""+$lightsSelConnection+"\" \""+$setsSelConnection+"\";") $lightsOutliner;
+	outlinerEditor -e -sec ("LLL_lc_sets_addCallback \""+$lightsSelConnection+"\" \""+$setsSelConnection+"\";") $setsOutliner;
+
+}
+
+//------------------------->
+//	LLL_setsFilterScript
+//------------------------->
+
+global proc int LLL_setsFilterScript( string $name )
+{
+
+	int $return = `objExists($name+".liqLinkedLights")`;
+	return ($return);
+
+}
+
+//------------------------------>
+//	LLL_lc_lights_addCallback
+//------------------------------>
+
+global proc LLL_lc_lights_addCallback( string $lightsSelConnection, string $setsSelConnection )
+{
+
+	//Display Common Links
+	string $rightSelection[], $leftSelectionShapes[];
+	string $leftSelection[] = `selectionConnection -q -obj $lightsSelConnection`;
+	for ($selection in $leftSelection)
+		if (`nodeType $selection` == "transform") {
+			string $shapes[] = `listRelatives -s -pa $selection`;
+			if (`size $shapes` > 0)
+				$leftSelectionShapes[`size $leftSelectionShapes`] = $shapes[0];
+			else {
+				string $children[] = `listRelatives -pa -ad -type "spotLight" -type "directionalLight" -type "pointLight" -type "ambientLight" -type "volumeLight" -type "areaLight" $selection`;
+				$leftSelectionShapes = stringArrayCatenate($leftSelectionShapes, $children);
+			}
+		}
+	for ($shape in $leftSelectionShapes)
+		$rightSelection = stringArrayCatenate($rightSelection, `LLL_lc_getLinkedSets $shape`);
+
+	int $shapesNum = `size $leftSelectionShapes`;
+	selectionConnection -e -clear $setsSelConnection;
+	if (`size $rightSelection` > 0) {
+		for ($selection in $rightSelection)
+			if (`stringArrayCount $selection $rightSelection` >= $shapesNum)
+				selectionConnection -e -obj $selection $setsSelConnection;
+	}
+
+}
+
+//----------------------------->
+//	LLL_lc_sets_addCallback
+//----------------------------->
+
+global proc LLL_lc_sets_addCallback( string $lightsSelConnection, string $setsSelConnection )
+{
+
+	string $leftSelectionShapes[], $leftSelectionLinked[];
+	string $leftSelection[] = `selectionConnection -q -obj $lightsSelConnection`;
+	string $rightSelection[] = `selectionConnection -q -obj $setsSelConnection`;
+
+	for ($selection in $leftSelection)
+		if (`nodeType $selection` == "transform") {
+			string $shapes[] = `listRelatives -s -pa $selection`;
+			if (`size $shapes` > 0)
+				$leftSelectionShapes[`size $leftSelectionShapes`] = $shapes[0];
+			else {
+				string $children[] = `listRelatives -pa -ad -type "spotLight" -type "directionalLight" -type "pointLight" -type "ambientLight" -type "volumeLight" -type "areaLight" $selection`;
+				$leftSelectionShapes = stringArrayCatenate($leftSelectionShapes, $children);
+			}
+		}
+
+
+	for ($shape in $leftSelectionShapes)
+		$leftSelectionLinked = stringArrayCatenate($leftSelectionLinked, `LLL_lc_getLinkedSets $shape`);
+
+	string $commonLinks[];
+	int $shapesNum = `size $leftSelectionShapes`;
+		for ($selection in $leftSelectionLinked)
+			if (`stringArrayCount $selection $leftSelectionLinked` >= $shapesNum)
+				$commonLinks[`size($commonLinks)`] = $selection;
+	$commonLinks = stringArrayRemoveDuplicates($commonLinks);
+
+	string $added[] = stringArrayRemove($commonLinks, $rightSelection);
+	string $removed[] = stringArrayRemove($rightSelection, $commonLinks);
+	for ($shape in $leftSelectionShapes) {
+		for ($add in $added)
+			LLL_link($shape, $add);
+		for ($remove in $removed)
+			LLL_unlink($shape, $remove);
+	}
+
+}
+
+//---------------------------->
+//	LLL_lc_getLinkedSets
+//---------------------------->
+
+global proc string[] LLL_lc_getLinkedSets( string $lightShape )
+{
+
+    string $connections[] = `connectionInfo -dfs ($lightShape+".message")`;
+    string $linkedSets[] = {};
+    for ($cnct in $connections) {
+        if ((`nodeType $cnct` == "objectSet") && (`gmatch $cnct "*.*"`)) {
+            string $objects[] = `ls -l -o $cnct`;
+            if (`gmatch $cnct ($objects[0]+".liqLinkedLights*")`)
+                $linkedSets[`size($linkedSets)`] = $objects[0];
+        }
+    }
+    return $linkedSets;
+
+}
+
+//--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=
+//---------------------------------------------------------------------------------
+//									EXCLUSIVE
+//---------------------------------------------------------------------------------
+//--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=
+
+//---------------------->
+//	LLL_exclusiveUI
+//---------------------->
+
+global proc LLL_exclusiveUI()
+{
+
+	string $liquidGlobals[] = `ls -type liquidGlobals`;
+	if ( !size( $liquidGlobals ) )
+		createNode "liquidGlobals" -n "liquidGlobals";
+
+	if (!`objExists "liquidGlobals.liquidSetLightLinking"`) error ("LLL : The attribute liquidSetLightLinking could not be found on node liquidGlobals");
+	if (!`objExists "liquidGlobals.illuminateByDefault"`) error ("LLL : The attribute illuminateByDefault could not be found on node liquidGlobals");
+
+	string $parent = `setParent -q`;
+	string $children[] = `layout -q -ca $parent`;
+	for ($child in $children)
+		deleteUI $child;
+
+    string $form = `formLayout`;
+    string $topBar = `columnLayout -adj true -h 50`;
+	rowColumnLayout -numberOfRows 1 -rowHeight 1 25 -p $topBar;
+	string $setLinkChk = `checkBox -v 1 -l "Liquid Set Light Linking"`; connectControl $setLinkChk "liquidGlobals.liquidSetLightLinking";
+	string $exclusiveLinkChk = `checkBox -v 0 -l "Illuminate By Default"`; connectControl $exclusiveLinkChk "liquidGlobals.illuminateByDefault"; checkBox -e -cc ("if (!#1) { setParent \""+$parent+"\"; LLL_inclusiveUI; }") $exclusiveLinkChk; setAttr "liquidGlobals.illuminateByDefault" 1;
+    string $panes = `paneLayout -cn "vertical2" -p $form`;
+
+    formLayout -e
+
+        -attachForm $topBar "top" 5
+        -attachForm $topBar "left" 5
+        -attachForm $topBar "right" 5
+        -attachNone $topBar "bottom"
+
+        -attachControl $panes "top" 0 $topBar
+        -attachForm $panes "left" 5
+        -attachForm $panes "right" 5
+        -attachForm $panes "bottom" 5
+
+        $form;
+
+    if (`itemFilter -q -ex "liquidLightLinkerFilterLights"`) delete liquidLightLinkerFilterLights;
+    if (`itemFilter -q -ex "liquidLightLinkerFilterSets"`) delete liquidLightLinkerFilterSets;
+    string $lightsFilter = `itemFilter -cat "liquidLightLinkerFilter" -bt "spotLight" -bt "directionalLight" -bt "pointLight" -bt "ambientLight" -bt "volumeLight" -bt "areaLight" liquidLightLinkerFilterLights`;
+    string $setsFilter = `itemFilter -cat "liquidLightLinkerFilter" -bs "LLL_setsFilterScript" -bt "objectSet" liquidLightLinkerFilterSets`;
+
+    string $lightsOutliner = `outlinerEditor
+			-f $lightsFilter
+			-mainListConnection "worldList"
+			-showSetMembers true`;
+    string $setsOutliner = `outlinerEditor
+			-f $setsFilter
+			-mainListConnection "worldList"
+			-ats true
+			-showSetMembers false
+			-setFilter defaultSetFilter`;
+
+	if (`selectionConnection -q -ex "liquidLightLinkerLightsSelConnection"`) deleteUI "liquidLightLinkerLightsSelConnection";
+    if (`selectionConnection -q -ex "liquidLightLinkerSetsSelConnection"`) deleteUI "liquidLightLinkerSetsSelConnection";
+    string $lightsSelConnection = `selectionConnection liquidLightLinkerLightsSelConnection`;
+    string $setsSelConnection = `selectionConnection liquidLightLinkerSetsSelConnection`;
+    editor -edit -selectionConnection $lightsSelConnection $lightsOutliner;
+    editor -edit -selectionConnection $setsSelConnection $setsOutliner;
+	outlinerEditor -e -sec ("LLL_sc_lights_addCallback \""+$lightsSelConnection+"\" \""+$setsSelConnection+"\";") $lightsOutliner;
+	outlinerEditor -e -sec ("LLL_sc_sets_addCallback \""+$lightsSelConnection+"\" \""+$setsSelConnection+"\";") $setsOutliner;
+
+}
+
+//--------------------------------->
+//	LLL_sc_lights_addCallback
+//--------------------------------->
+
+global proc LLL_sc_lights_addCallback( string $lightsSelConnection, string $setsSelConnection )
+{
+
+	//Display Common Links
+	string $rightSelection[], $leftSelectionShapes[];
+	string $leftSelection[] = `selectionConnection -q -obj $lightsSelConnection`;
+	for ($selection in $leftSelection)
+		if (`nodeType $selection` == "transform") {
+			string $shapes[] = `listRelatives -s -pa $selection`;
+			if (`size $shapes` > 0)
+				$leftSelectionShapes[`size $leftSelectionShapes`] = $shapes[0];
+			else {
+				string $children[] = `listRelatives -pa -ad -type "spotLight" -type "directionalLight" -type "pointLight" -type "ambientLight" -type "volumeLight" -type "areaLight" $selection`;
+				$leftSelectionShapes = stringArrayCatenate($leftSelectionShapes, $children);
+			}
+		}
+	for ($shape in $leftSelectionShapes)
+		$rightSelection = stringArrayCatenate($rightSelection, `LLL_sc_getLinkedSets $shape`);
+
+	int $shapesNum = `size $leftSelectionShapes`;
+	selectionConnection -e -clear $setsSelConnection;
+	if (`size $rightSelection` > 0) {
+		for ($selection in $rightSelection)
+			if (`stringArrayCount $selection $rightSelection` >= $shapesNum)
+				selectionConnection -e -obj $selection $setsSelConnection;
+	}
+
+}
+
+//----------------------------->
+//	LLL_sc_sets_addCallback
+//----------------------------->
+
+global proc LLL_sc_sets_addCallback( string $lightsSelConnection, string $setsSelConnection )
+{
+
+	string $leftSelectionShapes[], $leftSelectionLinked[];
+	string $leftSelection[] = `selectionConnection -q -obj $lightsSelConnection`;
+	string $rightSelection[] = `selectionConnection -q -obj $setsSelConnection`;
+
+	for ($selection in $leftSelection)
+		if (`nodeType $selection` == "transform") {
+			string $shapes[] = `listRelatives -s -pa $selection`;
+			if (`size $shapes` > 0)
+				$leftSelectionShapes[`size $leftSelectionShapes`] = $shapes[0];
+			else {
+				string $children[] = `listRelatives -pa -ad -type "spotLight" -type "directionalLight" -type "pointLight" -type "ambientLight" -type "volumeLight" -type "areaLight" $selection`;
+				$leftSelectionShapes = stringArrayCatenate($leftSelectionShapes, $children);
+			}
+		}
+
+
+	for ($shape in $leftSelectionShapes)
+		$leftSelectionLinked = stringArrayCatenate($leftSelectionLinked, `LLL_sc_getLinkedSets $shape`);
+
+	string $commonLinks[];
+	int $shapesNum = `size $leftSelectionShapes`;
+	selectionConnection -e -clear $setsSelConnection;
+	if (`size $rightSelection` > 0) {
+		for ($selection in $leftSelectionLinked)
+			if (`stringArrayCount $selection $leftSelectionLinked` >= $shapesNum)
+				$commonLinks[`size($commonLinks)`] = $selection;
+	}
+	$commonLinks = stringArrayRemoveDuplicates($commonLinks);
+
+	string $added[] = stringArrayRemove($commonLinks, $rightSelection);
+	string $removed[] = stringArrayRemove($rightSelection, $commonLinks);
+	for ($shape in $leftSelectionShapes) {
+		for ($add in $added)
+			LLL_unlink($shape, $add);
+		for ($remove in $removed)
+			LLL_link($shape, $remove);
+	}
+
+}
+
+//---------------------------->
+//	LLL_sc_getLinkedSets
+//---------------------------->
+
+global proc string[] LLL_sc_getLinkedSets( string $lightShape )
+{
+
+    string $connections[] = `connectionInfo -dfs ($lightShape+".message")`;
+    string $linkedSets[] = {};
+    for ($cnct in $connections) {
+        if ((`nodeType $cnct` == "objectSet") && (`gmatch $cnct "*.*"`)) {
+            string $objects[] = `ls -l -o $cnct`;
+            if (`gmatch $cnct ($objects[0]+".liqLinkedLights*")`)
+                $linkedSets[`size($linkedSets)`] = $objects[0];
+        }
+    }
+	$linkedSets = stringArrayRemove($linkedSets, `ls -type "objectSet"`);
+    return $linkedSets;
+
+}
+
+//--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=
+//---------------------------------------------------------------------------------
+//									SET MANAGER
+//---------------------------------------------------------------------------------
+//--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=--=
+
+//--------------------->
+//	LLL_setsUI
+//--------------------->
+
+global proc LLL_setsUI()
+{
+
+	string $liquidGlobals[] = `ls -type liquidGlobals`;
+	if ( !size( $liquidGlobals ) )
+		createNode "liquidGlobals" -n "liquidGlobals";
+
+	string $parent = `setParent -q`;
+	string $children[] = `layout -q -ca $parent`;
+	for ($child in $children)
+		deleteUI $child;
+
+    string $form = `formLayout -p $parent`;
+    string $topBar = `rowColumnLayout -numberOfRows 1 -rowHeight 1 25`;
+	symbolButton -i "setEdAddCmd.xpm" -ann "Make new light-linkable objectSet" -c ("string $new = `sets -em`; addAttr -h true -ln liqLinkedLights -multi -indexMatters false $new;") -w 25 -h 25;
+	//symbolButton -i "setEdRemoveCmd.xpm" -w 25 -h 25;
+    string $panes = `paneLayout -cn "vertical2" -p $form`;
+
+
+    formLayout -e
+
+        -attachForm $topBar "top" 5
+        -attachForm $topBar "left" 5
+        -attachForm $topBar "right" 5
+        -attachNone $topBar "bottom"
+
+        -attachControl $panes "top" 0 $topBar
+        -attachForm $panes "left" 5
+        -attachForm $panes "right" 5
+        -attachForm $panes "bottom" 5
+
+        $form;
+
+    if (`itemFilter -q -ex "liquidLightLinkerSetsManagerFilterSets"`) delete liquidLightLinkerSetsManagerFilterSets;
+    string $setsFilter = `itemFilter -cat "liquidLightLinkerFilter" -bs "LLL_setsFilterScript" -bt "objectSet" liquidLightLinkerSetsManagerFilterSets`;
+
+    string $setsOutliner = `outlinerEditor
+			-f $setsFilter
+			-mainListConnection "worldList"
+			-showSetMembers false
+			-setFilter defaultSetFilter`;
+	string $membersOutliner = `outlinerEditor
+			-mainListConnection "worldList"
+			-ats true
+			-showSetMembers true
+			-setFilter defaultSetFilter`;
+
+    if (`selectionConnection -q -ex "liquidLightLinkerSetsManagerSelConnection1"`) deleteUI "liquidLightLinkerSetsManagerSelConnection1";
+	if (`selectionConnection -q -ex "liquidLightLinkerSetsManagerSelConnection2"`) deleteUI "liquidLightLinkerSetsManagerSelConnection2";
+    string $setsSelConnection = `selectionConnection liquidLightLinkerSetsManagerSelConnection1`;
+	string $membSelConnection = `selectionConnection liquidLightLinkerSetsManagerSelConnection2`;
+    editor -edit -selectionConnection $setsSelConnection $setsOutliner;
+	editor -edit -selectionConnection $membSelConnection $membersOutliner;
+	outlinerEditor -e -sec ("LLL_SM_sets_addCallback \""+$setsSelConnection+"\" \""+$membSelConnection+"\";") $setsOutliner;
+	outlinerEditor -e -sec ("LLL_SM_members_addCallback \""+$setsSelConnection+"\" \""+$membSelConnection+"\";") $membersOutliner;
+
+}
+
+//------------------->
+//	LLL_SM_assign
+//------------------->
+
+global proc LLL_SM_assign( string $set, string $member )
+{
+	if(`nodeType $member` != "objectSet")
+    	sets -edit -forceElement $set $member;
+	else {
+		string $members[] = `sets -q $member`;
+		for ($m in $members)
+			sets -e -add $set $m;
+	}
+}
+
+//--------------------->
+//	LLL_SM_unassign
+//--------------------->
+
+global proc LLL_SM_unassign( string $set, string $member )
+{
+    sets -e -remove $set $member;
+}
+
+//------------------------------>
+//	LLL_SM_sets_addCallback
+//------------------------------>
+
+global proc LLL_SM_sets_addCallback( string $setsSelConnection, string $membersSelConnection )
+{
+
+	//Display Common Links
+	string $rightSelection[];
+	string $leftSelection[] = `selectionConnection -q -obj $setsSelConnection`;
+
+	for ($set in $leftSelection)
+		$rightSelection = stringArrayCatenate($rightSelection, `sets -q $set`);
+
+	int $setsNum = `size $leftSelection`;
+	selectionConnection -e -clear $membersSelConnection;
+	if (`size $rightSelection` > 0) {
+		for ($selection in $rightSelection)
+			if (`stringArrayCount $selection $rightSelection` >= $setsNum)
+				selectionConnection -e -obj $selection $membersSelConnection;
+	}
+
+}
+
+//------------------------------->
+//	LLL_SM_members_addCallback
+//------------------------------->
+
+global proc LLL_SM_members_addCallback( string $setsSelConnection, string $membersSelConnection )
+{
+
+	string $leftSelectionMembers[], $commonMembers[];
+	string $leftSelection[] = `selectionConnection -q -obj $setsSelConnection`;
+	string $rightSelection[] = `selectionConnection -q -obj $membersSelConnection`;
+
+	for ($set in $leftSelection)
+		$leftSelectionMembers = stringArrayCatenate($leftSelectionMembers, `sets -q $set`);
+
+	int $setsNum = `size $leftSelection`;
+		for ($selection in $leftSelectionMembers)
+			if (`stringArrayCount $selection $leftSelectionMembers` >= $setsNum)
+				$commonMembers[`size($commonMembers)`] = $selection;
+	$commonMembers = stringArrayRemoveDuplicates($commonMembers);
+
+	string $added[] = stringArrayRemove($commonMembers, $rightSelection);
+	string $removed[] = stringArrayRemove($rightSelection, $commonMembers);
+	for ($set in $leftSelection) {
+		for ($add in $added)
+			LLL_SM_assign($set, $add);
+		for ($remove in $removed)
+			LLL_SM_unassign($set, $remove);
+	}
+
+}

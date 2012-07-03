@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<fluidshader>
+	<name>absAlderon</name>
+	<author>Skyler Swanson</author>
+	<version>1.0</version>
+
+	<interface>
+
+		<group uistate="open">
+
+			<name>Diffuse Properties</name>
+
+			<param>
+				<name>Kd</name>
+				<username>Diffuseness</username>
+				<type>float</type>
+				<default>0.8</default>
+				<range>0.0-1.0</range>
+			</param>
+
+			<param>
+				<name>d_roughness</name>
+				<username>Roughness</username>
+				<type>float</type>
+				<default>0.5</default>
+				<mapfunc>clamp(pow(x,3),0,1)</mapfunc>
+			</param>
+
+		</group>
+
+	</interface>
+
+	<rslsource/>
+
+	<vexsource/>
+
+	<mraysource/>
+
+</fluidshader>

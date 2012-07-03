@@ -1,0 +1,672 @@
+//
+// Original code by Jonathan Feldstein (C.O.R.E. Digital Pictures)
+//                  Rob Pieke (C.O.R.E. Digital Pictures)
+//
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_condition ()
+{
+    return { "firstTerm", "secondTerm", "operation", "colorIfTrue",
+             "colorIfFalse", "outColor" };
+}
+
+global proc writeRSL_condition ( string $node )
+{
+    beginRSL $node;
+
+    addRSLVariable "float" "firstTerm" "firstTerm" $node;
+    addRSLVariable "float" "secondTerm" "secondTerm" $node;
+    addRSLVariable "float" "operation" "operation" $node;
+    addRSLVariable "vector" "colorIfTrue" "colorIfTrue" $node;
+    addRSLVariable "vector" "colorIfFalse" "colorIfFalse" $node;
+    addRSLVariable "vector" "outColor" "outColor" $node;
+
+    addToRSL "if( operation == 0 )";
+    addToRSL "{";
+    addToRSL " if( firstTerm == secondTerm )";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfTrue;";
+    addToRSL " }";
+    addToRSL " else";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfFalse;";
+    addToRSL " }";
+    addToRSL "}";
+    addToRSL "else if ( operation == 1 )";
+    addToRSL "{";
+    addToRSL " if( firstTerm != secondTerm )";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfTrue;";
+    addToRSL " }";
+    addToRSL " else";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfFalse;";
+    addToRSL " }";
+    addToRSL "}";
+    addToRSL "else if ( operation == 2 )";
+    addToRSL "{";
+    addToRSL " if( firstTerm > secondTerm )";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfTrue;";
+    addToRSL " }";
+    addToRSL " else";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfFalse;";
+    addToRSL " }";
+    addToRSL "}";
+    addToRSL "else if ( operation == 3 )";
+    addToRSL "{";
+    addToRSL " if( firstTerm >= secondTerm )";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfTrue;";
+    addToRSL " }";
+    addToRSL " else";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfFalse;";
+    addToRSL " }";
+    addToRSL "}";
+    addToRSL "else if ( operation == 4 )";
+    addToRSL "{";
+    addToRSL " if( firstTerm < secondTerm )";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfTrue;";
+    addToRSL " }";
+    addToRSL " else";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfFalse;";
+    addToRSL " }";
+    addToRSL "}";
+    addToRSL "else if ( operation == 5 )";
+    addToRSL "{";
+    addToRSL " if( firstTerm <= secondTerm )";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfTrue;";
+    addToRSL " }";
+    addToRSL " else";
+    addToRSL " {";
+    addToRSL "  outColor = colorIfFalse;";
+    addToRSL " }";
+    addToRSL "}";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_multiplyDivide ()
+{
+    return { "operation", "input1", "input2", "output" };
+}
+
+global proc writeRSL_multiplyDivide (
+    string $node
+)
+{
+    beginRSL $node;
+
+    addRSLVariable "float" "operation" "operation" $node;
+    addRSLVariable "vector" "input1" "input1" $node;
+    addRSLVariable "vector" "input2" "input2" $node;
+    addRSLVariable "vector" "outColor" "output" $node;
+
+    addToRSL "if( operation == 0 )";
+    addToRSL "{";
+    addToRSL " outColor = input1;";
+    addToRSL "}";
+    addToRSL "else if ( operation == 1 )";
+    addToRSL "{";
+    addToRSL " outColor = input1 * input2;";
+    addToRSL "}";
+    addToRSL "else if ( operation == 2 )";
+    addToRSL "{";
+    addToRSL " outColor = input1 / input2;";
+    addToRSL "}";
+    addToRSL "else if ( operation == 3 )";
+    addToRSL "{";
+    addToRSL " float outR, outG, outB;";
+    addToRSL " outR = pow( xcomp( input1 ), xcomp( input2 ) );";
+    addToRSL " outG = pow( ycomp( input1 ), ycomp( input2 ) );";
+    addToRSL " outB = pow( zcomp( input1 ), zcomp( input2 ) );";
+    addToRSL " outColor = vector( outR, outG, outB );";
+    addToRSL "}";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_place2dTexture ()
+{
+    return { "repeatUV", "outUV" };
+}
+
+global proc writeRSL_place2dTexture (
+    string $node
+)
+{
+    beginRSL $node;
+
+    addRSLVariable "float2" "repeatUV" "repeatUV" $node;
+    addRSLVariable "float2" "outUV" "outUV" $node;
+
+    addToRSL "extern float s, t;";
+    addToRSL "outUV[ 0 ] = mod( t * repeatUV[ 0 ], 1 );";
+    addToRSL "outUV[ 1 ] = mod( s * repeatUV[ 1 ], 1 );";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_reverse ()
+{
+    return { "input", "inputX", "inputY", "inputZ", "output",
+             "outputX", "outputY", "outputZ" };
+}
+
+global proc writeRSL_reverse (
+    string $node
+)
+{
+    beginRSL( $node );
+
+    if( convertibleConnection( $node + ".input" ) )
+    {
+        addRSLVariable "vector" "inputVector" "input" $node;
+    }
+    else
+    {
+        addToRSL "vector inputVector = 0;";
+    }
+
+    if( convertibleConnection( $node + ".inputX" ) )
+    {
+        addRSLVariable "float" "inputX" "inputX" $node;
+        addToRSL "setxcomp( inputVector, inputX );";
+    }
+    if( convertibleConnection( $node + ".inputY" ) )
+    {
+        addRSLVariable "float" "inputY" "inputY" $node;
+        addToRSL "setycomp( inputVector, inputY );";
+    }
+    if( convertibleConnection( $node + ".inputZ" ) )
+    {
+        addRSLVariable "float" "inputZ" "inputZ" $node;
+        addToRSL "setzcomp( inputVector, inputZ );";
+    }
+
+    if( convertibleConnection( $node + ".output" ) )
+    {
+        addRSLVariable "vector" "outputVector" "output" $node;
+        addToRSL "outputVector = 1 - inputVector;";
+    }
+    if( convertibleConnection( $node + ".outputX" ) )
+    {
+        addRSLVariable "float" "outputX" "outputX" $node;
+        addToRSL "outputX = 1 - xcomp(inputVector);";
+    }
+    if( convertibleConnection( $node + ".outputY" ) )
+    {
+        addRSLVariable "float" "outputY" "outputY" $node;
+        addToRSL "outputY = 1 - ycomp(inputVector);";
+    }
+    if( convertibleConnection( $node + ".outputZ" ) )
+    {
+        addRSLVariable "float" "outputZ" "outputZ" $node;
+        addToRSL "outputZ = 1 - zcomp(inputVector);";
+    }
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_samplerInfo ()
+{
+    return { "pointCamera", "pointObj", "pointWorld", "normalCamera",
+             "uvCoord", "rayDirection", "tangentUCamera",
+             "tangentVCamera", "pixelCenter", "facingRatio" };
+}
+
+global proc writeRSL_samplerInfo (
+    string $node
+)
+{
+    beginRSL $node;
+
+    addToRSL "extern point P;";
+    if( convertibleConnection( $node + ".pointCamera" ) )
+    {
+        addRSLVariable "vector" "pointCamera" "pointCamera" $node;
+        addToRSL "pointCamera = vector transform( \"camera\", P );";
+
+        // MAYBE THE Z-COMPONENT SHOULD BE FLIPPED, SINCE LIQUID
+        // SEEMS TO DO A -Z SCALING FOR THE CAMERA
+
+    }
+
+    if( convertibleConnection( $node + ".pointObj" ) )
+    {
+        addRSLVariable "vector" "pointObj" "pointObj" $node;
+        addToRSL "pointObj = vector transform( \"object\", P );";
+    }
+
+    if( convertibleConnection( $node + ".pointWorld" ) )
+    {
+        addRSLVariable "vector" "pointWorld" "pointWorld" $node;
+        addToRSL "pointWorld = vector transform( \"world\", P );";
+    }
+
+    addToRSL "extern normal N;";
+    if( convertibleConnection( $node + ".normalCamera" ) )
+    {
+        addRSLVariable "vector" "normalCamera" "normalCamera" $node;
+        addToRSL "normalCamera = vector ntransform( \"camera\", N );";
+        addToRSL "normalCamera = vector normalize( normalCamera );";
+
+        // MAYBE THE Z-COMPONENT SHOULD BE FLIPPED, SINCE LIQUID
+        // SEEMS TO DO A -Z SCALING FOR THE CAMERA
+
+    }
+
+    addToRSL "extern float s, t;";
+    if( convertibleConnection( $node + ".uvCoord" ) )
+    {
+        addRSLVariable "float2" "uvCoord" "uvCoord" $node;
+        addToRSL "uvCoord = { s, t };";
+    }
+
+    addToRSL "extern vector I;";
+    if( convertibleConnection( $node + ".rayDirection" ) )
+    {
+        addRSLVariable "vector" "rayDirection" "rayDirection" $node;
+        addToRSL "rayDirection = vtransform( \"camera\", -I );";
+        addToRSL "rayDirection = normalize( rayDirection );";
+    }
+
+    addToRSL "extern vector dPdu;";
+    if( convertibleConnection( $node + ".tangentUCamera" ) )
+    {
+        addRSLVariable "vector" "dPduCamera" "tangentUCamera" $node;
+        addToRSL "dPduCamera = vtransform( \"camera\", dPdu );";
+        addToRSL "dPduCamera = normalize( dPduCamera );";
+
+        // MAYBE THE Z-COMPONENT SHOULD BE FLIPPED, SINCE LIQUID
+        // SEEMS TO DO A -Z SCALING FOR THE CAMERA
+
+    }
+
+    addToRSL "extern vector dPdv;";
+    if( convertibleConnection( $node + ".tangentVCamera" ) )
+    {
+        addRSLVariable "vector" "dPdvCamera" "tangentVCamera" $node;
+        addToRSL "dPdvCamera = vtransform( \"camera\", dPdv );";
+        addToRSL "dPdvCamera = normalize( dPdvCamera );";
+
+        // MAYBE THE Z-COMPONENT SHOULD BE FLIPPED, SINCE LIQUID
+        // SEEMS TO DO A -Z SCALING FOR THE CAMERA
+
+    }
+
+    if( convertibleConnection( $node + ".pixelCenter" ) )
+    {
+        addRSLVariable "float2" "pixel" "pixelCenter" $node;
+        addToRSL "point Praster = transform( \"raster\", P );";
+        addToRSL "pixel = { xcomp( Praster ), ycomp( Praster ) };";
+    }
+
+    if( convertibleConnection( $node + ".facingRatio" ) )
+    {
+        addRSLVariable "float" "facingRatio" "facingRatio" $node;
+        addToRSL "normal Nf = faceforward( normalize( N ), I );";
+        addToRSL "facingRatio = Nf . normalize( -I );";
+    }
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_blendColors ()
+{
+    return { "blender", "color1", "color2", "output" };
+}
+
+global proc writeRSL_blendColors (
+    string $node
+)
+{
+    beginRSL $node;
+
+    addRSLVariable "float" "blender" "blender" $node;
+    addRSLVariable "vector" "color1" "color1" $node;
+    addRSLVariable "vector" "color2" "color2" $node;
+    addRSLVariable "vector" "outColor" "output" $node;
+
+    addToRSL "outColor = mix( color2, color1, blender );";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_gammaCorrect ()
+{
+    return { "value", "gamma", "outValue" };
+}
+
+global proc writeRSL_gammaCorrect (
+    string $node
+)
+{
+    beginRSL $node;
+
+    addRSLVariable "vector" "value" "value" $node;
+    addRSLVariable "vector" "gamma" "gamma" $node;
+    addRSLVariable "vector" "outValue" "outValue" $node;
+
+    addToRSL "float outR, outG, outB;";
+    addToRSL "outR = pow( xcomp( value ), 1 / xcomp( gamma ) );";
+    addToRSL "outG = pow( ycomp( value ), 1 / ycomp( gamma ) );";
+    addToRSL "outB = pow( zcomp( value ), 1 / zcomp( gamma ) );";
+    addToRSL "outValue = vector ( outR, outG, out B );";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_hsvToRgb ()
+{
+    return { "inHsv", "outRgb" };
+}
+
+global proc writeRSL_hsvToRgb (
+    string $node
+)
+{
+    beginRSL( $node );
+
+    addRSLVariable "vector" "inHsv" "inHsv" $node;
+    addRSLVariable "vector" "outRgb" "outRgb" $node;
+
+    addToRSL "// RGB, each 0 to 255 (red, green, blue components)";
+    addToRSL "// H, each 0.0 to 360 (degrees around hexcone)";
+    addToRSL "// S, each 0.0 (shade of gray) to 1.0 (pure color)";
+    addToRSL "// V, each 0.0 (black) to 1.0 (white)";
+    addToRSL "";
+    addToRSL "// if color is on black and white center line";
+    addToRSL "float H = xcomp(inHsv);";
+    addToRSL "float S = ycomp(inHsv);";
+    addToRSL "float V = zcomp(inHsv);";
+    addToRSL "if( S == 0.0 )";
+    addToRSL "{";
+    addToRSL "    outRgb = ( V, V, V );";
+    addToRSL "}";
+    addToRSL "else";
+    addToRSL "{";
+    addToRSL "    float hTemp = H;";
+    addToRSL "    // 360 degrees same as 0 degrees";
+    addToRSL "    if( H == 360.0)";
+    addToRSL "    {";
+    addToRSL "        hTemp = 0;";
+    addToRSL "    }";
+    addToRSL "    // H is now in [0, 6)";
+    addToRSL "    hTemp = hTemp / 60.0;";
+    addToRSL "";
+    addToRSL "    // largest integer <= H";
+    addToRSL "    float hTempFloor = floor( hTemp );";
+    addToRSL "";
+    addToRSL "    // fractional part of H";
+    addToRSL "    float hTempFraction = hTemp - hTempFloor;";
+    addToRSL "";
+    addToRSL "    float p = V * ( 1.0 - S );";
+    addToRSL "    float q = V * ( 1.0 - ( S * hTempFraction ) );";
+    addToRSL "    float r = V * ( 1.0 - ( S * ( 1.0 - hTempFraction ) ) );";
+    addToRSL "    if( hTempFloor == 0 )";
+    addToRSL "    {";
+    addToRSL "        outRgb = ( V, r, p );";
+    addToRSL "    }";
+    addToRSL "    else if( hTempFloor == 1 )";
+    addToRSL "    {";
+    addToRSL "        outRgb = ( q, V, p );";
+    addToRSL "    }";
+    addToRSL "    else if( hTempFloor == 2 )";
+    addToRSL "    {";
+    addToRSL "        outRgb = ( p, V, r );";
+    addToRSL "    }";
+    addToRSL "    else if( hTempFloor == 3 )";
+    addToRSL "    {";
+    addToRSL "        outRgb = ( p, q, V );";
+    addToRSL "    }";
+    addToRSL "    else if( hTempFloor == 4 )";
+    addToRSL "    {";
+    addToRSL "        outRgb = ( r, p, V );";
+    addToRSL "    }";
+    addToRSL "    else if( hTempFloor == 5 )";
+    addToRSL "    {";
+    addToRSL "        outRgb = ( V, p, q );";
+    addToRSL "    }";
+    addToRSL "}";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_luminance ()
+{
+    return { "value", "valueR", "valueG", "valueB", "outValue" };
+}
+
+global proc writeRSL_luminance (
+    string $node
+)
+{
+    beginRSL( $node );
+
+    if( convertibleConnection( $node + ".value" ) )
+    {
+        addRSLVariable "vector" "value" "value" $node;
+    }
+    else
+    {
+        addToRSL "vector value = 0;";
+    }
+
+    if( convertibleConnection( $node + ".valueR" ) )
+    {
+        addRSLVariable "float" "valueR" "valueR" $node;
+        addToRSL "setxcomp( value, valueR );";
+    }
+    if( convertibleConnection( $node + ".valueG" ) )
+    {
+        addRSLVariable "float" "valueG" "valueG" $node;
+        addToRSL "setycomp( value, valueG );";
+    }
+    if( convertibleConnection( $node + ".valueB" ) )
+    {
+        addRSLVariable "float" "valueB" "valueB" $node;
+        addToRSL "setzcomp( value, valueB );";
+    }
+
+    addRSLVariable "float" "outValue" "outValue" $node;
+
+    addToRSL "outValue = 0.30 * xcomp(value) +";
+    addToRSL "           0.59 * ycomp(value) +";
+    addToRSL "           0.11 * zcomp(value);";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_rgbToHsv ()
+{
+    return { "inRgb", "outHsv" };
+}
+
+global proc writeRSL_rgbToHsv (
+    string $node
+)
+{
+    beginRSL( $node );
+
+    addRSLVariable "vector" "inRgb" "inRgb" $node;
+    addRSLVariable "vector" "outHsv" "outHsv" $node;
+
+    addToRSL "// RGB, each 0 to 255 (red, green, blue components)";
+    addToRSL "// H, each 0.0 to 360 (degrees around hexcone)";
+    addToRSL "// S, each 0.0 (shade of gray) to 1.0 (pure color)";
+    addToRSL "// V, each 0.0 (black) to 1.0 (white)";
+    addToRSL "";
+    addToRSL "float R = xcomp(inRgb);";
+    addToRSL "float G = ycomp(inRgb);";
+    addToRSL "float B = zcomp(inRgb);";
+    addToRSL "";
+    addToRSL "float H, S, V;";
+    addToRSL "";
+    addToRSL "float minVal = min(R, G, B);";
+    addToRSL "V = max(R, G, B);";
+    addToRSL "float Delta = V - minVal;";
+    addToRSL "";
+    addToRSL "// Calculate saturation: saturation is 0 if r, g, b are all 0;";
+    addToRSL "if( V == 0.0)";
+    addToRSL "{";
+    addToRSL "    S = 0.0;";
+    addToRSL "}";
+    addToRSL "else";
+    addToRSL "{";
+    addToRSL "    S = Delta / V;";
+    addToRSL "}";
+    addToRSL "";
+    addToRSL "if( S == 0.0 )";
+    addToRSL "{";
+    addToRSL "    H = 0.0;";
+    addToRSL "}";
+    addToRSL "else";
+    addToRSL "{";
+    addToRSL "    // between yellow and magenta (degrees)";
+    addToRSL "    if( R == V )";
+    addToRSL "    {";
+    addToRSL "        H = 60.0 * ( G - B) / Delta;";
+    addToRSL "    }";
+    addToRSL "    // between cyan and yellow (degrees)";
+    addToRSL "    else if( G == V )";
+    addToRSL "    {";
+    addToRSL "        H = 120.0 + 60.0 * ( B - R ) / Delta;";
+    addToRSL "    }";
+    addToRSL "    // between magenta and cyan (degrees)";
+    addToRSL "    else";
+    addToRSL "    {";
+    addToRSL "        H = 240.0 + 60.0 * ( R - G ) / Delta;";
+    addToRSL "    }";
+    addToRSL "}";
+    addToRSL "";
+    addToRSL "if( H < 0.0 )";
+    addToRSL "{";
+    addToRSL "    H = H + 360.0;";
+    addToRSL "}";
+    addToRSL "V = V / 255.0;";
+    addToRSL "outHsv = ( H, S, V );";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_clamp ()
+{
+    return { "input", "inputR", "inputG", "inputB", "min", "minR", "minG",
+             "minB", "max", "maxR", "maxG", "maxB", "output", "outputR",
+             "outputG", "outputB" };
+}
+
+global proc writeRSL_clamp (
+    string $node
+)
+{
+    beginRSL( $node );
+
+    addRSLVariable "vector" "input" "input" $node;
+    if( convertibleConnection( $node + ".inputR" ) )
+    {
+        addRSLVariable "float" "inputR" "inputR" $node;
+        addToRSL "setxcomp( input, inputR );";
+    }
+    if( convertibleConnection( $node + ".inputG" ) )
+    {
+        addRSLVariable "float" "inputG" "inputG" $node;
+        addToRSL "setycomp( input, inputG );";
+    }
+    if( convertibleConnection( $node + ".inputB" ) )
+    {
+        addRSLVariable "float" "inputB" "inputB" $node;
+        addToRSL "setzcomp( input, inputB );";
+    }
+
+    addRSLVariable "vector" "minVal" "min" $node;
+    if( convertibleConnection( $node + ".minR" ) )
+    {
+        addRSLVariable "float" "minR" "minR" $node;
+        addToRSL "setxcomp( minVal, minR );";
+    }
+    if( convertibleConnection( $node + ".minG" ) )
+    {
+        addRSLVariable "float" "minG" "minG" $node;
+        addToRSL "setycomp( minVal, minG );";
+    }
+    if( convertibleConnection( $node + ".minB" ) )
+    {
+        addRSLVariable "float" "minB" "minB" $node;
+        addToRSL "setzcomp( minVal, minB );";
+    }
+
+    addRSLVariable "vector" "maxVal" "max" $node;
+    if( convertibleConnection( $node + ".maxR" ) )
+    {
+        addRSLVariable "float" "maxR" "maxR" $node;
+        addToRSL "setxcomp( maxVal, maxR );";
+    }
+    if( convertibleConnection( $node + ".maxG" ) )
+    {
+        addRSLVariable "float" "maxG" "maxG" $node;
+        addToRSL "setycomp( maxVal, maxG );";
+    }
+    if( convertibleConnection( $node + ".maxB" ) )
+    {
+        addRSLVariable "float" "maxB" "maxB" $node;
+        addToRSL "setzcomp( maxVal, maxB );";
+    }
+
+    if( convertibleConnection( $node + ".output" ) )
+    {
+        addRSLVariable "vector" "outputVector" "output" $node;
+        addToRSL "outputVector = (clamp(xcomp(input), xcomp(minVal), ";
+        addToRSL "                      xcomp(maxVal)),";
+        addToRSL "                clamp(ycomp(input), ycomp(minVal), ";
+        addToRSL "                      ycomp(maxVal)),";
+        addToRSL "                clamp(zcomp(input), zcomp(minVal), ";
+        addToRSL "                      zcomp(maxVal)));";
+    }
+    if( convertibleConnection( $node + ".outputR" ) )
+    {
+        addRSLVariable "float" "outputR" "outputR" $node;
+        addToRSL "outputR = clamp(xcomp(input), xcomp(minVal), ";
+        addToRSL "                xcomp(maxVal));";
+    }
+    if( convertibleConnection( $node + ".outputG" ) )
+    {
+        addRSLVariable "float" "outputG" "outputG" $node;
+        addToRSL "outputR = clamp(ycomp(input), ycomp(minVal), ";
+        addToRSL "                ycomp(maxVal));";
+    }
+    if( convertibleConnection( $node + ".outputB" ) )
+    {
+        addRSLVariable "float" "outputB" "outputB" $node;
+        addToRSL "outputR = clamp(zcomp(input), zcomp(minVal), ";
+        addToRSL "                zcomp(maxVal));";
+    }
+
+    endRSL;
+}
+

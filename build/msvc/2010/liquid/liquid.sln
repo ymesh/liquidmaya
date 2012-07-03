@@ -1,0 +1,180 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "liquidBin", "liquidBin.vcxproj", "{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "liquidPlug", "liquidPlug.vcxproj", "{98831621-9576-402A-836D-BC0FCDC4C3A5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "mel", "mel", "{FB2677FF-20B3-4345-A9D6-AEBF8969420F}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\..\mel\AEdagNodeInclude.mel = ..\..\..\..\mel\AEdagNodeInclude.mel
+		..\..\..\..\mel\AEdependNodeTemplate.mel = ..\..\..\..\mel\AEdependNodeTemplate.mel
+		..\..\..\..\mel\AEliquidCamera.mel = ..\..\..\..\mel\AEliquidCamera.mel
+		..\..\..\..\mel\AEliquidCoordSysTemplate.mel = ..\..\..\..\mel\AEliquidCoordSysTemplate.mel
+		..\..\..\..\mel\AEliquidCoShaderTemplate.mel = ..\..\..\..\mel\AEliquidCoShaderTemplate.mel
+		..\..\..\..\mel\AEliquidDisplacementTemplate.mel = ..\..\..\..\mel\AEliquidDisplacementTemplate.mel
+		..\..\..\..\mel\AEliquidFGGIOverrideFlags.mel = ..\..\..\..\mel\AEliquidFGGIOverrideFlags.mel
+		..\..\..\..\mel\AEliquidInstanceFlags.mel = ..\..\..\..\mel\AEliquidInstanceFlags.mel
+		..\..\..\..\mel\AEliquidLightTemplate.mel = ..\..\..\..\mel\AEliquidLightTemplate.mel
+		..\..\..\..\mel\AEliquidNurbsCurveShape.mel = ..\..\..\..\mel\AEliquidNurbsCurveShape.mel
+		..\..\..\..\mel\AEliquidPaintEffects.mel = ..\..\..\..\mel\AEliquidPaintEffects.mel
+		..\..\..\..\mel\AEliquidRibBoxTemplate.mel = ..\..\..\..\mel\AEliquidRibBoxTemplate.mel
+		..\..\..\..\mel\AEliquidRibRequestTemplate.mel = ..\..\..\..\mel\AEliquidRibRequestTemplate.mel
+		..\..\..\..\mel\AEliquidSetFlags.mel = ..\..\..\..\mel\AEliquidSetFlags.mel
+		..\..\..\..\mel\AEliquidShadowControls.mel = ..\..\..\..\mel\AEliquidShadowControls.mel
+		..\..\..\..\mel\AEliquidSubdivisionSurfaceShape.mel = ..\..\..\..\mel\AEliquidSubdivisionSurfaceShape.mel
+		..\..\..\..\mel\AEliquidSurfaceTemplate.mel = ..\..\..\..\mel\AEliquidSurfaceTemplate.mel
+		..\..\..\..\mel\AEliquidVolumeTemplate.mel = ..\..\..\..\mel\AEliquidVolumeTemplate.mel
+		..\..\..\..\mel\AEobjectSetTemplate.mel = ..\..\..\..\mel\AEobjectSetTemplate.mel
+		..\..\..\..\mel\AEoldBlindDataBaseTemplate.mel = ..\..\..\..\mel\AEoldBlindDataBaseTemplate.mel
+		..\..\..\..\mel\createLiquidGlobalsTab.mel = ..\..\..\..\mel\createLiquidGlobalsTab.mel
+		..\..\..\..\mel\getMultiListerSelection.mel = ..\..\..\..\mel\getMultiListerSelection.mel
+		..\..\..\..\mel\liquid_FE.mel = ..\..\..\..\mel\liquid_FE.mel
+		..\..\..\..\mel\liquidAttachParams.mel = ..\..\..\..\mel\liquidAttachParams.mel
+		..\..\..\..\mel\liquidAttributes.mel = ..\..\..\..\mel\liquidAttributes.mel
+		..\..\..\..\mel\liquidAttrWindow.mel = ..\..\..\..\mel\liquidAttrWindow.mel
+		..\..\..\..\mel\liquidBuildHypergraphNodePopupMenuItems.mel = ..\..\..\..\mel\liquidBuildHypergraphNodePopupMenuItems.mel
+		..\..\..\..\mel\liquidCommon.mel = ..\..\..\..\mel\liquidCommon.mel
+		..\..\..\..\mel\liquidContainers.mel = ..\..\..\..\mel\liquidContainers.mel
+		..\..\..\..\mel\liquidConvertMtor.mel = ..\..\..\..\mel\liquidConvertMtor.mel
+		..\..\..\..\mel\liquidConvertShadingNetworkToRSL.mel = ..\..\..\..\mel\liquidConvertShadingNetworkToRSL.mel
+		..\..\..\..\mel\liquidConvMTOR.mel = ..\..\..\..\mel\liquidConvMTOR.mel
+		..\..\..\..\mel\liquidCreateGlobalsTab.mel = ..\..\..\..\mel\liquidCreateGlobalsTab.mel
+		..\..\..\..\mel\liquidDelayedReadArchive.mel = ..\..\..\..\mel\liquidDelayedReadArchive.mel
+		..\..\..\..\mel\liquidFileBrowser.mel = ..\..\..\..\mel\liquidFileBrowser.mel
+		..\..\..\..\mel\liquidFluid.mel = ..\..\..\..\mel\liquidFluid.mel
+		..\..\..\..\mel\liquidFluidOutliner.mel = ..\..\..\..\mel\liquidFluidOutliner.mel
+		..\..\..\..\mel\liquidGeneratePlace2dTexture.mel = ..\..\..\..\mel\liquidGeneratePlace2dTexture.mel
+		..\..\..\..\mel\liquidGlobals.mel = ..\..\..\..\mel\liquidGlobals.mel
+		..\..\..\..\mel\liquidHelpers.mel = ..\..\..\..\mel\liquidHelpers.mel
+		..\..\..\..\mel\liquidIni.mel = ..\..\..\..\mel\liquidIni.mel
+		..\..\..\..\mel\liquidLifWidgets.mel = ..\..\..\..\mel\liquidLifWidgets.mel
+		..\..\..\..\mel\liquidLightLinker.mel = ..\..\..\..\mel\liquidLightLinker.mel
+		..\..\..\..\mel\liquidMenuHelp.mel = ..\..\..\..\mel\liquidMenuHelp.mel
+		..\..\..\..\mel\liquidNugget.mel = ..\..\..\..\mel\liquidNugget.mel
+		..\..\..\..\mel\liquidPaintEffects.mel = ..\..\..\..\mel\liquidPaintEffects.mel
+		..\..\..\..\mel\liquidParamDialogWindow.mel = ..\..\..\..\mel\liquidParamDialogWindow.mel
+		..\..\..\..\mel\liquidParseSlShader.mel = ..\..\..\..\mel\liquidParseSlShader.mel
+		..\..\..\..\mel\liquidPrefAttribute.mel = ..\..\..\..\mel\liquidPrefAttribute.mel
+		..\..\..\..\mel\liquidReadArchive.mel = ..\..\..\..\mel\liquidReadArchive.mel
+		..\..\..\..\mel\liquidReAttachParams.mel = ..\..\..\..\mel\liquidReAttachParams.mel
+		..\..\..\..\mel\liquidRenderCurve.mel = ..\..\..\..\mel\liquidRenderCurve.mel
+		..\..\..\..\mel\liquidRenderView.mel = ..\..\..\..\mel\liquidRenderView.mel
+		..\..\..\..\mel\liquidRibBox.mel = ..\..\..\..\mel\liquidRibBox.mel
+		..\..\..\..\mel\liquidRibGen.mel = ..\..\..\..\mel\liquidRibGen.mel
+		..\..\..\..\mel\liquidShaderNodes.mel = ..\..\..\..\mel\liquidShaderNodes.mel
+		..\..\..\..\mel\liquidShaders.mel = ..\..\..\..\mel\liquidShaders.mel
+		..\..\..\..\mel\liquidShutdown.mel = ..\..\..\..\mel\liquidShutdown.mel
+		..\..\..\..\mel\liquidSlInfo.mel = ..\..\..\..\mel\liquidSlInfo.mel
+		..\..\..\..\mel\liquidSLManager.mel = ..\..\..\..\mel\liquidSLManager.mel
+		..\..\..\..\mel\liquidSlParseLif.mel = ..\..\..\..\mel\liquidSlParseLif.mel
+		..\..\..\..\mel\liquidSlParseSdl.mel = ..\..\..\..\mel\liquidSlParseSdl.mel
+		..\..\..\..\mel\liquidSlParseSdr.mel = ..\..\..\..\mel\liquidSlParseSdr.mel
+		..\..\..\..\mel\liquidSlParseSlb.mel = ..\..\..\..\mel\liquidSlParseSlb.mel
+		..\..\..\..\mel\liquidSlParseSlo.mel = ..\..\..\..\mel\liquidSlParseSlo.mel
+		..\..\..\..\mel\liquidSlParseSlx.mel = ..\..\..\..\mel\liquidSlParseSlx.mel
+		..\..\..\..\mel\liquidStartup.mel = ..\..\..\..\mel\liquidStartup.mel
+		..\..\..\..\mel\liquidSubdiv.mel = ..\..\..\..\mel\liquidSubdiv.mel
+		..\..\..\..\mel\liquidSubdivInspector.mel = ..\..\..\..\mel\liquidSubdivInspector.mel
+		..\..\..\..\mel\liquidVertexPrimvars.mel = ..\..\..\..\mel\liquidVertexPrimvars.mel
+		..\..\..\..\mel\liquidWriteRSL_materials.mel = ..\..\..\..\mel\liquidWriteRSL_materials.mel
+		..\..\..\..\mel\liquidWriteRSL_textures.mel = ..\..\..\..\mel\liquidWriteRSL_textures.mel
+		..\..\..\..\mel\liquidWriteRSL_utilities.mel = ..\..\..\..\mel\liquidWriteRSL_utilities.mel
+		..\..\..\..\mel\mmm.liquidMenu.mel = ..\..\..\..\mel\mmm.liquidMenu.mel
+		..\..\..\..\mel\registerLiquidRenderer.mel = ..\..\..\..\mel\registerLiquidRenderer.mel
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2011", "2011", "{01F72143-B937-463F-BCB2-92A48CF63349}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\..\mel\2011\liquidFileBrowser.mel = ..\..\..\..\mel\2011\liquidFileBrowser.mel
+		..\..\..\..\mel\2011\liquidParamDialogWindow.mel = ..\..\..\..\mel\2011\liquidParamDialogWindow.mel
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2012", "2012", "{FC3F15F3-DA5B-4EBE-AFD1-9E58F0A85015}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\..\mel\2012\liquidBuildHypergraphNodePopupMenuItems.mel = ..\..\..\..\mel\2012\liquidBuildHypergraphNodePopupMenuItems.mel
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug maya2008 generic|Win32 = Debug maya2008 generic|Win32
+		Debug maya2008 generic|x64 = Debug maya2008 generic|x64
+		Debug maya2011 generic|Win32 = Debug maya2011 generic|Win32
+		Debug maya2011 generic|x64 = Debug maya2011 generic|x64
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release maya2008 generic|Win32 = Release maya2008 generic|Win32
+		Release maya2008 generic|x64 = Release maya2008 generic|x64
+		Release maya2011 generic|Win32 = Release maya2011 generic|Win32
+		Release maya2011 generic|x64 = Release maya2011 generic|x64
+		Release maya2012 generic|Win32 = Release maya2012 generic|Win32
+		Release maya2012 generic|x64 = Release maya2012 generic|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug maya2008 generic|Win32.ActiveCfg = Debug maya2008 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug maya2008 generic|Win32.Build.0 = Debug maya2008 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug maya2008 generic|x64.ActiveCfg = Debug maya2008 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug maya2008 generic|x64.Build.0 = Debug maya2008 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug maya2011 generic|Win32.ActiveCfg = Debug maya2011 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug maya2011 generic|Win32.Build.0 = Debug maya2011 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug maya2011 generic|x64.ActiveCfg = Debug maya2011 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug maya2011 generic|x64.Build.0 = Debug maya2011 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug|Win32.Build.0 = Debug|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug|x64.ActiveCfg = Debug|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Debug|x64.Build.0 = Debug|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2008 generic|Win32.ActiveCfg = Debug maya2008 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2008 generic|Win32.Build.0 = Debug maya2008 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2008 generic|x64.ActiveCfg = Release maya2008 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2008 generic|x64.Build.0 = Release maya2008 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2011 generic|Win32.ActiveCfg = Release maya2011 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2011 generic|Win32.Build.0 = Release maya2011 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2011 generic|x64.ActiveCfg = Release maya2011 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2011 generic|x64.Build.0 = Release maya2011 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2012 generic|Win32.ActiveCfg = Release maya2012 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2012 generic|Win32.Build.0 = Release maya2012 generic|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2012 generic|x64.ActiveCfg = Release maya2012 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release maya2012 generic|x64.Build.0 = Release maya2012 generic|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release|Win32.ActiveCfg = Release|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release|Win32.Build.0 = Release|Win32
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release|x64.ActiveCfg = Release|x64
+		{1F2F300A-B63E-4A09-AD99-E4184D0CD14F}.Release|x64.Build.0 = Release|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug maya2008 generic|Win32.ActiveCfg = Debug maya2008 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug maya2008 generic|Win32.Build.0 = Debug maya2008 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug maya2008 generic|x64.ActiveCfg = Debug maya2008 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug maya2008 generic|x64.Build.0 = Debug maya2008 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug maya2011 generic|Win32.ActiveCfg = Debug maya2011 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug maya2011 generic|Win32.Build.0 = Debug maya2011 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug maya2011 generic|x64.ActiveCfg = Debug maya2011 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug maya2011 generic|x64.Build.0 = Debug maya2011 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug|Win32.Build.0 = Debug|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug|x64.ActiveCfg = Debug|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Debug|x64.Build.0 = Debug|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2008 generic|Win32.ActiveCfg = Debug maya2008 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2008 generic|Win32.Build.0 = Debug maya2008 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2008 generic|x64.ActiveCfg = Release maya2008 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2008 generic|x64.Build.0 = Release maya2008 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2011 generic|Win32.ActiveCfg = Release maya2011 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2011 generic|Win32.Build.0 = Release maya2011 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2011 generic|x64.ActiveCfg = Release maya2011 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2011 generic|x64.Build.0 = Release maya2011 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2012 generic|Win32.ActiveCfg = Release maya2012 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2012 generic|Win32.Build.0 = Release maya2012 generic|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2012 generic|x64.ActiveCfg = Release maya2012 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release maya2012 generic|x64.Build.0 = Release maya2012 generic|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release|Win32.ActiveCfg = Release|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release|Win32.Build.0 = Release|Win32
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release|x64.ActiveCfg = Release|x64
+		{98831621-9576-402A-836D-BC0FCDC4C3A5}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{01F72143-B937-463F-BCB2-92A48CF63349} = {FB2677FF-20B3-4345-A9D6-AEBF8969420F}
+		{FC3F15F3-DA5B-4EBE-AFD1-9E58F0A85015} = {FB2677FF-20B3-4345-A9D6-AEBF8969420F}
+	EndGlobalSection
+EndGlobal

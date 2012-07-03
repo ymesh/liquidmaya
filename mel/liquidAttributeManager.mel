@@ -1,0 +1,1232 @@
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:
+//    1/12/2011 11:45:46 PM
+//  Procedure Name:
+//    liquidAttributeManager  
+//  
+//  Description:
+//    v.1.0 - initial version
+//    written by Yuri Meshalkin (ymesh)
+//
+//    This UI script replaces a lot of menu items from Liquid main menu.
+//    It allows Attach/Detach/Set multiple Liquid attributes for selected objects
+//
+//    TO DO: maintain connected attributes
+//  
+//===========================================================================================
+//
+//===========================================================================================
+proc liquidAttributeManagerGlobalVals()
+{
+  global string $liquidAttrManWnd = "liquidAttributeManagerWnd";
+  global string $liquidAttrManWndTitle = "Liquid Attributes Manager"; 
+  global string $liquidAttrManSelectionList[];
+  clear( $liquidAttrManSelectionList );
+  
+  global string $attrShadingGroup[];
+  clear( $attrShadingGroup ); // prevent warning: Global variable is already initialized
+  $attrShadingGroup =
+  {
+  // label                    attrName    shortName     type      default   subtype     range  
+  // 0												1										2			3					4					5						6
+    "Shading Rate"            ,"liqShadingRate"  ,""    ,"float"  ,1.0      ,""         ,""
+    ,"Color"                  ,"liqColor"        ,""    ,"color"  ,"0,0,1"  ,""         ,""
+    ,"Opacity"                ,"liqOpacity"      ,""    ,"color"  ,"1,1,1"  ,""         ,"" 
+    ,"Matte"                  ,"liqMatte"        ,""    ,"bool"   ,0        ,"switch"   ,""
+    ,"Camera Hit-Mode"        ,"liqHitModeCamera" ,""   ,"int"    ,1        ,"selector" ,"Primitive=0:Shader=1"
+    ,"Raster-Oriented Dicing" ,"liqDiceRasterOrient","" ,"bool"   ,1        ,"switch"   ,""
+    ,"Double Shaded"          ,"liqDoubleShaded"	,""   ,"bool"   ,0        ,"switch"   ,""
+    ,"Custom Shading Group"   ,"liquidCustomShadingGroup","" ,"msg"  ,""       ,""         ,"" 
+  };
+  
+  global string $attrVisibilityGroup[];
+  clear( $attrVisibilityGroup ); // prevent warning: Global variable is already initialized
+  $attrVisibilityGroup =
+  {
+  // label                    attrName             shortName  type      default   subtype     range
+    "Camera"                  ,"liqVisibilityCamera"  ,""     ,"bool"   ,1        ,"switch"   ,""
+    ,"Transmission"      			,"liqVisibilityTransmission" ,"","int"    ,1        ,"selector" ,"Transparent=0:Opaque=1:Use Opacity=2:From Shader=3"
+    ,"Ray Tracer"             ,"liqVisibilityTrace"   ,""     ,"bool"   ,1        ,"switch"   ,""
+    ,"Photon"                 ,"liqVisibilityPhoton"   ,""    ,"bool"   ,1        ,"switch"   ,""
+    ,"Diffuse Rays"           ,"liqVisibilityDiffuse" ,""     ,"bool"   ,1        ,"switch"   ,""
+    ,"Specular Rays"          ,"liqVisibilitySpecular" ,""    ,"bool"   ,1        ,"switch"   ,""
+    ,"Transmission Rays"			,"liqVisibilityNewTransmission","","bool" ,1        ,"switch"   ,""
+  };
+  
+  global string $attrRayTracingGroup[];
+  clear( $attrRayTracingGroup ); // prevent warning: Global variable is already initialized
+  $attrRayTracingGroup =
+  {
+  // label                    attrName                        type      default   subtype     range
+    "Trace Sample Motion"     ,"liqTraceSampleMotion",""      ,"bool"   ,0        ,"switch"   ,""
+    ,"Trace Displacements"    ,"liqTraceDisplacements",""     ,"bool"   ,0        ,"switch"   ,""
+    ,"Trace Bias"             ,"liqTraceBias",""              ,"float"  ,0.01     ,""         ,""
+    ,"Maximum Diffuse Depth"  ,"liqMaxDiffuseDepth",""        ,"int"    ,1        ,""         ,""
+    ,"Maximum Specular Depth" ,"liqMaxSpecularDepth",""       ,"int"    ,3        ,""         ,""
+    ,"Diffuse Hit-Mode"       ,"liqHitModeDiffuse",""         ,"int"    ,0        ,"selector" ,"Primitive=0:Shader=1:Cache=2" 
+    ,"Specular Hit-Mode"      ,"liqHitModeSpecular",""        ,"int"    ,1        ,"selector" ,"Primitive=0:Shader=1:Cache=2" 
+    ,"Transmission Hit-Mode"  ,"liqHitModeTransmission",""    ,"int"    ,1        ,"selector" ,"Primitive=0:Shader=1:Cache=2" 
+    ,"Camera Hit-Mode"        ,"liqHitModeCamera",""          ,"int"    ,1        ,"selector" ,"Primitive=0:Shader=1:Cache=2" 
+  };
+
+  global string $attrVolumeGroup[];
+  clear( $attrVolumeGroup ); // prevent warning: Global variable is already initialized
+  $attrVolumeGroup =
+  {
+  // label                    attrName                        type      default   subtype     range
+    "Shade Strategy"          ,"liqShadeStrategy",""          ,"int"    ,0        ,"selector" ,"grids=0:vpvolumes=1" 
+    ,"Volume Intersection Strategy" ,"liqVolumeIntersectionStrategy","" ,"int"    ,0        ,"selector" ,"exclusive=0:additive=1" 
+    ,"Volume Intersection Priority" ,"liqVolumeIntersectionPriority","" ,"float"  ,0.0      ,""         ,""
+  };
+  
+  global string $attrGlobalIlluminationGroup[];
+  clear( $attrGlobalIlluminationGroup ); // prevent warning: Global variable is already initialized
+  $attrGlobalIlluminationGroup =
+  {
+    "Irradiance Shading Rate" ,"liqIrradianceShadingRate",""  ,"float"  ,1.0     ,""         ,"" 
+    ,"Irradiance Samples"     ,"liqIrradianceNSamples",""     ,"int"    ,64      ,"slider"   ,"1:256:1"        
+    ,"Irradiance Max Error"   ,"liqIrradianceMaxError",""     ,"float"  ,0.5     ,"slider"   ,"0:1:0.01"     
+    ,"Irradiance Max Pixel Dist","liqIrradianceMaxPixelDist","","float" ,30      ,"slider"   ,"1:100:1"  
+    ,"Irradiance File Handle" ,"liqIrradianceHandle",""       ,"string" ,""      ,""         ,"" 
+    ,"IrradianceFileMode"     ,"liqIrradianceFileMode",""     ,"int"    ,0       ,"selector" ,"None=0:Read=1:Write=2:ReadWrite=3"
+  };
+  
+  global string $attrPhotonMappingGroup[];
+  clear( $attrPhotonMappingGroup ); // prevent warning: Global variable is already initialized
+  $attrPhotonMappingGroup =
+  {
+    "Photon Global Map"       ,"liqPhotonGlobalMap",""        ,"string" ,""      ,""         ,""  
+    ,"Photon Caustic Map"     ,"liqPhotonCausticMap",""       ,"string" ,""      ,""         ,""   
+    ,"Photon Estimator"       ,"liqPhotonEstimator",""        ,"float"  ,50      ,""         ,""  
+    ,"Photon Shading Model"   ,"liqPhotonShadingModel",""     ,"int"    ,0       ,"selector" ,"Matte=0:Glass=1:Water=2:Chrome=3:Transparent=4:Dielectric=5"
+  };
+  
+  global string $attrMotionBlurGroup[];
+  clear( $attrMotionBlurGroup ); // prevent warning: Global variable is already initialized
+  $attrMotionBlurGroup =
+  {
+    "Transformation Blur"     ,"liqTransformationBlur",""     ,"bool"   ,0        ,"switch"   ,"" 
+    ,"Deformation Blur"       ,"liqDeformationBlur",""        ,"bool"   ,0        ,"switch"   ,"" 
+    ,"Motion Samples"         ,"liqMotionSamples",""          ,"int"    ,2        ,"slider"   ,"2:16:2"    
+    ,"Motion Factor"          ,"liqMotionFactor",""           ,"float"  ,1.0      ,"slider"   ,"0:16:0.01"       
+  };
+  
+  global string $attrPrePosterousGroup[];
+  clear( $attrPrePosterousGroup ); // prevent warning: Global variable is already initialized
+  $attrPrePosterousGroup =
+  {
+    "Pre Transform Mel"       ,"liqPreTransformMel",""        ,"string" ,""      ,""         ,""  
+    ,"Post Transform Mel"     ,"liqPostTransformMel",""       ,"string" ,""      ,""         ,"" 
+    ,"Pre Shape Mel"          ,"liqPreShapeMel",""            ,"string" ,""      ,""         ,"" 
+    ,"Post Shape Mel"         ,"liqPostShapeMel",""           ,"string" ,""      ,""         ,"" 
+  };
+  
+  global string $attrRibGroup[];
+  clear( $attrRibGroup ); // prevent warning: Global variable is already initialized
+  $attrRibGroup =
+  {
+    "RIB Box"                 ,"liqRIBBox",""                         ,"string" ,""      ,""         ,""  
+    ,"RIB Generator"          ,"liqRIBGenerator",""                   ,"string" ,""      ,""         ,""  
+    ,"RIB ReadArchive"        ,"liqRIBReadArchive",""                 ,"string" ,""      ,""         ,""  
+    ,"RIB DelayedReadArchive" ,"liqRIBDelayedReadArchive",""          ,"string" ,""      ,""         ,""  
+    ,"RIB DRA BBox Scale",    "liqRIBDelayedReadArchiveBBoxScale",""  ,"float"  ,1.0 ,"slider"   ,"0:2:0.01"         
+  };
+  
+  global string $attrShadowRibGroup[];
+  clear( $attrShadowRibGroup ); // prevent warning: Global variable is already initialized
+  $attrShadowRibGroup =
+  {
+    "Shadow RIB Box"                ,"liqShdRIBBox",""                        ,"string" ,""      ,""         ,""   
+    ,"Shadow RIB Generator"         ,"liqShdRIBGenerator",""                  ,"string" ,""      ,""         ,""   
+    ,"Shadow RIB ReadArchive"       ,"liqShdRIBReadArchive",""                ,"string" ,""      ,""         ,""   
+    ,"Shadow RIB DelayedReadArchive","liqShdRIBDelayedReadArchive",""         ,"string" ,""      ,""         ,""   
+    ,"Shadow RIB DRA BBox Scale"    ,"liqShdRIBDelayedReadArchiveBBoxScale","","float"  ,1.0 ,"slider"      ,"0:2:0.01"   
+  };
+  
+  global string $attrLiquidSpecialGroup[];
+  clear( $attrLiquidSpecialGroup ); // prevent warning: Global variable is already initialized
+  $attrLiquidSpecialGroup =
+  {
+    "Instances Inherit PP Color"  ,"liqInheritPPColor","" ,"bool"   ,0        ,"switch"   ,""  
+    ,"Liquid Invisible"           ,"liqInvisible",""      ,"bool"   ,1        ,"switch"   ,"" 
+    ,"Ignore Shapes"              ,"liqIgnoreShapes",""   ,"bool"   ,1        ,"switch"   ,"" 
+    
+  };
+  
+  global string $attrNurbsGroup[];
+  clear( $attrNurbsGroup ); // prevent warning: Global variable is already initialized
+  $attrNurbsGroup =
+  {
+  	"No Normalize Nurbs"         ,"noNormalizeNurbs",""   ,"bool"   ,1        ,"switch"   ,"" 
+  };
+  
+  global string $attr3DelightSSSGroup[];
+  clear( $attr3DelightSSSGroup ); // prevent warning: Global variable is already initialized
+  $attr3DelightSSSGroup =
+  {
+    "GroupName"               ,"liqDelightSSGroupName",""            ,"string" ,""      ,""         ,""    
+    ,"Scattering"             ,"liqDelightSSScattering",""           ,"color"  ,"1,1,1"      ,""         ,""  
+    ,"Absorption"             ,"liqDelightSSAbsorption",""           ,"color"  ,"1,1,1"      ,""         ,"" 
+    ,"Meanfreepath"           ,"liqDelightSSMeanfreepath",""         ,"color"  ,"1,1,1"      ,""         ,"" 
+    ,"Reflectance"            ,"liqDelightSSReflectance",""          ,"color"  ,"1,1,1"      ,""         ,"" 
+    ,"Refraction"             ,"liqDelightSSRefraction",""           ,"float"  ,0      ,""         ,""  
+    ,"Scale"                  ,"liqDelightSSScale",""                ,"float"  ,1      ,""         ,""  
+    ,"Shading Rate"           ,"liqDelightSSShadingRate",""          ,"float"  ,1      ,""         ,""  
+    ,"Reference Camera"       ,"liqDelightSSReferenceCamera",""      ,"string" ,""      ,""         ,""    
+  };
+  
+  global string $attr3DelightLightGroup[];
+  clear( $attr3DelightLightGroup ); // prevent warning: Global variable is already initialized
+  $attr3DelightLightGroup =
+  {
+    "Emit Photons"                     ,"liqDelightLightEmitphotons",""        ,"bool"  ,0  ,"switch"   ,"" 
+    ,"Automatic Shadows"               ,"liqDelightLightShadows",""            ,"bool"  ,0  ,"switch"   ,"" 
+    ,"Automatic Shadows Samples"       ,"liqDelightLightSamples",""            ,"int"   ,1  ,""   ,"" 
+    ,"Area Light Sampling Strategy"    ,"liqDelightLightSamplingStrategy",""   ,"int"   ,0  ,"selector"   ,"lightsource=0:illuminance=1" 
+    ,"Aggregate Shadow Maps"           ,"aggregateShadowMaps","asm"            ,"bool"  ,0  ,"switch"   ,"" 
+  };
+  
+  global string $attrAreaLightGroup[];
+  clear( $attrAreaLightGroup ); // prevent warning: Global variable is already initialized
+  $attrAreaLightGroup =
+  {
+    "Both Sides Emit"         ,"liqBothSidesEmit",""      ,"bool"   ,0       ,"switch"   ,""  
+    ,"Light Map"              ,"liqLightMap",""           ,"string" ,""      ,""         ,""  
+    ,"Light Map Saturation"   ,"liqLightMapSaturation","" ,"float"  ,1       ,"slider"   ,"0:10:0.01" 
+    ,"Area Hit Mode"          ,"liqAreaHitmode",""        ,"int"    ,1       ,"selector" ,"default=0:primitive=1:shader=2"
+    ,"Use Light Scale"        ,"liquidUseLightScale",""   ,"bool"   ,0       ,"switch"   ,""  
+  };
+  
+  global string $attrLightShadowGroup[];
+  clear( $attrLightShadowGroup ); // prevent warning: Global variable is already initialized
+  $attrLightShadowGroup =
+  {
+    "Shadow Map Samples"      ,"liqShadowMapSamples",""	            ,"int"    ,16      ,"slider"   ,"1:256:1"      
+    ,"Deep Shadows"           ,"deepShadows","dsh"	  	            ,"bool"   ,0       ,"switch"   ,""  
+    ,"Shadow Blur"            ,"liqShadowBlur","shb"  	            ,"float"  ,0.01    ,""         ,""  
+    ,"Pixel Samples"          ,"pixelSamples","dps" 		            ,"int"    ,1       ,"slider"   ,"0:256:1"   
+    ,"Volume Interpretation"  ,"volumeInterpretation","dvi"         ,"int"    ,0       ,"selector" ,"Discreet=0:Continuous=1"
+    ,"Display Mode"           ,"liqDeepShadowsDisplayMode","dshdm"  ,"int"    ,0       ,"selector" ,"Default=0:deepprevdisttotal=1"     
+    ,"Every Frame"            ,"everyFrame","ef"				            ,"bool"   ,1       ,"switch"   ,""  
+    ,"Render At Frame"        ,"renderAtFrame","raf"		            ,"int"  	,0       ,""         ,""  
+    ,"Geometry Set"           ,"geometrySet","sgs"			            ,"string" ,""      ,""         ,""    
+    ,"Shading Rate Factor"    ,"shadingRateFactor","srf"            ,"float"  ,1.0     ,""         ,""  
+    ,"Near Clip Plane"        ,"nearClipPlane",""				            ,"float"  ,0.01    ,""         ,""  
+    ,"Far Clip Plane"         ,"farClipPlane",""				            ,"float"  ,25000.0 ,""         ,""    
+  };
+  global string $attrCameraShadowGroup[];
+  clear( $attrCameraShadowGroup ); // prevent warning: Global variable is already initialized
+  $attrCameraShadowGroup =
+  {
+    "Shadow Resolution"       ,"liqShadowResolution",""	    ,"int"    ,512    ,""   ,""      
+    ,"MidPoint Shadow"        ,"liqMidPointShadow",""	      ,"bool"   ,0      ,"switch"   ,""  
+    ,"MidPoint Ratio"         ,"liqMidPointRatio",""	      ,"float"  ,0.1    ,""         ,"" 
+    ,"Deep Shadows"           ,"liqDeepShadows",""	  	    ,"bool"   ,0      ,"switch"   ,""  
+    ,"Pixel Samples"          ,"liqPixelSamples","" 		    ,"int"    ,1      ,"slider"   ,"0:256:1"  
+    ,"Volume Interpretation"  ,"liqVolumeInterpretation","" ,"int"    ,0      ,"selector" ,"Discreet=0:Continuous=1"  
+    ,"Display Mode"           ,"liqDeepShadowsDisplayMode","dshdm" ,"int"    ,0      ,"selector" ,"Default=0:deepprevdisttotal=1"     
+    ,"Every Frame"            ,"liqEveryFrame",""				    ,"bool"   ,1       ,"switch"   ,""  
+    ,"Render At Frame"        ,"liqRenderAtFrame",""		    ,"int"  	 ,0       ,""         ,"" 
+    ,"Geometry Set"           ,"liqGeometrySet",""			    ,"string" ,""      ,""         ,""  
+    ,"Shading Rate Factor"    ,"liqShadingRateFactor",""    ,"float"  ,1.0     ,""         ,""     
+  };
+  
+  global string $attrLightShadowRibGroup[];
+  clear( $attrLightShadowRibGroup ); // prevent warning: Global variable is already initialized
+  $attrLightShadowRibGroup =
+  {
+  	"RIB Options"	,"liqRIBOptions","" ,"string"	,"Option \"limits\" \"zthreshold\" [ 1.0 1.0 1.0 ]", "", ""
+  	,"RIB Frame"	,"liqRIBFrame",""		,"string" ,""		, "", ""
+  };
+  // "Light Z-Threshold"	,"liqRIBOptions",""		 ,"light","string","Option \"limits\" \"zthreshold\" [ 1.0 1.0 1.0 ]", "", "" 
+
+  global string $attrLightOutputGroup[];
+  clear( $attrLightOutputGroup ); // prevent warning: Global variable is already initialized
+  $attrLightOutputGroup =
+  {
+  	"__category",	"__category"	,"" ,"string" ,""		, "", ""
+  	,"lightID"		,"lightID"		,"" ,"string" ,""		, "", ""
+  };
+  
+  global string $attrLightDecayRegionGroup[];
+  clear( $attrLightDecayRegionGroup ); // prevent warning: Global variable is already initialized
+  $attrLightDecayRegionGroup =
+  {
+  "Start Distance Intensity 1"	,"startDistanceIntensity1"	,"", "float"	,1	,""	,""
+  ,"End Distance Intensity 1"		,"endDistanceIntensity1"		,"", "float"	,1	,""	,""
+  ,"Start Distance Intensity 2"	,"startDistanceIntensity2"	,"", "float"	,1	,""	,""
+  ,"End Distance Intensity 2"		,"endDistanceIntensity2"		,"", "float"	,1	,""	,""
+  ,"Start Distance Intensity 3"	,"startDistanceIntensity3"	,"", "float"	,1	,""	,""
+  ,"End Distance Intensity 3"		,"endDistanceIntensity3"		,"", "float"	,1	,""	,""
+  };
+  
+  global string $attrSubdivisionGroup[];
+  clear( $attrSubdivisionGroup ); // prevent warning: Global variable is already initialized
+  $attrSubdivisionGroup =
+  {
+  	"Subdivison"					,"liqSubdiv","" 									,"bool",1	,"switch", ""
+  	,"UV Interpolation"		,"liqSubdivUVInterpolation","" 		,"int" ,0 ,"selector", "True Facevarying:New Facevarying:Facevertex"
+  	,"InterpolateBoundary","liqSubdivInterpolateBoundary","","int" ,0 ,"selector", "Off:Sharp:Smooth"
+  	,"Maya Crease","liqSubdivMayaCrease","","float" ,0 ,"", ""
+  	
+  };
+  
+  global string $attrLiquidTraceSetGroup[];
+  clear( $attrLiquidTraceSetGroup ); // prevent warning: Global variable is already initialized
+  $attrLiquidTraceSetGroup =
+  {
+  	"Trace Set",	"liqTraceSet"	,"" ,"bool"   ,1       ,"switch"   ,""  
+  };
+  
+  global string $attrRenderCurveGroup[];
+  clear( $attrRenderCurveGroup ); // prevent warning: Global variable is already initialized
+  $attrRenderCurveGroup =
+  {
+  	"Render Curve"		 ,"liquidCurve","" 					,"bool" 	,1		,"switch", ""
+  	,"Curve Base Width","liquidCurveBaseWidth","" ,"float" ,0.1		,"", ""
+  	,"Curve Tip Width" ,"liquidCurveTipWidth","" 	,"float" ,0.1		,"", ""
+  };
+  
+  global string $attrCurvesGroupGroup[];
+  clear( $attrCurvesGroupGroup ); // prevent warning: Global variable is already initialized
+  $attrCurvesGroupGroup =
+  {
+  	"Curve Group"		 ,"liquidCurveGroup","" 			,"bool"  ,1		,"switch", ""
+  	,"Curve Base Width","liquidCurveBaseWidth","" ,"float" ,0.1		,"", ""
+  	,"Curve Tip Width" ,"liquidCurveTipWidth","" 	,"float" ,0.1		,"", ""
+  };
+  
+  global string $attrPaintEffectsGroup[];
+  clear( $attrPaintEffectsGroup ); // prevent warning: Global variable is already initialized
+  $attrPaintEffectsGroup =
+  {
+  	"Tube Shading Group" ,"liquidTubeShadingGroup","" ,"msg"  ,""		,"", ""
+  	,"Leaf Shading Group","liquidLeafShadingGroup","" ,"msg"  ,""		,"", ""
+  	,"Petal Shading Group" ,"liquidPetalShadingGroup","" ,"msg"  ,""		,"", ""
+  	,"Tube Camera Facing" ,"liquidTubeCameraFacing","" ,"bool"  ,1		,"switch", ""
+  	,"Leaf Camera Facing" ,"liquidLeafCameraFacing","" ,"bool"  ,0		,"switch", ""
+  	,"Petal Camera Facing" ,"liquidPetalCameraFacing","" ,"bool"  ,0		,"switch", ""
+  	,"Tube Uniform Width" ,"liquidTubeUniformWidth","" ,"bool"  ,0		,"switch", ""
+  	,"Leaf Uniform Width" ,"liquidLeafUniformWidth","" ,"bool"  ,0		,"switch", ""
+  	,"Petal Uniform Width" ,"liquidPetalUniformWidth","" ,"bool"  ,0		,"switch", ""
+  	,"Curve ID" ,"liquidCurveID","" ,"bool"  ,0		,"switch", ""
+  };
+  
+  global string $attrMapGenGroup[];
+  clear( $attrMapGenGroup ); // prevent warning: Global variable is already initialized
+  $attrMapGenGroup =
+  {
+  	"Reflection","liqReflectionMapGen","","bool"  ,1		,"switch", ""
+  	,"Environment","liqEnvMapGen","","bool"  ,1		,"switch", ""
+  	,"Map Size", "liqMapSize", "", "int", 512, "", "" 
+  	,"Map Gen Set", "liqMapGenSet", "", "string", "", "", "" 
+  	,"Map Gen ShadingRate", "liqMapGenShadingRate", "", "int", 5, "", ""
+  	,"Map Gen Every Frame", "liqMapGenEveryFrame","","bool"  ,1		,"switch", ""
+  };
+  
+  global string $attrRibGenGroup[];
+  clear( $attrRibGenGroup ); // prevent warning: Global variable is already initialized
+  $attrRibGenGroup =
+  {
+  	"RIB Generator", "liquidRibGen","", "msg", "", "", ""
+  };
+  
+  global string $attrRibArchiveGroup[];
+  clear( $attrRibArchiveGroup ); // prevent warning: Global variable is already initialized
+  $attrRibArchiveGroup =
+  {
+  	"RIB Read Archive", "liqRIBReadArchive", "", "string", "", "", "" 
+  	,"RIB Delayed Read Archive","liqRIBDelayedReadArchive", "", "string", "", "", "" 
+  	,"Delayed Archive BBox","ribDelayedArchiveBBox","", "msg", "", "", ""
+  	,"Delayed Archive BBox In","ribDelayedArchiveBBoxIn","", "msg", "", "", ""
+  };
+  
+  global string $groupItems[];
+  clear( $groupItems ); // prevent warning: Global variable is already initialized
+  $groupItems = 
+  {
+  	"Object Shading"			,"$attrShadingGroup"						,"-tr" 
+  	,"Object Visibility"	,"$attrVisibilityGroup"					,"-tr" 
+  	,"Ray Tracing"	      ,"$attrRayTracingGroup"					,"-tr" 
+  	,"Volume"	            ,"$attrVolumeGroup"					    ,"-tr" 
+  	,"Global Illumination","$attrGlobalIlluminationGroup"	,"-tr" 
+  	,"Photon Mapping"     ,"$attrPhotonMappingGroup"			,"-tr" 
+  	,"Motion Blur"        ,"$attrMotionBlurGroup"					,"-tr" 
+  	,"PrePosterous MEL"   ,"$attrPrePosterousGroup"				,"-tr" 
+  	,"Object RIB"         ,"$attrRibGroup"								,"-tr" 
+  	,"Shadow RIB"         ,"$attrShadowRibGroup"					,"-tr" 
+  	,"Liquid Special"     ,"$attrLiquidSpecialGroup"			,"-tr" 
+  	,"Subdivision Surface","$attrSubdivisionGroup"				,"-dag -typ mesh"
+  	,"Nurbs Surface"     	,"$attrNurbsGroup"							,"-dag -typ nurbsSurface"
+  	,"Nurbs Curve"     		,"$attrRenderCurveGroup"				,"-dag -typ nurbsCurve"
+  	,"Curves Group"     	,"$attrCurvesGroupGroup"				,"-dag -typ locator"
+  	,"Paint Effects"     	,"$attrPaintEffectsGroup"				,"-dag -typ stroke"
+  	,"3Delight SSS"       ,"$attr3DelightSSSGroup"				,"-tr" 
+  	,"3Delight Lights"    ,"$attr3DelightLightGroup"      ,"-dag -lights"
+  	,"Area Light"         ,"$attrAreaLightGroup"					,"-dag -lights"
+  	,"Light Shadow"       ,"$attrLightShadowGroup"				,"-dag -lights"
+  	,"Camera Shadow"      ,"$attrCameraShadowGroup"				,"-dag -cameras"
+  	,"Light Shadow RIB"   ,"$attrLightShadowRibGroup"			,"-dag -lights"
+  	,"Light Output"   		,"$attrLightOutputGroup"				,"-dag -lights"
+  	,"Light Decay Region"	,"$attrLightDecayRegionGroup"		,"-dag -lights"
+  	,"Map Generators"     ,"$attrMapGenGroup"							,"-dag -typ locator"
+  	,"RIB Generators"     ,"$attrRibGenGroup"							,"-dag -s"
+  	,"RIB Archive"     		,"$attrRibArchiveGroup"					,"-dag -s"
+  	,"Liquid Trace Set"   ,"$attrLiquidTraceSetGroup"			,"-typ objectSet" 
+  };
+
+	/*
+	Liquid attributes list with no "liq" prefix (possible should be fixed in future?)
+	Collected here for reference purpose.
+	
+	string $liquidInvalidNamesAttributes[] =
+	{
+		"noNormalizeNurbs"
+		,"deepShadows"
+		,"pixelSamples"
+		,"volumeInterpretation"
+		,"everyFrame"
+		,"renderAtFrame"
+		,"geometrySet"
+		,"shadingRateFactor"
+		,"nearClipPlane"
+		,"farClipPlane"
+		,"__category"
+		,"lightID"
+		,"liquidUseLightScale
+		,"aggregateShadowMaps""
+		,"liquidCurve"
+		,"liquidCurveBaseWidth"
+		,"liquidCurveTipWidth"
+		,"liquidCurveGroup"
+		,"liquidTubeShadingGroup"
+		,"liquidLeafShadingGroup"
+		,"liquidPetalShadingGroup"
+		,"liquidTubeCameraFacing"
+		,"liquidLeafCameraFacing"
+		,"liquidPetalCameraFacing"
+		,"liquidTubeUniformWidth"
+		,"liquidLeafUniformWidth"
+		,"liquidPetalUniformWidth"
+		,"liquidCurveID"
+	};
+	*/
+} 
+//===========================================================================================
+//
+//===========================================================================================
+proc liquidAttributeManagerUI()
+{
+	global string $groupItems[];
+	global string $liquidAttrManWnd;
+	string $wnd = $liquidAttrManWnd;
+	string $f1 = ($wnd + "|f1");
+	setParent $wnd; 
+  if ( !`formLayout -q -ex $f1` ) 
+  {
+    formLayout -numberOfDivisions 100 f1;
+      //rowColumnLayout -bgc 0 1 1 -numberOfRows 1 -ral 1 "left" -rowHeight 1 16 r1;
+        string $lblGroups = `text -font boldLabelFont -l " Groups" lblGroups`;
+        string $lblAvailable = `text -font boldLabelFont -l " Available" lblAvailable`;
+        string $lblAttached = `text -font boldLabelFont -l " Attached" lblAttached`;
+        string $lblValues = `text -font boldLabelFont -l " Values" lblValues`;
+      //setParent ..;
+    
+      global string $liq_maya_version;
+	    int $liq_maya_version_int = $liq_maya_version;
+      
+      if ( $liq_maya_version_int >= 2013 ) 
+      {
+        print ( "Hey, Autodesk! Why do you break everything working fine with each new version???\n" );
+        //rowLayout -bgc 1 1 0 -numberOfColumns 4 g0;
+        //rowColumnLayout -bgc 1 1 0 -numberOfColumns 4 -cs 2 2 -cs 3 2 -cs 4 2 g0;
+          textScrollList -numberOfRows 30 -allowMultiSelection false listGroups;
+          textScrollList -numberOfRows 30 -allowMultiSelection true  listAvailable;
+          textScrollList -numberOfRows 30 -allowMultiSelection true  listAttached;
+          columnLayout -cat left 4 -rs 2 -columnOffset both 2 -adj true columnValues;
+            text -l "Select attribute group..." ;
+          setParent ..;
+        //setParent ..;
+      }
+      else
+      {
+        formLayout -numberOfDivisions 100 g0; 
+          textScrollList -numberOfRows 16 -allowMultiSelection false listGroups;
+          textScrollList -numberOfRows 16 -allowMultiSelection true  listAvailable;
+          textScrollList -numberOfRows 16 -allowMultiSelection true  listAttached;
+          columnLayout -cat left 4 -rs 2 -columnOffset both 2 -adj true columnValues;
+            text -l "Select attribute group..." ;
+          setParent ..;
+        setParent ..;
+      }
+
+      //rowColumnLayout -bgc 1 1 0 -numberOfColumns 4 -cs 2 2 -cs 3 2 -cs 4 2 g1;
+        string $btnClose = `button -l "Close" -c ( "deleteUI -window " + $wnd ) btnClose`; 
+        string $btnAttach = `button -l "Attach >>" -c "liquidAttributeManagerAttach" btnAttach`; 
+        string $btnDetach = `button -l "<< Detach" -c "liquidAttributeManagerDetach" btnDetach`; 
+        string $btnSet = `button -l "Set" -c "liquidAttributeManagerSet" btnSet`; 
+      //setParent ..;
+    
+    
+    string $g0 = ($wnd + "|f1|g0");
+    
+    string $listGroups = ($wnd + "|f1|g0|listGroups"); // group textScrollList
+    string $listAvailable = ($wnd + "|f1|g0|listAvailable"); // available attributes textScrollList
+    string $listAttached = ($wnd + "|f1|g0|listAttached"); // attached attributes textScrollList
+    string $columnValues = ($wnd + "|f1|g0|columnValues"); // values column
+    
+    if ( $liq_maya_version_int < 2013 ) 
+    {
+      formLayout -edit  
+      -attachForm $listGroups "top" 2 
+      -attachForm $listAvailable "top" 2 
+      -attachForm $listAttached "top" 2 
+      -attachForm $columnValues "top" 2 
+      
+      -attachForm $listGroups "left" 2 
+      -attachForm $columnValues "right" 2 
+      
+      -attachControl $listAvailable "left" 2 $listGroups
+      -attachControl $listAttached "left" 2 $listAvailable
+      -attachControl $columnValues "left" 2 $listAttached
+      
+      -attachPosition $listGroups "right" 0 25
+      -attachPosition $listAvailable "left" 0 25
+      -attachPosition $listAvailable "right" 0 50
+      -attachPosition $listAttached "left" 0 50
+      -attachPosition $listAttached "right" 0 75
+      -attachPosition $columnValues "left" 0 75
+      
+      -attachForm $listGroups "bottom" 2 
+      -attachForm $listAvailable "bottom" 2 
+      -attachForm $listAttached "bottom" 2 
+      -attachForm $columnValues "bottom" 2
+      $g0; 
+      
+      formLayout -edit
+      -attachForm $lblGroups "left" 2 
+      -attachForm $lblValues "right" 2 
+      -attachForm $lblGroups "top" 2 
+      -attachForm $lblAvailable "top" 2 
+      -attachForm $lblAttached "top" 2 
+      -attachForm $lblValues "top" 2
+      
+      -attachControl $lblAvailable "left" 2 $lblGroups
+      -attachControl $lblAttached "left" 2 $lblAvailable
+      -attachControl $lblValues  "left" 2 $lblAttached
+      
+      -attachPosition $lblGroups "right" 0 25
+			-attachPosition $lblAvailable "left" 0 25
+			-attachPosition $lblAvailable "right" 0 50
+			-attachPosition $lblAttached "left" 0 50
+			-attachPosition $lblAttached "right" 0 75
+			-attachPosition $lblValues "left" 0 75
+      
+      -attachForm $g0 "left" 2 
+      -attachForm $g0 "right" 2 
+      -attachControl $g0 "top" 2 $lblGroups 
+      
+      -attachControl $g0 "bottom" 2 $btnClose
+      
+      -attachControl $btnAttach "left" 2 $btnClose
+      -attachControl $btnDetach "left" 2 $btnAttach
+      -attachControl $btnSet  "left" 2 $btnDetach
+      
+      -attachPosition $btnClose "right" 0 25
+			-attachPosition $btnAttach "left" 0 25
+			-attachPosition $btnAttach "right" 0 50
+			-attachPosition $btnDetach "left" 0 50
+			-attachPosition $btnDetach "right" 0 75
+			-attachPosition $btnSet "left" 0 75
+      
+      -attachForm $btnClose "left" 2 
+      -attachForm $btnSet "right" 2 
+      -attachForm $btnClose "bottom" 2
+      -attachForm $btnAttach "bottom" 2
+      -attachForm $btnDetach "bottom" 2
+      -attachForm $btnSet "bottom" 2
+      $f1;
+    }
+    else
+    {
+      $listGroups = ($wnd + "|f1|listGroups"); // group textScrollList
+      $listAvailable = ($wnd + "|f1|listAvailable"); // available attributes textScrollList
+      $listAttached = ($wnd + "|f1|listAttached"); // attached attributes textScrollList
+      $columnValues = ($wnd + "|f1|columnValues"); // values column
+      
+      formLayout -edit
+      -attachForm $lblGroups "left" 2 
+      -attachForm $lblValues "right" 2 
+      -attachForm $lblGroups "top" 2 
+      -attachForm $lblAvailable "top" 2 
+      -attachForm $lblAttached "top" 2 
+      -attachForm $lblValues "top" 2
+      
+      -attachControl $lblAvailable "left" 2 $lblGroups
+      -attachControl $lblAttached "left" 2 $lblAvailable
+      -attachControl $lblValues  "left" 2 $lblAttached
+      
+      -attachPosition $lblGroups "right" 0 25
+			-attachPosition $lblAvailable "left" 0 25
+			-attachPosition $lblAvailable "right" 0 50
+			-attachPosition $lblAttached "left" 0 50
+			-attachPosition $lblAttached "right" 0 75
+			-attachPosition $lblValues "left" 0 75
+			
+			-attachForm $listGroups "left" 2 
+      -attachForm $columnValues "right" 2 
+      
+      -attachControl $listAvailable "left" 2 $listGroups
+      -attachControl $listAttached "left" 2 $listAvailable
+      -attachControl $columnValues "left" 2 $listAttached
+      
+      -attachPosition $listGroups "right" 0 25
+      -attachPosition $listAvailable "left" 0 25
+      -attachPosition $listAvailable "right" 0 50
+      -attachPosition $listAttached "left" 0 50
+      -attachPosition $listAttached "right" 0 75
+      -attachPosition $columnValues "left" 0 75
+      
+      -attachControl $listGroups "top" 2 $lblGroups
+      -attachControl $listAvailable "top" 2 $lblAvailable
+      -attachControl $listAttached "top" 2 $lblAttached
+      -attachControl $columnValues "top" 2 $lblValues
+      
+      -attachControl $listGroups "bottom" 2 $btnClose
+      -attachControl $listAvailable "bottom" 2 $btnAttach
+      -attachControl $listAttached "bottom" 2 $btnDetach
+      -attachControl $columnValues "bottom" 2 $btnSet
+      
+      -attachControl $btnAttach "left" 2 $btnClose
+      -attachControl $btnDetach "left" 2 $btnAttach
+      -attachControl $btnSet  "left" 2 $btnDetach
+      
+      -attachPosition $btnClose "right" 0 25
+			-attachPosition $btnAttach "left" 0 25
+			-attachPosition $btnAttach "right" 0 50
+			-attachPosition $btnDetach "left" 0 50
+			-attachPosition $btnDetach "right" 0 75
+			-attachPosition $btnSet "left" 0 75
+      
+      -attachForm $btnClose "left" 2 
+      -attachForm $btnSet "right" 2 
+      -attachForm $btnClose "bottom" 2
+      -attachForm $btnAttach "bottom" 2
+      -attachForm $btnDetach "bottom" 2
+      -attachForm $btnSet "bottom" 2
+      $f1;
+    }
+    
+    
+    //string $listGroups = ($wnd + "|f1|g0|listGroups"); // group textScrollList
+    int $i;
+	
+  	if ( `textScrollList -q -numberOfItems $listGroups` == 0 )
+  	{
+      for ( $i = 0; $i < size( $groupItems); $i += 3 )
+  	  {
+  	    textScrollList 	-e 
+  	    								-append $groupItems[$i] 
+  	    								-selectCommand "liquidAttributeManagerUpdate true" 
+  	    								$listGroups;    
+  	  }
+	  }
+  }
+  liquidAttributeManagerUpdate( true );
+}
+//===========================================================================================
+//
+//===========================================================================================
+proc buildObjectsMenu()
+{
+  global string $liquidAttrManSelectionList[];
+  global string $liquidAttrManWnd;
+  string $s, $wnd = $liquidAttrManWnd;
+  string $menu = ($wnd + "|menuObjects");
+ 
+  menu -e -deleteAllItems $menu;
+  radioMenuItemCollection -p $menu menuCollection; 
+  if ( size( $liquidAttrManSelectionList ) )
+  {
+    menuItem -p $menu -label "All selected" -radioButton on -c "liquidAttributeManagerUpdate false";
+    menuItem -d true -p $menu;  
+    for ( $s in $liquidAttrManSelectionList )
+    {
+      menuItem -p $menu -label $s -radioButton off -c "liquidAttributeManagerUpdate false";
+    } 
+  }
+}
+//===========================================================================================
+//
+//===========================================================================================
+proc string getObjectsMenuSelection()
+{
+	global string $liquidAttrManWnd;
+	string $wnd = $liquidAttrManWnd;
+	string $menu = ($wnd + "|menuObjects");
+	string $m, $menuItems[] = `menu -q -itemArray $menu`;
+	string $selection = "";
+	int $idx = 0;
+	for ( $m in $menuItems )
+	{
+		if (  `menuItem -q -divider $m` )
+			continue;
+		if (  `menuItem -q -radioButton $m` && ( $idx != 0 ) ) // in case if not first item in menu selected
+		{
+			$selection =  `menuItem -q -l $m`; // get label
+			break;
+		} 
+		$idx++;
+	}
+	return $selection;
+}
+//===========================================================================================
+//
+//===========================================================================================
+proc setAttrManWndTitle()
+{
+	global string $liquidAttrManSelectionList[];
+	global string $liquidAttrManWndTitle;
+	global string $liquidAttrManWnd;
+	string $wnd = $liquidAttrManWnd;
+	
+	string $title = $liquidAttrManWndTitle;
+    
+	if ( size( $liquidAttrManSelectionList ) == 0 )
+		$title += (" - (Selected objects have invalid type)");
+	else if ( size( $liquidAttrManSelectionList ) > 1 )
+		$title += (" - (Multiple Selection)");
+	else
+		$title += (" - " + $liquidAttrManSelectionList[0] );
+	
+	window -e -title $title $wnd; 
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidAttributeManagerUpdate( int $rebuildObjectsMenu )
+{
+  global string $liquidAttrManWnd;
+  global string $groupItems[];
+  global string $liquidAttrManSelectionList[];
+	
+  
+  string $wnd = $liquidAttrManWnd;
+	string $listGroups = ($wnd + "|f1|g0|listGroups"); // group textScrollList
+	string $listAvailable = ($wnd + "|f1|g0|listAvailable"); // available attributes textScrollList
+	string $listAttached = ($wnd + "|f1|g0|listAttached"); // attached attributes textScrollList
+	string $columnValues = ($wnd + "|f1|g0|columnValues"); // values column
+	
+	global string $liq_maya_version;
+  int $liq_maya_version_int = $liq_maya_version;
+  
+  if ( $liq_maya_version_int >= 2013 ) 
+  {
+    $listGroups = ($wnd + "|f1|listGroups"); // group textScrollList
+  	$listAvailable = ($wnd + "|f1|listAvailable"); // available attributes textScrollList
+  	$listAttached = ($wnd + "|f1|listAttached"); // attached attributes textScrollList
+  	$columnValues = ($wnd + "|f1|columnValues"); // values column
+  }
+  // print( "liquidAttributeAvailableUpdate::" + "\n" );
+  
+  int $selectedGroupIndexes[] = `textScrollList -q -selectIndexedItem $listGroups`; 
+  
+  if ( size($selectedGroupIndexes) )
+  {
+    int $selectedGroupIdx = $selectedGroupIndexes[ 0 ];
+    
+    //
+    // get selection list for current attribute group
+    //
+    string $selectionType = $groupItems[( $selectedGroupIdx - 1) * 3 + 2];
+    $liquidAttrManSelectionList = eval( "ls -sl " + $selectionType ); // -showType 
+    
+    //
+    // build ObjectsMenu for "selective" object choosing from main selection list
+    // if liquidAttributeManagerUpdate was called not from buildObjectsMenu proc
+    //
+    if ( $rebuildObjectsMenu )
+      buildObjectsMenu();    
+    else
+    {
+    	string $menuSelection = getObjectsMenuSelection();
+    	if ( $menuSelection != "" )
+    	{
+      	clear( $liquidAttrManSelectionList ); // replace $selectionList with object from "menuObjects"
+				$liquidAttrManSelectionList[0] = $menuSelection;
+			}
+    }  
+    setAttrManWndTitle();
+    
+    if ( `textScrollList -q -numberOfItems $listAvailable` != 0 )
+			textScrollList -e -removeAll $listAvailable;
+			
+		if ( `textScrollList -q -numberOfItems $listAttached` != 0 )
+			textScrollList -e -removeAll $listAttached;
+			
+    if ( `columnLayout -q -numberOfChildren $columnValues` != 0 )
+    {
+			string $it, $items[] =  `columnLayout -q -childArray $columnValues`;
+			  
+			for ( $it in $items )
+			  deleteUI $it;
+    }
+    
+    if ( size( $liquidAttrManSelectionList ) )
+    {
+			//
+			// add items into Alailable and Attached attributes ScrollList
+			//
+			global string $attrDescr[]; 
+			eval(  "$attrDescr = " + $groupItems[( $selectedGroupIdx - 1) * 3 + 1] ); // little hack for access string array by its name 
+			
+			int $i;
+			for ( $i = 0; $i < size( $attrDescr ); $i += 7 )
+			{
+				string $attrLabel = $attrDescr[ $i ];
+				string $attrLongName = $attrDescr[ $i + 1 ];
+				string $attrShortName = $attrDescr[ $i + 2 ];
+				string $attrType = $attrDescr[ $i + 3 ];
+				string $attrDefaultValue = $attrDescr[ $i + 4 ];
+				string $attrSubType = $attrDescr[ $i + 5 ];
+				string $attrRange = $attrDescr[ $i + 6 ];
+				// string $s, $nodesWithAttribute[]={};
+				int $j = 0;
+				for ( $s in $liquidAttrManSelectionList )
+					if ( `attributeQuery -node $s -ex $attrLongName` ) 
+						$j++;	 
+
+				if ( $j == size( $liquidAttrManSelectionList ) ) // if all selected objects have same attribute ...
+				{	
+				  // ... append attribute to "Attached" list
+					textScrollList -e -append $attrLabel -selectCommand "" $listAttached; 
+					
+					string $node =  $liquidAttrManSelectionList[0];
+					
+				  setParent $columnValues;
+				  text -label $attrLabel -align left -ann $attrLongName ($attrLongName + "Label");
+				  
+				  int $CW1 = 80;
+				  
+				  switch ( $attrType )
+				  {
+				    case "float":
+				    {  
+				      float $value =  `getAttr ( $node + "." + $attrLongName )`;
+				      floatFieldGrp -cw1 $CW1 -precision 3 -v1 $value ($attrLongName + "Ctl");
+				    } break;
+				    
+				    case "int":
+				    {  
+				      int $value =  `getAttr  ( $node + "." + $attrLongName )`;
+				      
+				      if ( $attrSubType == "switch" )
+				        checkBoxGrp -cw1 $CW1 -v1 $value ($attrLongName + "Ctl");
+				      else if ( $attrSubType == "selector" )
+				      {
+				        string $r, $range[];
+				        if ( tokenize( $attrRange, ":", $range ) )
+				        {
+				          optionMenuGrp ($attrLongName + "Ctl");
+				          for ( $r in $range )
+				          {
+				            $r = match( ".+[^(=0-9)]", $r );  // remove "=[int]" from label
+				            menuItem -label $r; 
+				          }
+				          optionMenuGrp -e -sl ($value + 1) ($attrLongName + "Ctl");
+				        }
+				      } 
+				      else
+				        intFieldGrp -cw1 $CW1 -v1 $value ($attrLongName + "Ctl");
+				    } break;
+				    
+				    case "bool":
+				    {  
+				      int $value =  `getAttr  ( $node + "." + $attrLongName )`;
+				      checkBoxGrp -cw1 $CW1 -v1 $value ($attrLongName + "Ctl");
+				    } break;
+				    
+				    case "color":
+				    {
+				      float $value[3] = `getAttr  ( $node + "." + $attrLongName )`;
+				      
+				      colorSliderGrp
+              -rgb $value[0] $value[1] $value[2]
+              //-symbolButtonDisplay false
+              -adj 2
+              -columnWidth 1 80
+              -columnWidth 2 80
+              //-image "navButtonUnconnected.png"
+             ($attrLongName + "Ctl") ;
+
+				    } break;
+				    
+				    case "msg":
+				    {
+				      //string $value =  `getAttr ( $node + "." + $attrLongName )`;
+				      textField -text "[not connected]" -editable false ($attrLongName + "Ctl");
+				      
+				    } break;
+				    
+				    case "string":
+				    {
+				      string $value =  `getAttr ( $node + "." + $attrLongName )`;
+				      textField -text $value ($attrLongName + "Ctl");
+				      
+				    } break;
+				      
+				    default: 
+				       text -label $attrDefaultValue -align left ($attrLongName + "Ctl");
+				  }
+				}
+				else // otherwise, keep it in "Available" list
+				{
+					textScrollList -e -append $attrLabel -selectCommand "" $listAvailable; 
+			  }   
+			}
+		}
+  }  
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidAttributeManagerAttach()
+{
+  global string $liquidAttrManSelectionList[];
+  global string $liquidAttrManWnd;
+  string $wnd = $liquidAttrManWnd;
+  
+  string $listGroups = ($wnd + "|f1|g0|listGroups"); // group textScrollList
+	string $listAvailable = ($wnd + "|f1|g0|listAvailable"); // available attributes textScrollList
+	
+	global string $liq_maya_version;
+  int $liq_maya_version_int = $liq_maya_version;
+  
+  if ( $liq_maya_version_int >= 2013 ) 
+  {
+    $listGroups = ($wnd + "|f1|listGroups"); // group textScrollList
+  	$listAvailable = ($wnd + "|f1|listAvailable"); // available attributes textScrollList
+  }
+  
+	if ( size( $liquidAttrManSelectionList ) )
+	{
+  	global string $groupItems[];
+  	int $selectedGroupIndexes[] = `textScrollList -q -selectIndexedItem $listGroups`; 
+   
+    if ( size($selectedGroupIndexes) )
+    {
+	    global string $attrDescr[]; 
+	    int $selectedGroupIdx = $selectedGroupIndexes[ 0 ];
+			eval(  "$attrDescr = " + $groupItems[( $selectedGroupIdx - 1) * 3 + 1] ); // little hack for access string array by its name 
+			
+			string $s, $selectedAvailableItems[] = `textScrollList -q -selectItem  $listAvailable`;
+			for ( $s in $selectedAvailableItems )
+			{
+		    int $i;
+  			for ( $i = 0; $i < size( $attrDescr ); $i += 7 )
+  			{
+  				string $attrLabel = $attrDescr[ $i ];
+  				string $attrLongName = $attrDescr[ $i + 1 ];
+  				string $attrShortName = $attrDescr[ $i + 2 ];
+  				string $attrType = $attrDescr[ $i + 3 ];
+  				string $attrDefaultValue = $attrDescr[ $i + 4 ];
+  				string $attrSubType = $attrDescr[ $i + 5 ];
+  				string $attrRange = $attrDescr[ $i + 6 ];  
+  				
+  		    if ( $s == $attrLabel )
+  		    {
+  		      string $node;
+  		      
+  		      for ( $node in $liquidAttrManSelectionList )
+  		      {
+					    if ( !`attributeQuery -node $node -ex $attrLongName` ) 
+					    {
+					      string $options = " -ln " + $attrLongName;
+					      if ( $attrShortName != "" )
+					        $options += ( " -sn " + $attrShortName );
+					      
+					      switch ( $attrType )
+					      {
+					        case "float":
+					          $options += ( " -k true -at \"float\" -dv " + $attrDefaultValue ); 
+					          eval( "addAttr " + $options + " " + $node );
+					          break;
+					          
+					        case "bool":
+					        case "int":
+					          if ( $attrSubType == "selector" )
+					            $options += ( " -at enum -enumName " + "\"" + $attrRange + "\"" ); 
+					          else if ( $attrSubType == "switch" )
+					             $options += ( " -k true -at bool" ); 
+					          else
+					            $options += ( " -k true -at \"short\"" );
+					          
+					          $options += ( " -dv " + $attrDefaultValue );    
+					          eval( "addAttr " + $options + " " + $node );
+					          break;
+					          
+					        case "color":
+					          $options += ( " -k true -uac -at \"float3\"" ); 
+					          eval( "addAttr " + $options + " " + $node );
+					          float $rgb_values[3];
+					          string $rgb_string_values[3];
+					          tokenize( $attrDefaultValue, ",", $rgb_string_values );
+					          $rgb_values[0] = $rgb_string_values[0];
+					          $rgb_values[1] = $rgb_string_values[1];
+					          $rgb_values[2] = $rgb_string_values[2];
+					          
+					          addAttr -ln ($attrLongName + "_R") -at "float" -dv $rgb_values[0] -k true -parent $attrLongName $node;
+                    addAttr -ln ($attrLongName + "_G") -at "float" -dv $rgb_values[1] -k true -parent $attrLongName $node;
+                    addAttr -ln ($attrLongName + "_B") -at "float" -dv $rgb_values[2] -k true -parent $attrLongName $node;
+					          break;
+					          
+					        case "msg":
+					          $options += ( " -k true -at \"message\"" ); 
+					          eval( "addAttr " + $options + " " + $node );
+					          break;
+					          
+					        case "string":
+					          $options += ( " -dt \"string\"" ); // -dv " + "\"" + $attrDefaultValue + "\"" ); 
+					          eval( "addAttr " + $options + " " + $node );
+					          break;
+					          
+					        default:
+					          error( "Unknown attribute type \"" + $attrType + "\" for " + $attrLongName );
+					      }
+					    }
+					  }
+  		    }
+  		  }
+  		  if ( size( $selectedAvailableItems ) )
+  		    liquidAttributeManagerUpdate( false );
+		  }
+	  }
+  }
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidAttributeManagerDetach()
+{
+  global string $liquidAttrManSelectionList[];
+  global string $liquidAttrManWnd;
+  string $wnd = $liquidAttrManWnd;
+  
+  string $listGroups = ($wnd + "|f1|g0|listGroups"); // group textScrollList
+	string $listAttached = ($wnd + "|f1|g0|listAttached"); // attached attributes textScrollList
+	
+	global string $liq_maya_version;
+  int $liq_maya_version_int = $liq_maya_version;
+  
+  if ( $liq_maya_version_int >= 2013 ) 
+  {
+    $listGroups = ($wnd + "|f1|listGroups"); // group textScrollList
+  	$listAvailable = ($wnd + "|f1|listAvailable"); // available attributes textScrollList
+  }
+  
+	if ( size( $liquidAttrManSelectionList ) )
+	{
+	  global string $groupItems[];
+  	int $selectedGroupIndexes[] = `textScrollList -q -selectIndexedItem $listGroups`; 
+   
+    if ( size($selectedGroupIndexes) )
+    {
+	    global string $attrDescr[]; 
+	    int $selectedGroupIdx = $selectedGroupIndexes[ 0 ];
+			eval(  "$attrDescr = " + $groupItems[( $selectedGroupIdx - 1) * 3 + 1] ); // little hack for access string array by its name 
+			
+			string $s, $selectedAttachedItems[] = `textScrollList -q -selectItem  $listAttached`;
+			for ( $s in $selectedAttachedItems )
+			{
+		    int $i;
+  			for ( $i = 0; $i < size( $attrDescr ); $i += 7 )
+  			{
+  				string $attrLabel = $attrDescr[ $i ];
+  				string $attrLongName = $attrDescr[ $i + 1 ];
+  				string $attrShortName = $attrDescr[ $i + 2 ];
+  				string $attrType = $attrDescr[ $i + 3 ];
+  				string $attrDefaultValue = $attrDescr[ $i + 4 ];
+  				string $attrSubType = $attrDescr[ $i + 5 ];
+  				string $attrRange = $attrDescr[ $i + 6 ];  
+  				
+  		    if ( $s == $attrLabel )
+  		    {
+  		      string $node;
+  		      for ( $node in $liquidAttrManSelectionList )
+  		      {
+					    if ( `attributeQuery -node $node -ex $attrLongName` )
+					    {
+					      // philippe: this is a fix to deal with a bug with compound attributes
+                //renameAttr ( $node + "." + $attrLongName ) "TO_BE_DELETED";
+                //deleteAttr ( $node + ".TO_BE_DELETED" );
+                deleteAttr -at $attrLongName $node;
+					    }
+					  }
+	        }
+	      }
+	    }
+	    if ( size( $selectedAttachedItems ) )
+  		    liquidAttributeManagerUpdate( false );
+	  }
+	}
+}
+//
+//===========================================================================================
+global proc liquidAttributeManagerSet()
+{
+ global string $liquidAttrManSelectionList[];
+  global string $liquidAttrManWnd;
+  string $wnd = $liquidAttrManWnd;
+  
+  string $listGroups = ($wnd + "|f1|g0|listGroups"); // group textScrollList
+	string $listAvailable = ($wnd + "|f1|g0|listAvailable"); // available attributes textScrollList
+	string $listAttached = ($wnd + "|f1|g0|listAttached"); // attached attributes textScrollList
+	string $columnValues = ($wnd + "|f1|g0|columnValues"); // values column
+	
+	global string $liq_maya_version;
+  int $liq_maya_version_int = $liq_maya_version;
+  
+  if ( $liq_maya_version_int >= 2013 ) 
+  {
+    $listGroups = ($wnd + "|f1|listGroups"); // group textScrollList
+  	$listAvailable = ($wnd + "|f1|listAvailable"); // available attributes textScrollList
+  	$listAttached = ($wnd + "|f1|listAttached"); // attached attributes textScrollList
+  	$columnValues = ($wnd + "|f1|columnValues"); // values column
+  }
+	
+	if ( size( $liquidAttrManSelectionList ) )
+	{
+	  global string $groupItems[];
+  	int $selectedGroupIndexes[] = `textScrollList -q -selectIndexedItem $listGroups`; 
+   
+    if ( size($selectedGroupIndexes) )
+    {
+	    global string $attrDescr[]; 
+	    int $selectedGroupIdx = $selectedGroupIndexes[ 0 ];
+			eval(  "$attrDescr = " + $groupItems[( $selectedGroupIdx - 1) * 3 + 1] ); // little hack for access string array by its name 
+			
+			string $s, $valueItems[] = `columnLayout -q -childArray $columnValues`;
+			for ( $s in $valueItems )
+			{
+		    string $objType = objectTypeUI( $s );
+		    
+		    if ( $objType == "staticText" ) // skip labels
+		      continue;
+		    
+		    // print ( $objType + ": " + substring( $s, 1, size($s) - 3 ) + "\n" );
+		    
+		    int $i;
+  			for ( $i = 0; $i < size( $attrDescr ); $i += 7 )
+  			{
+  			  string $attrLabel = $attrDescr[ $i ];
+  				string $attrLongName = $attrDescr[ $i + 1 ];
+  				string $attrShortName = $attrDescr[ $i + 2 ];
+  				string $attrType = $attrDescr[ $i + 3 ];
+  				string $attrDefaultValue = $attrDescr[ $i + 4 ];
+  				string $attrSubType = $attrDescr[ $i + 5 ];
+  				string $attrRange = $attrDescr[ $i + 6 ];  
+  				
+  		    if (  substring( $s, 1, size($s) - 3 ) == $attrLongName ) // remove "Ctl" suffix from control name
+  		    {
+  		      string $node;
+  		      
+  		      switch ( $attrType )
+  				  {
+  				    case "float":
+  				    {  
+  				      float $value =  `floatFieldGrp -q -v1 $s`;
+      		      for ( $node in $liquidAttrManSelectionList )
+                  setAttr ( $node + "." + $attrLongName ) $value;
+  				    } break;
+  				    
+  				    case "bool":
+  				    case "int":
+  				    {  
+  				      int $value;
+  				      
+  				      if ( $attrSubType == "switch" )
+  				        $value = `checkBoxGrp -q -v1 $s`;
+  				      else if ( $attrSubType == "selector" )
+ 				          $value = `optionMenuGrp -q -sl $s` - 1;
+  				      else
+  				        $value = `intFieldGrp -q -v1 $s`;
+  				        
+  				      for ( $node in $liquidAttrManSelectionList )
+                  setAttr ( $node + "." + $attrLongName ) $value;
+  				    } break;
+ 				    
+  				    case "color":
+  				    {
+  				      float $value[3] = `colorSliderGrp -q -rgb $s`;
+                for ( $node in $liquidAttrManSelectionList )
+                {
+                  setAttr ( $node + "." + $attrLongName + "_R" ) $value[0];
+                  setAttr ( $node + "." + $attrLongName + "_G" ) $value[1];
+                  setAttr ( $node + "." + $attrLongName + "_B" ) $value[2];
+                  //setAttr ( $node + "." + $attrLongName + "[0]" ) $value[0];
+                  //setAttr ( $node + "." + $attrLongName + "[1]" ) $value[1];
+                  //setAttr ( $node + "." + $attrLongName + "[2]" ) $value[2];
+                } 
+  				    } break;
+  				    
+  				    case "msg":
+  				    {
+  				    // TO DO later  
+  				    } break;
+  				    
+  				    case "string":
+  				    {
+  				      string $value = `textField -q -text $s`;
+  				      for ( $node in $liquidAttrManSelectionList )
+                  setAttr ( $node + "." + $attrLongName ) -type "string" $value;
+  				    } break;
+  				      
+  				    default: 
+  				       error( "Unknown attribute type \"" + $attrType + "\" for " + $attrLongName );
+  				  }
+  		    }
+  		  }
+			}
+	  }
+	}
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidAttributeManager()
+{
+  global string $liquidAttrManWndTitle;
+  global string $liquidAttrManWnd;
+  string $wnd = $liquidAttrManWnd;
+  
+  liquidAttributeManagerGlobalVals();
+	
+	if ( `window -exists $wnd` ) 
+	 	deleteUI -window $wnd;
+		
+	window -rtf true -mb true -title $liquidAttrManWndTitle $wnd; 
+	menu -label "Objects" -tearOff false menuObjects;
+	liquidAttributeManagerUI();
+		
+	showWindow $wnd;  //	 show the new window
+
+	scriptJob -e "SelectionChanged" "liquidAttributeManagerUpdate true;" -p $wnd;
+}

@@ -1,0 +1,87 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the 
+// "License"); you may not use this file except in compliance with the License. You may 
+// obtain a copy of the License at http://www.mozilla.org/MPL/ 
+// 
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT 
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific 
+// language governing rights and limitations under the License. 
+//
+// The Original Code is the Liquid Rendering Toolkit. 
+// 
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by 
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved. 
+// 
+// Contributor(s): Berj Bannayan. 
+//
+// 
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+
+//
+//  Creation Date:  June 5, 2000
+//
+//
+//  Description:
+//      Liquids main menu help interface.
+//
+//  Input Arguments:
+//
+//  Returns:
+//
+
+global proc liquidMenuHelp()
+{
+    // Try to figure out where help pages could be
+    string $helphome = `getenv "LIQUIDHELPHOME"`;
+    string $helpUrl;
+    if( $helphome == "" )
+    {
+	$helphome = ( `getenv "LIQUIDHOME"` + "/html" );
+	if( $helphome == "/html" )
+	{
+    	    if( `about -win` == true )
+	    {
+		$helphome = "c:/program%20files/liquid/html";
+	    }
+	    else
+	    {
+		$helphome = "/usr/local/liquid/html";
+	    }
+	}
+	if( `file -q -ex ( $helphome + "/index.html" )` == false )
+	{
+	    confirmDialog -title "Error" -message ( "Error locating Liquid Help files into " + $helphome +".\nPlease set your $LIQUIDHOME or $LIQUIDHELPHOME environment variable appropriately." );
+	    return;
+	}
+	$helpUrl = ( "file:" + $helphome + "/index.html" );
+    }
+    else // Got URL from LIQUIDHELPHOME en var
+    {
+    	// Check if help index exists if local URL path ( not http: )
+	if( `match "^http:" $helphome` == "" )	// Local URL
+	{
+	    string $localPath = `substitute "^file:" $helphome ""`; 	    	    	    	    // Remove file:/ prefix if any
+	    if( `match "index.html$" $localPath` == "" ) $localPath = $localPath + "/index.html";   // Add index.html if needed
+	    if( `file -q -ex ( $localPath )` == false )
+	    {
+	    	confirmDialog -title "Error" -message ( "Error locating Liquid Help files into " + $helphome +".\nPlease set your $LIQUIDHELPHOME environment variable appropriately." );
+	    	return;
+    	    }
+	    $helpUrl = ( "file:" + $localPath );
+    	}
+	else
+	{
+	    $helpUrl = $helphome; // Keep it as it is
+	}	    
+    }
+    print( $helpUrl + "\n" );
+    showHelp -absolute $helpUrl;
+}
+
+//print "Initialized Liquid Help Interface...\n";

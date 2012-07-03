@@ -1,0 +1,33 @@
+surface "plastic";
+desc "the standard plastic shader";
+displacementBound [ 0.5 ];
+
+# parameter KS
+
+param "Ks";
+desc "this controls the level of specularity in 
+	the shader";
+name "Specular Value";
+
+param "blah";
+desc "blah blah blah";
+
+param "Kd";
+name "Diffuse Value";
+desc "the diffuse value";
+type "slider";
+range [ 10.0 100.0 ];
+
+param "Ka";
+name "Ambient Value";
+desc "the ambient value";
+type "selector";
+range [ "One" 1.0 "Radiance" 10.0 "Three" 3.0 ];
+
+param "roughness";
+name "Roughness Level";
+desc "the roughness value";
+
+param "specularcolor";
+name "Specular Color";
+desc "the specular color";

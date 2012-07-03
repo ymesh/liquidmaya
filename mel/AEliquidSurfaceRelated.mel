@@ -1,0 +1,30 @@
+// To help the AE find related nodes
+
+global proc string[] AEliquidSurfaceRelated (string $node)
+{
+	string	$relatedNodes[]		= {};
+
+	// Find coshaders, connections of a message attribute
+	// in a string or shader parameter 	
+	
+	// string	$params[]			= `getAttr ($theNode+".rmanParams")`;
+	// string	$ptypes[]			= `getAttr ($theNode+".rmanTypes")`;
+	// int		$np					= size($params);
+	
+	$relatedNodes = `listConnections -t liquidCoShader -s true -d false`;
+
+	// Outputs of outColor, not shown
+	// string $outC = destinationNodeNameFromConnection ( $node + ".outColor" );
+	// if( "" != $outC ){
+	// 	$relatedNodes[size($relatedNodes)] = $outC;
+	// }
+
+	// We need to add the node twice to the end, because the
+	// last entry is stripped out.
+
+	$relatedNodes[size($relatedNodes)] = $node;
+	$relatedNodes[size($relatedNodes)] = $node;
+
+
+	return $relatedNodes;
+}

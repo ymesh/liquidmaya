@@ -1,0 +1,388 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Philippe Leprince.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:  June 7th, 2000
+//
+//
+//  Description:
+//      Attribute editor Template for the Liquid Light Node.
+//
+//  Input Arguments:
+//
+//  Returns:
+//
+
+proc setupShadowCamera( string $cameraShape )
+{
+  // set attributes
+  setAttr ( $cameraShape + ".horizontalFilmAperture" ) 1.0;
+  setAttr ( $cameraShape + ".verticalFilmAperture" ) 1.0;
+  setAttr ( $cameraShape + ".displayFilmGate" ) 1.0;
+  setAttr ( $cameraShape + ".overscan" ) 2.0;
+  setAttr ( $cameraShape + ".locatorScale" ) 0.25;
+
+  // add extra attributes
+  if ( !objExists( ($cameraShape+".liqShadowResolution") ) )     addAttr -ln liqShadowResolution       -at long      -dv 512                          -k true  $cameraShape;
+  if ( !objExists( ($cameraShape+".liqMidPointShadow") ) )       addAttr -ln liqMidPointShadow         -at bool      -dv 0                            -k true  $cameraShape;
+  if ( !objExists( ($cameraShape+".liqMidPointRatio") ) )		    addAttr -ln liqMidPointRatio          -at "float"   -dv 0.1                          -k true  $cameraShape;
+  if ( !objExists( ($cameraShape+".liqDeepShadows") ) )          addAttr -ln liqDeepShadows            -at bool      -dv 0                            -k true  $cameraShape;
+  if ( !objExists( ($cameraShape+".liqPixelSamples") ) )         addAttr -ln liqPixelSamples           -at short     -dv 1                            -k true  $cameraShape;
+  if ( !objExists( ($cameraShape+".liqVolumeInterpretation") ) ) addAttr -ln liqVolumeInterpretation   -at enum      -enumName "Discreet:Continuous"  -k true  $cameraShape;
+  if ( !objExists( ($cameraShape+".liqEveryFrame") ) )           addAttr -ln liqEveryFrame             -at bool      -dv 1                            -k true  $cameraShape;
+  if ( !objExists( ($cameraShape+".liqRenderAtFrame") ) )        addAttr -ln liqRenderAtFrame          -at long      -dv 0                            -k true  $cameraShape;
+  if ( !objExists( ($cameraShape+".liqGeometrySet") ) )          addAttr -ln liqGeometrySet            -dt "string"                                   -k true  $cameraShape;
+  if ( !objExists( ($cameraShape+".liqShadingRateFactor") ) )    addAttr -ln liqShadingRateFactor      -at "float"   -dv 1                            -k true  $cameraShape;
+}
+
+
+/**
+ *  create a shadow camera with all necessary extra attributes.
+ *  \returns the name of the camera shape.
+ */
+global proc string addShadowCamera( string $nodeDotAttr )
+{
+  string $sel[] = `ls -sl`;
+
+  // create new camera
+  string $newCamera[] = `camera`;
+  $newCamera[0] = `rename $newCamera[0] "shadowCamera"`;
+  string $cameraShape[] = `listRelatives -c -f -type camera $newCamera[0]`;
+
+  // set attributes
+  setupShadowCamera( $cameraShape[0] );
+
+  // connect
+  connectShadowCamera( $cameraShape[0], $nodeDotAttr );
+
+  // restore selection
+  select $sel;
+
+  return $cameraShape[0];
+}
+
+global proc connectShadowCamera( string $shadowCameraShape, string $nodeDotAttr )
+{
+  connectAttr ( $shadowCameraShape + ".message" ) $nodeDotAttr;
+}
+
+/**
+ *  connects the shadow camera's message attribute to the shadowCameras multi attribute.
+ */
+global proc connectExistingShadowCamera( string $nodeDotAttr, string $flag, string $source )
+{
+  //trace ($nodeDotAttr+" + "+$flag+" + "+$source+"\n");
+  if ( !objExists( $source ) ) return;
+
+  string $theCamera = "";
+  string $nodetype  = nodeType( $source );
+
+  switch( $nodetype ) 
+  {
+    case "transform":
+      string $tmp[] = `listRelatives -c -type camera $source`;
+      if ( size( $tmp ) ) $theCamera = $tmp[0];
+      break;
+    case "camera":
+      $theCamera = $source;
+      break;
+    default:
+      warning ("Can not connect a " + $nodetype + " as a shadow camera !");
+      break;
+  }
+
+  if ( size( $theCamera ) ) 
+  {
+    connectAttr ($theCamera+".message") $nodeDotAttr;
+    setupShadowCamera( $theCamera );
+  }
+}
+
+global proc disconnecShadowCamera( string $nodeDotAttr )
+{
+  // nothing yet
+  //trace ("disconnecShadowCamera "+$nodeDotAttr);
+}
+
+global proc deleteShadowCamera( string $nodeDotAttr )
+{
+  // nothing yet
+}
+
+global proc ignoreShadowCamera( string $nodeDotAttr )
+{
+  // nothing yet
+  //trace ("ignoreShadowCamera "+$nodeDotAttr);
+}
+
+global proc unIgnoreShadowCamera( string $nodeDotAttr )
+{
+  // nothing yet
+  //trace ("unIgnoreShadowCamera "+$nodeDotAttr);
+}
+
+
+
+global proc shadowCameraReplace( string $nodeDotAttr )
+{
+  global string $gLiquidShadowCameraParentLayout;
+
+  int    $i = 0;
+
+  int $sizeAttr = `getAttr -size $nodeDotAttr`;
+
+  // created or update existing attributes
+  for ( $i=0; $i < $sizeAttr; $i++ ) 
+  {
+    if ( !`attrNavigationControlGrp -q -ex ( "shadowCameraNavGrp_" + $i )` ) 
+    {
+      setParent $gLiquidShadowCameraParentLayout;
+      setParent AEliquidLightShadowCamerasColumnL;
+
+      attrNavigationControlGrp  -l ("Shadow Camera "+$i)
+                                -ann "click here to add a shadow camera or drop a shadow camera on the field"
+                                -at ($nodeDotAttr+"["+$i+"]")
+                                -createNew          ("addShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -connectToExisting  ("connectExistingShadowCamera \""+$nodeDotAttr+"["+$i+"]\" ")
+                                -disconnect         ("disconnecShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -delete             ("deleteShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -ignore             ("ignoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -unignore           ("unIgnoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                ("shadowCameraNavGrp_"+$i);
+    } 
+    else 
+    {
+      attrNavigationControlGrp  -e
+                                -at ($nodeDotAttr+"["+$i+"]")
+                                -createNew          ("addShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -connectToExisting  ("connectExistingShadowCamera \""+$nodeDotAttr+"["+$i+"]\" ")
+                                -disconnect         ("disconnecShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -delete             ("deleteShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -ignore             ("ignoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -unignore           ("unIgnoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                ("shadowCameraNavGrp_"+$i);
+
+    }
+  }
+
+  // add either the default navigation grp or add an extra one
+  if ( $sizeAttr == 0 ) 
+  {
+    setParent $gLiquidShadowCameraParentLayout;
+    setParent AEliquidLightShadowCamerasColumnL;
+
+    if ( !`attrNavigationControlGrp -q -ex ("shadowCameraNavGrp_"+$i)` ) 
+    {
+      attrNavigationControlGrp  -l ("Shadow Camera "+$i)
+                                -ann "click here to add a shadow camera or drop a shadow camera on the field"
+                                -at ($nodeDotAttr+"["+$i+"]")
+                                -createNew          ("addShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -connectToExisting  ("connectExistingShadowCamera \""+$nodeDotAttr+"["+$i+"]\" ")
+                                -disconnect         ("disconnecShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -delete             ("deleteShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -ignore             ("ignoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -unignore           ("unIgnoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                ("shadowCameraNavGrp_"+$i);
+    } 
+    else 
+    {
+      attrNavigationControlGrp  -e
+                                -at ($nodeDotAttr+"["+$i+"]")
+                                -createNew          ("addShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -connectToExisting  ("connectExistingShadowCamera \""+$nodeDotAttr+"["+$i+"]\" ")
+                                -disconnect         ("disconnecShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -delete             ("deleteShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -ignore             ("ignoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -unignore           ("unIgnoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                ("shadowCameraNavGrp_"+$i);
+    }
+  } 
+  else 
+  {
+    if ( size( `connectionInfo -sfd ($nodeDotAttr+"["+($i-1)+"]")` ) ) 
+    {
+      if ( !`attrNavigationControlGrp -q -ex ("shadowCameraNavGrp_"+$i)` ) 
+      {
+        setParent $gLiquidShadowCameraParentLayout;
+        setParent AEliquidLightShadowCamerasColumnL;
+
+        attrNavigationControlGrp  -l ("Shadow Camera "+$i)
+                                  -ann "click here to add a shadow camera or drop a shadow camera on the field"
+                                  -at ($nodeDotAttr+"["+$i+"]")
+                                  -createNew          ("addShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                  -connectToExisting  ("connectExistingShadowCamera \""+$nodeDotAttr+"["+$i+"]\" ")
+                                  -disconnect         ("disconnecShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                  -delete             ("deleteShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                  -ignore             ("ignoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                  -unignore           ("unIgnoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                  ("shadowCameraNavGrp_"+$i);
+      } 
+      else 
+      {
+        attrNavigationControlGrp  -e
+                                -at ($nodeDotAttr+"["+$i+"]")
+                                -createNew          ("addShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -connectToExisting  ("connectExistingShadowCamera \""+$nodeDotAttr+"["+$i+"]\" ")
+                                -disconnect         ("disconnecShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -delete             ("deleteShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -ignore             ("ignoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                -unignore           ("unIgnoreShadowCamera "+$nodeDotAttr+"["+$i+"]")
+                                ("shadowCameraNavGrp_"+$i);
+      }
+    }
+  }
+
+
+  while( `attrNavigationControlGrp -q -ex ("shadowCameraNavGrp_"+$i)` ) 
+  {
+    deleteUI ("shadowCameraNavGrp_"+$i);
+    $i++;
+  }
+}
+
+global proc shadowCameraNew( string $nodeDotAttr )
+{
+  setUITemplate -pst attributeEditorTemplate;
+
+  global string $gLiquidShadowCameraParentLayout;
+  $gLiquidShadowCameraParentLayout = `setParent -q`;
+
+  columnLayout -adj true AEliquidLightShadowCamerasColumnL;
+
+  shadowCameraReplace( $nodeDotAttr );
+
+  setUITemplate -ppt;
+}
+
+global proc mainShadowStatusNew( string $nodeDotAttr )
+{
+  mainShadowStatusReplace( $nodeDotAttr );
+}
+
+global proc mainShadowStatusReplace( string $nodeDotAttr )
+{
+  int $state = 1 - `getAttr $nodeDotAttr`;
+
+  string $node = basenameEx( $nodeDotAttr );
+
+  editorTemplate -dimControl $node  "deepShadows"            $state;
+  editorTemplate -dimControl $node  "pixelSamples"           $state;
+  editorTemplate -dimControl $node  "volumeInterpretation"   $state;
+  editorTemplate -dimControl $node  "liqDeepShadowsDisplayMode"   $state;
+  editorTemplate -dimControl $node  "everyFrame"             $state;
+  editorTemplate -dimControl $node  "renderAtFrame"          $state;
+  editorTemplate -dimControl $node  "geometrySet"            $state;
+  editorTemplate -dimControl $node  "shadingRateFactor"      $state;
+  editorTemplate -dimControl $node  "nearClipPlane"          $state;
+  editorTemplate -dimControl $node  "farClipPlane"           $state;
+
+  scriptJob -runOnce true -attributeChange $nodeDotAttr ("mainShadowStatusReplace "+$nodeDotAttr);
+}
+
+global proc AEliquidLightTemplate( string $nodeDotAttr )
+{
+  string $nodeName = plugNode($nodeDotAttr);
+ 
+	layout -e -vis false "AEcontrolFormLayout";
+
+  editorTemplate -callCustom "liquidPreviewSwatchNew" "liquidPreviewSwatchReplace" "message";
+  
+		editorTemplate -beginScrollLayout;
+
+  editorTemplate -ccu "liquidShaderPickerNew" "liquidShaderPickerReplace" "rmanShaderLong";
+
+    editorTemplate -beginLayout "Preview";
+      editorTemplate -addControl "previewPrimitive";
+      editorTemplate -ccu "liquidShaderNodesCustomPrimitiveNew \"Custom Primitive\" "
+                          "liquidShaderNodesCustomPrimitiveReplace \"Custom Primitive\" "
+                          "previewCustomPrimitive";
+      editorTemplate -addControl "previewObjectSize";
+      editorTemplate -addControl "previewShadingRate";
+      editorTemplate -addControl "previewBackplane";
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Main Shadow";
+      editorTemplate -addControl "generateMainShadow";
+      editorTemplate -addSeparator;
+      editorTemplate -addControl "deepShadows";
+      editorTemplate -addControl "pixelSamples";
+      editorTemplate -addControl "volumeInterpretation";
+      editorTemplate -label "Display Mode" -addControl "liqDeepShadowsDisplayMode";
+      editorTemplate -addSeparator;
+      editorTemplate -addControl "everyFrame";
+      editorTemplate -addControl "renderAtFrame";
+      editorTemplate -addControl "geometrySet";
+      editorTemplate -addControl "shadingRateFactor";
+      editorTemplate -addSeparator;
+      editorTemplate -addControl "nearClipPlane";
+      editorTemplate -addControl "farClipPlane";
+      editorTemplate -addControl "shadowMainCamera";
+      editorTemplate -ccu "mainShadowStatusNew" "mainShadowStatusReplace" "generateMainShadow";
+    editorTemplate -endLayout;
+    editorTemplate -beginLayout "Extra Shadows";
+      editorTemplate -label "Aggregate Shadow Maps" -addDynamicControl "aggregateShadowMaps";
+      editorTemplate -ccu "shadowCameraNew" "shadowCameraReplace" "shadowCameras";
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "RIB";
+      editorTemplate -addControl "outputInShadow";
+			editorTemplate -ccu ("liquidLargeFieldNew "+$nodeName+" \"RIB Box\"") ("liquidLargeFieldReplace "+$nodeName+" \"RIB Box\"") "liqRIBBox";
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Parameters" -collapse 0;
+      editorTemplate -ccu "liquidShaderNodesParamsNew" "liquidShaderNodesParamsReplace" "rmanShaderLong";
+    editorTemplate -endLayout;
+    
+    
+
+    editorTemplate -suppress rmanShader;
+    editorTemplate -suppress rmanShaderLong;
+    editorTemplate -suppress rmanShaderLif;
+    editorTemplate -suppress rmanParams;
+    editorTemplate -suppress rmanArraySizes;
+    editorTemplate -suppress rmanLifCmds;
+
+    editorTemplate -addExtraControls;
+
+
+  editorTemplate -endScrollLayout;
+  layout -e -vis true "AEcontrolFormLayout";
+}
+
+global proc AEliquidAreaLight( string $node )
+{
+  editorTemplate -beginLayout "Liquid" -collapse true;
+
+    editorTemplate -label "Light Map" -addDynamicControl "liqLightMap";
+    editorTemplate -label "Map Saturation" -addDynamicControl "liqLightMapSaturation";
+    editorTemplate -label "Both Sides Emit" -addDynamicControl "liqBothSidesEmit";
+    editorTemplate -label "Transmission Hit-Mode" -addDynamicControl "liqAreaHitmode";
+
+    editorTemplate -beginLayout "Output" -collapse false;
+      editorTemplate -label "Light Category" -addDynamicControl "__category";
+      editorTemplate -label "Light ID" -addDynamicControl "lightID";
+    editorTemplate -endLayout;
+
+  editorTemplate -endLayout;
+}

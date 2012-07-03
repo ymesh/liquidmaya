@@ -1,0 +1,143 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:
+//
+//  Procedure Name:
+//
+//
+//  Description:
+//
+global string $defTextViewerName = "notepad.exe";
+
+global proc string liquidGetUserHomeDir() {
+	string $homeVarName = ( `about -os` == "nt" )? "USERPROFILE" : "HOME" ;
+	string $homeGetEnv =  `getenv $homeVarName`;
+	string $homeDirectory = $homeGetEnv + "/.liquid";
+	string $liquidDirectory = $homeDirectory;
+	return $liquidDirectory;
+}
+
+global proc int liquidCreateUserHomeDir() {
+	string $liquidDirectory = liquidGetUserHomeDir();
+	int $ret = true;
+	if  ( !`filetest -d $liquidDirectory` ) {
+	  warning "Liquid home dir not found";
+	  $ret = false;
+		if ( !`sysFile -makeDir $liquidDirectory` )
+			error ("Can not create dir: " + $liquidDirectory );
+	  else
+		$ret = true;
+	}
+	return $ret;
+}
+
+global proc string liquidGetUserMayaHomeDir() {
+  string $homeVarName = ( `about -os` == "nt" )? "USERPROFILE" : "HOME" ;
+  string $homeGetEnv =  `getenv $homeVarName`;
+  string $homeDirectory = $homeGetEnv;
+  string $mayaVersion = `about -f`;
+  string $mayaDirectory = ( $homeDirectory + "/maya/" + $mayaVersion );
+  return $mayaDirectory;
+}
+
+
+global proc formAttachButtons( string $form, string $buttons[], string $valign, int $dist ) {
+
+	int $i, $num = size( $buttons );
+	int $wi = 100 / $num; // assume number of divisions = 100
+
+	formLayout -e -nd 100 $form;
+
+	for ( $i = 0 ; $i < $num ; $i++ ) {
+		if ( $i == 0 ) {
+			formLayout -e
+				-attachForm $buttons[$i] $valign $dist
+				-attachForm $buttons[$i] "left" $dist
+				-attachPosition $buttons[$i] "right" $dist $wi
+			$form;
+		} else {
+			int $pos = $i * $wi;
+			formLayout -e
+					-attachForm $buttons[$i] $valign $dist
+					-attachControl $buttons[$i] "left" 0 $buttons[$i-1]
+					-attachPosition $buttons[$i] "left" $dist $pos
+			$form;
+			if ( $i != ($num -1 )) {
+				formLayout -e
+					-attachPosition $buttons[$i] "right" 0 ($pos + $wi)
+				$form;
+			} else {
+				formLayout -e
+					-attachForm $buttons[$i] "right" $dist
+				$form;
+			}
+		}
+	}
+}
+
+/**
+ *  Returns the transform of a shape node
+ *  \param $shape a shape node
+ *  \todo more error checking
+ */
+global proc string liquidGetTransform( string $shape )
+{
+  if ( !objExists( $shape ) ) error ("liquidGetTransform : \""+$shape+"\" does not exists !");
+  if ( nodeType( $shape ) == "transform" ) return $shape;
+
+  string $parents[] = `listRelatives -path -parent -type "transform" $shape`;
+
+  if ( !size($parents) ) error ("liquidGetTransform : could not find a transform for \""+$shape+"\"");
+
+  return $parents[0];
+}
+
+/**
+ *  Returns the state of modifier keys.
+ *  \note it handles all combinations, but you may have to parse the output string
+ */
+global proc string liquidGetModifiersState()
+{
+	int $mods = `getModifiers`;
+	string $result = "";
+	if (($mods / 1) % 2) $result += ("Shift");
+	if (($mods / 2) % 2) $result += ("CapsLock");
+	if (($mods / 4) % 2) $result += ("Ctrl");
+	if (($mods / 8) % 2) $result += ("Alt");
+
+	return $result;
+}
+
+global proc string liquidGetVersion()
+{
+  global string $gLiquidVersion;
+  if ( $gLiquidVersion == "" ) {
+    $gLiquidVersion = match("[0-9\\.]+", string( pluginInfo( "-q", "-v", "liquid" ) ) );
+  	string $gLiquidVersionTokensA[]; tokenize $gLiquidVersion "\." $gLiquidVersionTokensA;
+	$gLiquidVersion = ( $gLiquidVersionTokensA[0] + $gLiquidVersionTokensA[1] );
+  }
+  return $gLiquidVersion;
+}

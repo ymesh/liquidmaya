@@ -1,0 +1,13 @@
++ liquid 2.4.0 D:/code/maya/liquidmaya
+
+#MYMODULE_LOCATION:= 
+#MYMODULE_SHADERS_LOCATION:=shaders 
+#MYMODULE_INCLUDE_LOCATION:=shaders/include 
+
+#MOD_PLUG_IN_PATH+:=bin/Maya2013-x64/prman/win
+#PATH+:=D:/code/maya/liquidmaya/bin/Maya2013-x64/prman/win 
+#plug-ins: bin/Maya2013-x64/prman/win
+
+icons: icons 
+scripts: mel 
+#presets: presets 

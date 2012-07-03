@@ -1,0 +1,417 @@
+//
+//	liquidFluidOutliner.mel
+//
+//	version 1.0
+// 	09.08.2003 14:21
+//
+//	Written by Yuri Meshalkin (aka mesh) www.geocities.com/mesh_studio
+//
+// Description:
+//	Just another outliner window, but without default filter
+//	that allows to show ShadingGroups and useful Shading Sets (include mtor's ShadingGroup)
+//	+ alwaysToggleSelect checkbox in popup menu, 
+//	+ additional panel with slim appearances grouped by palettes ;-)
+//	+ ability to select DAG nodes by attached appearances and vice versa
+//	+ Appearances: Attach, Detach, 
+//	+ Palettes: Open, Create New, Add external, Delete, Import shader
+//
+
+// THIS FILE APPEARS TO BE REDUNDANT - makes calls to slim commands
+
+global string $liqFluidScroll;
+global string $liqFluidFilterMenu;
+global string $liqFluidSaveSelection[];
+
+global proc string[] slimPick( string $id ) {
+	string $ret[];	
+		
+	if ( size( $id ) ) {
+		mtor control pickobjects $id;
+		$ret = `selectedNodes`;
+	}
+	return $ret;
+}
+
+
+proc slimDispApps( string $palette, string $type ) {
+	
+global string $liqFluidScroll;
+global string $liqFluidFilterMenu;
+global string $liqFluidSaveSelection[];
+
+  string  $app, $app_list[], $apps = `slimcmd $palette GetAppearances -type $type  -selected ignore`;	
+  
+  if ( size( $apps ) ) {
+	string $icon, $ann;
+	
+	
+	switch ( $type ) {
+	case "surface":
+		$icon = "slimShadingGroup";
+		$ann = "surface shader";
+		break;
+		
+	case "shadingmodel":
+		$icon = "slimShadingGroup";
+		$ann = "shadingmodel";
+		break;
+
+		
+	case "light":
+		$icon = "slimLight";
+		$ann = "light shader";
+		break;
+		
+	case "displacement":
+		$icon = "slimDisplacement";
+		$ann = "displacement shader";
+		break;
+	
+	case "volume":
+		$icon = "slimVolume";
+		$ann = "volume shader";
+		break;
+		
+	case "ensemble":
+		$icon = "slimEnsemble";
+		$ann = "ensemble";
+		break;
+	
+	case "mapgen":
+		$icon = "slimMapGen";
+		$ann = "map generator";
+		break;
+		
+	case "archiver":
+		$icon = "slimRibArchive";
+		$ann = "rib archiver";
+		break;
+		
+	case "ribbox":
+		$icon = "slimRibBox";
+		$ann = "Rib box";
+		break;
+	
+	case "tclbox":
+		$icon = "slimTclBox";
+		$ann = "Tcl box";
+		break;
+	
+	}
+	
+	tokenize( $apps, $app_list );
+	
+	for ( $app in $app_list ) { 
+		
+                string $label = `slimcmd $app GetLabel`;
+                string $id = `slimcmd $app GetID`;
+                string $picked[] = eval( "slimPick  \"" + $id + "\"" );
+                int    $attached = size( $picked );
+                int    $selected = false;	
+                                		
+		int    $filter = `optionMenuGrp -q -sl $liqFluidFilterMenu`;	
+		
+		if ( $filter== 4 ) { // show attached to selection 
+		
+			// Create an intersector
+			//
+			string $myIntersector = `stringArrayIntersector`;
+			
+			stringArrayIntersector -edit -intersect $liqFluidSaveSelection $myIntersector;
+			stringArrayIntersector -edit -intersect $picked $myIntersector;
+			
+			// Query the intersector to see what the intersection is so far
+			//
+			$selected = ( size(`stringArrayIntersector -query $myIntersector`) )? true : false;
+						
+			// Reset the intersector so that you can use it again with new string
+			// arrays
+			//
+			stringArrayIntersector -edit -reset $myIntersector;
+		}
+		
+		if ( ($filter== 1) || ( $filter== 2 && $attached ) || ( $filter== 3 && !$attached ) || ( $filter== 4 && $selected ) ) {
+			string $button = `iconTextRadioButton -h 24 -w 400 -st "iconAndTextHorizontal" 	// iconTextButton
+					-i1 ( $icon + ( ( $attached )? "A" : "D" ) + ".bmp" ) -l $label -ann ( $ann + " ID: " + $id ) ("btn_"+ $label)`;
+			string $appCmdPop = `popupMenu`;
+				// menuItem -label "Refresh" -command "slimRefreshPanel";
+				// menuItem -divider true;
+				menuItem -label "Edit appearance" -command ("slimcmd " + $app + " Edit -newwindow ");
+				menuItem -label "Attach" -command ("mtor control attach " + $type + " \"" + $id + "\"" );
+				menuItem -label "Detach" -command ("mtor control detach " + $type + " \"" + $id + "\"" );
+				
+			
+			iconTextRadioButton -e -onCommand ( "slimPick( \"" + $id + "\" );" ) $button; 
+			// iconTextRadioButton -e -offCommand ("iconTextRadioButton -e -i1 " + $icon + ".bmp " + $button) $button;
+		}
+	}
+  }	
+
+}
+
+
+
+global proc switchFrameState ( string $palFrame ) { 
+
+int $frameState = `frameLayout -q  -cl 	$palFrame`;	
+   
+   frameLayout -e -cl (( $frameState )? false : true ) $palFrame;	
+
+}
+
+
+global proc slimImportShader ( string $palette ) { 
+
+	string $fileName = `fileDialog -dm "*.slo;*.slim" `;
+	if ( $fileName != "" ) { 
+		slimcmd $palette CreateInstance -file $fileName; 
+		slimRefreshPanel;
+	}	
+}
+
+global proc slimCheckReadOnly ( string $palette, string $roItem ) {
+	
+	slimcmd $palette SetAccessMode (( `menuItem -q -checkBox $roItem` )? "ro" : "rw" );
+	slimcmd $palette UpdateEditor;
+}
+
+global proc slimSetLabel ( string $palette, string $txtLabel ) {
+	
+	slimcmd $palette SetLabel `textFieldButtonGrp -q -tx $txtLabel`; 
+	slimcmd $palette UpdateEditor; 
+	//mtor control dirty;
+	slimRefreshPanel;
+}
+
+global proc slimSetLabelUI ( string $palette ) {
+		
+	if (`window -exists slimSetLabelUI`)
+		deleteUI -window slimSetLabelUI;
+			
+	window -widthHeight 200 80 -sizeable false -title "Set palette label" slimSetLabelUI;
+	
+	columnLayout -co "both" 5 -adj 1 -rs 5;
+	string $txtLabel = `textFieldButtonGrp -cw 1 2 -cw 2 230 -cw 3 80
+				-l ""
+				-tx ( eval( "slimcmd " + $palette + " GetLabel" ) )
+				-bl "  Set  "`;
+				
+					
+	textFieldButtonGrp -e -bc ( "slimSetLabel " + $palette + " " + $txtLabel +"; deleteUI -window slimSetLabelUI" ) $txtLabel;	
+
+	showWindow slimSetLabelUI;
+
+}
+
+global proc slimRefreshPanel ( ) {
+
+global string $liqFluidScroll;
+global string $liqFluidFilterMenu;
+global string $liqFluidSaveSelection[];
+	 
+	if ( `rowColumnLayout -q -ex slimPanelColumn` ) {
+		// print ("delete slimPanelColumn\n");
+		deleteUI slimPanelColumn;
+	}
+	
+	setParent $liqFluidScroll;
+	
+	string $pRow = `rowColumnLayout -numberOfColumns 2 
+					-cw 1 32
+					-cw 2 400 
+					slimPanelColumn`; 
+					
+	string $pallete_list[];
+	string $palletes = `slimcmd slim GetPalettes `;	
+	
+	if ( $palletes != "" ) {
+		string $p;
+		int    $row_idx = 1;
+		
+		string $liqFluid_RadCollection = `iconTextRadioCollection` ;
+		
+		tokenize( $palletes, $pallete_list );
+		
+		for ( $p in $pallete_list )
+{
+			
+			string 	$pal_label = `slimcmd $p GetLabel`;
+			string 	$pal_file = `slimcmd $p GetFilename`;
+			int	$isInternal = ( $pal_file == "untitled" )? true : false;	
+			string 	$pal_ann = ( $isInternal )? "internal" : $pal_file;
+				
+								
+			string	$palIcon = `iconTextButton -h 34 -w 32 -st "iconOnly" -i1 ( "slimSubPalette_" + (( $isInternal )? "int" : "ext") + ".bmp" ) -ann $pal_ann`;
+				
+				int $readonly = (`slimcmd $p GetAccessMode` == "ro")? on : off;
+				string $palCmdPop = `popupMenu`;
+				
+				menuItem -label "Open" -command ("slimcmd " + $p + " Edit");
+				menuItem -label "New" -command ("slimmsg slim CreatePalette -new -edit; mtor control dirty;slimRefreshPanel");
+				menuItem -label "Add" -command ("slimmsg slim CreatePalette -pickfile; mtor control dirty;slimRefreshPanel");
+				menuItem -label "Delete" -command ("slimcmd " + $p + " Delete 1; slimRefreshPanel");
+				
+				if ( $isInternal ) {
+					string $labelItem = `menuItem -label "Set label" `;
+					menuItem -e  -command ("slimSetLabelUI " + $p  ) $labelItem;
+				}
+				
+				string $roItem = `menuItem -label "Read Only" -checkBox $readonly -en false` ; 
+					// menuItem -e -c ("slimCheckReadOnly " + $p + " " + $roItem ) $roItem; 
+				menuItem -divider true;
+				menuItem -label "Import shader..." -command ("slimImportShader " + $p );
+				
+    				
+    			string	$palFrame = `frameLayout -label ($pal_label + ( ($isInternal)? (" ( " + $pal_ann + " )") : "" ) ) 
+    						-labelAlign "bottom" 
+    						-li 5
+    						-cll true
+    						-cl false
+    						-mh 2
+    						-mw 2
+    						-bv false`; 	
+    						
+    			
+    			
+	    		
+	    		iconTextButton -e -c ("switchFrameState " + $palFrame) -dcc ("slimcmd " + $p + " Edit") $palIcon;		
+	    				
+	    				columnLayout -rs 2;
+	    				    				
+	    				$liqFluidSaveSelection =  `selectedNodes`;
+	    				                        		
+                        		slimDispApps( $p, "shadingmodel" );
+                        		slimDispApps( $p, "surface" );
+                        		slimDispApps( $p, "light" );
+					slimDispApps( $p, "displacement" );
+                        		slimDispApps( $p, "volume" );
+                        		slimDispApps( $p, "ensemble"  );
+                        		slimDispApps( $p, "mapgen" );
+                        		slimDispApps( $p, "archiver" );
+                        		slimDispApps( $p, "ribbox" );
+                        		slimDispApps( $p, "tclbox" );
+   					
+   					select $liqFluidSaveSelection; 
+   					
+	    				setParent ..;
+				setParent ..;
+			
+		}
+		
+		rowColumnLayout -e -rat 1 "top" 0 $pRow;	
+		
+		setParent ..;
+		
+	}
+	
+	setParent ..;
+	setParent ..;
+   
+}
+
+global proc liquidFluidOutliner() {
+global string $liqFluidScroll;
+global string $liqFluidFilterMenu;
+
+	if ( `window -exists iquidFluidOutlinerWin` ) 
+	 	deleteUI -window  iquidFluidOutlinerWin;
+		
+	string $win = `window -rtf false -title "Fluid Outliner v1.0" -iconName "Fluid Outliner*"  iquidFluidOutlinerWin`;
+	
+	setParent $win;
+	
+	paneLayout -configuration "vertical2";
+	
+	string $form = `formLayout`;
+		
+	string $filterBar = `rowLayout -numberOfColumns 2  -cw 1 180`; 	
+		
+	$liqFluidFilterMenu = `optionMenuGrp -label "Show" -cw 1 40 -cw 2 130 -cal 1 right`; 		
+		
+			menuItem -label "All";
+			menuItem -label "Attached";
+			menuItem -label "Detached";
+			menuItem -label "Attached to selection";
+	button -l "Refresh" -w 80 -c "slimRefreshPanel"; 
+			
+			
+	setParent ..;
+		
+	$liqFluidScroll = `scrollLayout -hst 0 -childResizable false `;
+	
+	optionMenuGrp -e -cc "slimRefreshPanel" $liqFluidFilterMenu; 
+	
+	slimRefreshPanel;
+
+	
+	formLayout -e 
+		-attachForm $filterBar "top" 2
+		-attachForm $filterBar "left" 2
+		-attachForm $filterBar "right" 2
+		-attachControl $liqFluidScroll "top" 2 $filterBar
+		-attachForm $liqFluidScroll "bottom" 2
+		-attachForm $liqFluidScroll "right" 2
+		-attachForm $liqFluidScroll "left" 2
+
+	$form;
+       
+        
+        string $formOutliner = `formLayout`;
+        string $myOutliner = `outlinerPanel -menuBarVisible false`;
+    	string $outliner = `outlinerPanel -query -outlinerEditor $myOutliner`;
+    	outlinerEditor -edit
+        //-mainListConnection "worldList"
+        //-selectionConnection "modelList"
+        -showShapes true
+        -showAttributes false
+        -showConnected false
+        -showAnimCurvesOnly false
+        -autoExpand true
+        -showDagOnly true
+        -ignoreDagHierarchy false
+        -expandConnections false
+        -showCompounds true
+        -showNumericAttrsOnly false
+        -highlightActive false
+        -autoSelectNewObjects false
+        -alwaysToggleSelect false
+        -doNotSelectNewObjects false
+        -transmitFilters false
+    	-showSetMembers true
+    	//-setFilter defaultSetFilter
+        $outliner;
+
+	string $control = `outlinerEditor -q -control $outliner`;
+	
+	if ( size( $control ) ) {
+		
+		string $popups[] = `control -q -pma $control`;
+		if ( size( $popups ) ) {
+			menu -e $popups[0];	
+			setParent -menu ..;
+			string $alwaysToggleSelectItem = `menuItem -l "alwaysToggleSelect" -checkBox false`;
+			menuItem -e -c ("slimAlwaysToggleSelectProc " + $outliner + " " + $alwaysToggleSelectItem )  $alwaysToggleSelectItem;
+		}
+	}
+	
+    	formLayout -edit
+              -attachForm $myOutliner "top"    2
+              -attachForm $myOutliner "left"   2
+              -attachForm $myOutliner "bottom" 2
+              -attachForm $myOutliner "right"  2
+              $formOutliner;
+	
+	showWindow $win;
+	
+}
+
+global proc slimAlwaysToggleSelectProc( string $outliner, string $alwaysToggleSelectItem ) {
+	
+	int $value = !`outlinerEditor -q -alwaysToggleSelect $outliner`;
+	
+	outlinerEditor -e -alwaysToggleSelect $value $outliner;
+	
+	menuItem -e -checkBox $value $alwaysToggleSelectItem;	
+}  
+
+//print "Initialized Fluid Outliner Interface...\n";

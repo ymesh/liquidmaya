@@ -1,0 +1,55 @@
+// Copyright (C) 1997-2004 Alias,
+// a division of Silicon Graphics Limited.
+//
+// The information in this file is provided for the exclusive use of the
+// licensees of Alias.  Such users have the right to use, modify,
+// and incorporate this code into other products for purposes authorized
+// by the Alias license agreement, without fee.
+//
+// ALIAS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+// INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
+// EVENT SHALL ALIAS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+// CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+// DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+// TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+
+//
+//  Alias|Wavefront Script File
+//
+//  Creation Date:	1997
+//  Author:		sw
+//
+//  Procedure Name:
+//	AEdagNodeInclude
+//
+//  Description:
+//	Creates the attribute editor controls for the dagObjectNode
+//
+//  Input Value:
+//	nodeName
+//
+//  Output Value:
+//	None
+//
+
+global proc AEdagNodeInclude ( string $nodeName )
+{
+  // include/call base class/node attributes
+  editorTemplate -suppress "renderInfo";
+
+  // Liquid instance flags
+  if (`objectType $nodeName` == "transform" ) {
+     AEmentalrayInstanceFlags $nodeName;
+     AEliquidInstanceFlags $nodeName;
+  }
+
+  if (`objectType $nodeName` == "camera" )    AEliquidCamera          $nodeName;
+  if (`objectType $nodeName` == "stroke" )    AEliquidPaintEffects    $nodeName;
+  if (`objectType $nodeName` == "areaLight" ) AEliquidAreaLight       $nodeName;
+  if (`objectType $nodeName` == "spotLight" ||
+      `objectType $nodeName` == "directionalLight" ||
+      `objectType $nodeName` == "pointLight" ) AEliquidShadowControls  $nodeName;
+
+  AEdependNodeTemplate $nodeName;
+}

@@ -1,0 +1,214 @@
+//
+// Original code by Jonathan Feldstein (C.O.R.E. Digital Pictures)
+//                  Rob Pieke (C.O.R.E. Digital Pictures)
+//
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_blinn ()
+{
+    return { "color", "transparency", "ambientColor", "incandescence",
+             "diffuse", "eccentricity", "specularRollOff",
+             "specularColor", "reflectivity", "reflectedColor",
+             "outColor" };
+}
+
+global proc writeRSL_blinn ( string $node )
+{
+    beginRSL $node;
+
+    addRSLVariable "vector" "inColor" "color" $node;
+    addRSLVariable "vector" "transparency" "transparency" $node;
+    addRSLVariable "vector" "ambColor" "ambientColor" $node;
+    addRSLVariable "vector" "incandescence" "incandescence" $node;
+    addRSLVariable "float" "diffusion" "diffuse" $node;
+    addRSLVariable "float" "eccentricity" "eccentricity" $node;
+    addRSLVariable "float" "specRollOff" "specularRollOff" $node;
+    addRSLVariable "vector" "specColor" "specularColor" $node;
+    addRSLVariable "vector" "outColor" "outColor" $node;
+
+    addToRSL "extern normal N;";
+    addToRSL "normal Nn = normalize( N );";
+    addToRSL "Oi = Os * color ( 1 - transparency );";
+    addToRSL "vector Cdiffuse;";
+    addToRSL "Cdiffuse = incandescence +";
+    addToRSL "           ( inColor * ( diffusion * ";
+    addToRSL "                         vector diffuse( Nn ) +";
+    addToRSL "                         ambColor ) );";
+    addToRSL "vector Cspecular = 0;";
+    addToRSL "float eccSq = pow( eccentricity, 2 );";
+    addToRSL "vector V = normalize( -I );";
+    addToRSL "float NV = Nn . V;";
+    addToRSL "illuminance( P, Nn, PI / 2 )";
+    addToRSL "{";
+    addToRSL " vector Ln = normalize( L );";
+    addToRSL " vector H = normalize( V + Ln );";
+    addToRSL " float NH = Nn . H;";
+    addToRSL " float NL = Nn . Ln;";
+    addToRSL " float VH = V . H;";
+    addToRSL " float D = pow( eccSq / ";
+    addToRSL "                ( pow( NH, 2 ) * ";
+    addToRSL "                  ( eccSq - 1 ) + 1 ), 2 );";
+    addToRSL " float G = min( min( 1, 2 * NH * NV / VH ), ";
+    addToRSL "                2 * NH * NL / VH );";
+    addToRSL " Cspecular += ( vector Cl * ( D * G / NV ) );";
+    addToRSL "}";
+    if( size( `listConnections( $node + ".reflectedColor" )` ) )
+    {
+        addRSLVariable "float" "reflectivity" "reflectivity" $node;
+        addRSLVariable "vector" "refColor" "reflectedColor" $node;
+        addToRSL "Cspecular += ( reflectivity * refColor );";
+    }
+    addToRSL "Cspecular *= specColor;";
+    addToRSL "Cspecular *= mix( 1, specRollOff, );";
+    addToRSL "outColor = Cdiffuse + Cspecular;";
+    addToRSL "Ci = Cs * Oi * color outColor;";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_layeredShader ()
+{
+    return { "inputs", "outColor" };
+}
+
+global proc writeRSL_layeredShader (
+    string $node
+)
+{
+    beginRSL $node;
+
+    addRSLVariable "vector" "outColor" "outColor" $node;
+    addRSLVariable "vector" "outTransparency" "outTransparency" $node;
+
+    addToRSL "outTransparency = vector 1;";
+
+    int $i = 0;
+    for( ; $i < 10; $i ++ )
+    {
+        if( convertibleConnection( $node +
+                                   ".inputs[" + $i + "].color" ) )
+        {
+            addRSLVariable "vector" ( "color" + $i )
+                           ( "inputs[" + $i + "].color" )
+                           $node;
+            if( convertibleConnection( $node +
+                                       ".inputs[" + $i +
+                                       "].transparency" ) )
+            {
+                addRSLVariable "vector" ( "transparency" + $i )
+                               ( "inputs[" + $i + "].transparency" )
+                               $node;
+            }
+            else
+            {
+                addToRSL( "vector transparency" + $i +
+                          " = vector( 0, 0, 0 );" );
+            }
+        }
+    }
+    for( $i = 9; $i >= 0; $i -- )
+    {
+        if( convertibleConnection( $node +
+                                   ".inputs[" + $i + "].color" ) )
+        {
+            addToRSL( "outColor = outColor * transparency" + $i +
+                      " + color" + $i + " * ( 1 - transparency" + $i +
+                      " );" );
+            addToRSL( "outTransparency = " +
+                      "outTransparency * transparency" + $i + ";" );
+        }
+    }
+    addToRSL( "Oi = Os * color ( 1 - outTransparency );" );
+    addToRSL( "Ci = Cs * Oi * color outColor;" );
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_lambert ()
+{
+    return { "color", "transparency", "ambientColor", "incandescence",
+             "diffuse", "outColor", "outTransparency" };
+}
+
+global proc writeRSL_lambert (
+    string $node
+)
+{
+    beginRSL $node;
+
+    addRSLVariable "vector" "inColor" "color" $node;
+    addRSLVariable "vector" "transparency" "transparency" $node;
+    addRSLVariable "vector" "ambientColor" "ambientColor" $node;
+    addRSLVariable "vector" "incandescence" "incandescence" $node;
+    addRSLVariable "float" "diffusion" "diffuse" $node;
+    addRSLVariable "vector" "outColor" "outColor" $node;
+    addRSLVariable "vector" "outTransparency" "outTransparency" $node;
+
+    addToRSL "extern normal N;";
+    addToRSL "normal Nn = normalize( N );";
+    addToRSL "outTransparency = transparency;";
+    addToRSL "Oi = Os * color ( 1 - outTransparency );";
+    addToRSL "outColor = incandescence +";
+    addToRSL "           ( inColor * ( diffusion * ";
+    addToRSL "                         vector diffuse( Nn ) +";
+    addToRSL "                         ambientColor ) );";
+    addToRSL "Ci = Cs * Oi * color outColor;";
+
+    endRSL;
+}
+
+//--------------------------------------------------------------------
+
+global proc string[] validConnections_phong ()
+{
+    return { "color", "transparency", "ambientColor", "incandescence",
+             "diffuse", "cosinePower", "specularColor",
+             "reflectivity", "reflectedColor", "outColor",
+             "outTransparency" };
+}
+
+global proc writeRSL_phong (
+    string $node
+)
+{
+    beginRSL $node;
+
+    addRSLVariable "vector" "inColor" "color" $node;
+    addRSLVariable "vector" "transparency" "transparency" $node;
+    addRSLVariable "vector" "ambColor" "ambientColor" $node;
+    addRSLVariable "vector" "incandescence" "incandescence" $node;
+    addRSLVariable "float" "diffusion" "diffuse" $node;
+    addRSLVariable "float" "cosinePower" "cosinePower" $node;
+    addRSLVariable "vector" "specColor" "specularColor" $node;
+    addRSLVariable "vector" "outColor" "outColor" $node;
+    addRSLVariable "vector" "outTransparency" "outTransparency" $node;
+
+    addToRSL "extern normal N;";
+    addToRSL "normal Nn = normalize( N );";
+    addToRSL "outTransparency = transparency;";
+    addToRSL "Oi = Os * color ( 1 - outTransparency );";
+    addToRSL "vector Cdiffuse;";
+    addToRSL "Cdiffuse = incandescence +";
+    addToRSL "           ( inColor * ( diffusion * ";
+    addToRSL "                         vector diffuse( Nn ) +";
+    addToRSL "                         ambColor ) );";
+    addToRSL "vector Cspecular;";
+    addToRSL "Cspecular = vector phong( Nn,";
+    addToRSL "                          normalize( -I ),";
+    addToRSL "                          cosinePower );";
+    if( size( `listConnections( $node + ".reflectedColor" )` ) )
+    {
+        addRSLVariable "float" "reflectivity" "reflectivity" $node;
+        addRSLVariable "vector" "refColor" "reflectedColor" $node;
+        addToRSL "Cspecular += ( reflectivity * refColor );";
+    }
+    addToRSL "Cspecular *= specColor;";
+    addToRSL "outColor = Cdiffuse + Cspecular;";
+    addToRSL "Ci = Cs * Oi * color outColor;";
+
+    endRSL;
+}

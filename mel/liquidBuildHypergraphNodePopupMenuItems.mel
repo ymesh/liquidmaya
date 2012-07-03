@@ -1,0 +1,680 @@
+// Copyright (C) 1997-2006 Autodesk, Inc., and/or its licensors.
+// All rights reserved.
+//
+// The coded instructions, statements, computer programs, and/or related
+// material (collectively the "Data") in these files contain unpublished
+// information proprietary to Autodesk, Inc. ("Autodesk") and/or its licensors,
+// which is protected by U.S. and Canadian federal copyright law and by
+// international treaties.
+//
+// The Data is provided for use exclusively by You. You have the right to use,
+// modify, and incorporate this Data into other products for purposes authorized 
+// by the Autodesk software license agreement, without fee.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. AUTODESK
+// DOES NOT MAKE AND HEREBY DISCLAIMS ANY EXPRESS OR IMPLIED WARRANTIES
+// INCLUDING, BUT NOT LIMITED TO, THE WARRANTIES OF NON-INFRINGEMENT,
+// MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, OR ARISING FROM A COURSE 
+// OF DEALING, USAGE, OR TRADE PRACTICE. IN NO EVENT WILL AUTODESK AND/OR ITS
+// LICENSORS BE LIABLE FOR ANY LOST REVENUES, DATA, OR PROFITS, OR SPECIAL,
+// DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES, EVEN IF AUTODESK AND/OR ITS
+// LICENSORS HAS BEEN ADVISED OF THE POSSIBILITY OR PROBABILITY OF SUCH DAMAGES.
+
+//
+//
+//  Alias Script File
+//  MODIFY THIS AT YOUR OWN RISK
+//
+//  Creation Date:  Date
+//
+// Description:
+//
+//		description
+//												
+
+source clipMenuCommands.mel;
+source containerOperations.mel;
+
+
+//! Check if material container already assigned to selection and disconnect it before re-assigning
+//
+global proc duBuildHypergraphAssignCb( string $material, string $cmd )
+{
+	string $selected[] = `ls -sl`;
+	string $sel;
+	string $conns[];
+	string $shapes[];
+	string $shape;
+	string $conn;
+	
+	for( $sel in $selected )
+	{
+		$shapes = `listRelatives -f -c -pa -type "mesh" $sel`;
+		$shapes[size($shapes)] = $sel;
+		for( $shape in $shapes )
+		{
+			if( `attributeQuery - exists -node $shape "liquidContainerShaderNode"` )
+			{
+				$conns = `listConnections -s 1 -d 0 -p 1 ($shape+".liquidContainerShaderNode")`;
+				for( $conn in $conns )
+				{
+					catch( `disconnectAttr $conn ($shape+".liquidContainerShaderNode")` );
+				}
+			}
+		}
+	}
+	eval( $cmd + " " + $material );
+}
+
+
+
+//---------------------------------------------------------------------------
+// The procedure which builds the menu
+//
+global proc buildHypergraphNodePopupMenuItems(
+	string $hypershade,
+	string $node)
+{
+	//
+	// Description:
+	//	This procedure is called when the user RMB clicks on a node in a scene 
+	//	or graph tab hypershade editor.
+	//	This procedure builds the menu items which will appear in the popup
+	//	menu.
+	//	The popup menu this procedure generates can vary depending on the 
+	//	type of the node under the cursor.
+	//
+
+	string $nodeType = `nodeType $node`;
+	string $menuDisplayString;
+
+	// Node name, displayed without the path.
+	//
+	string $nodeName = match("[^|]*$", $node) + "...";
+	
+	menuItem
+		-label $nodeName
+		-command
+			("hyperGraph -e -attributeEditor single -useFeedbackList " 
+				+ $hypershade);
+	
+	menuItem -divider true;
+	menuItem -divider true;	
+	menuItem -divider true;	
+
+	if ( $nodeType == "place3dTexture")
+	{
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kFitToGroupBoundingBox"))
+			-command ("source AEplace3dTextureTemplate.mel; " +
+					  "PSfitPlacementToGroup " + $node);
+
+		string $selection[] = `ls -sl`;
+
+		if (size($selection) > 0)
+		{
+			string $leadSelectionItem = $selection[0];
+			$menuDisplayString = (uiRes("m_buildHypergraphNodePopupMenuItems.kParentPlacement"));
+			menuItem 
+				-label `format -s $leadSelectionItem $menuDisplayString`
+				-command ("parent " + $node + " " + $leadSelectionItem);
+		}
+		else
+		{
+			menuItem 
+				-label (uiRes("m_buildHypergraphNodePopupMenuItems.kParentPlacementToSelection"))
+				-enable false;
+		}
+		menuItem -divider true;
+	}
+	else if (isClassified($node, "shader"))
+	{
+		// mental ray material shaders fall into this category.
+
+		string $shadingGroupArray[] = 
+			`listConnections 
+				-source false 
+				-destination true 
+				-type "shadingEngine" 
+				$node`;
+		int $isOceanShader = $nodeType == "oceanShader";
+		int $groupSize = size($shadingGroupArray);
+		if( $groupSize == 2 && $isOceanShader){
+			// OceanShaders are assigned twice to the same group:
+			// once for displacement and once for surfaceShading.
+			// Thus we get two identical groups, while we wish to display
+			// just one.
+			if( $shadingGroupArray[0] == $shadingGroupArray[1] ){
+				$groupSize = 1; // force use of "assign material"
+			}
+		}
+
+		string $layer = currentRenderLayerLabel();
+		if ($layer != "" && $layer != "masterLayer") {
+			$menuDisplayString = (uiRes("m_buildHypergraphNodePopupMenuItems.kAssignMaterialOverride"));
+			menuItem 
+				-radialPosition "W"
+				-label `format -s $layer $menuDisplayString`
+				-command ("hookShaderOverride(\""+$layer+"\",\"\",\""+$node+"\")");
+		}
+
+		if( gmatch( $nodeType, "liquid*" ) )
+		{
+			//if ( isClassified($node, "liq*Swatch" ) )
+			if( isLiquidAssignableShadingNode($node) )
+			{
+				string $label = "";
+				if( $groupSize <= 1)
+				{
+					$label = "Assign Shader To Selection";
+				}
+				else
+				{
+					$label = "Assign "+ $shadingGroupArray[$groupSize-1] +" To Selection";
+				}
+				menuItem
+					-radialPosition "N"
+					-label $label
+					-command ("duBuildHypergraphAssignCb( \""+$node+"\", \"liquidAssignShaderToSelected\")" );
+			}
+			if ( $nodeType == "liquidLight" )
+			{
+				menuItem
+					-radialPosition "E"
+					-label "Select Lights With Light Shader"
+					-command ("liquidSelectAssignedToLightShader " + $node);
+			}
+			else
+			{
+				string $label = "";
+				if( $groupSize <= 1)
+				{
+					$label = "Select Objects With Material";
+				}
+				else
+				{
+					$label = "Select Objects in "+ $shadingGroupArray[$groupSize-1];
+				}
+				menuItem
+					-radialPosition "E"
+					-label $label
+					-command ("liquidSelectShaderAssignedTo " + $node);
+			}
+			menuItem
+				-radialPosition "W"
+				-label "Preview"
+				-command ("liquidShaderNodePreview " + $node);
+		}
+		else
+		{
+			menuItem
+				-label (uiRes("m_buildHypergraphNodePopupMenuItems.kGenSwatch"))
+				-command ("updateFileNodeSwatch(\"" + $node + "\")")
+				-radialPosition "SW" 
+				-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kGenSwatchAnnot"))
+				;
+			if ( $groupSize <= 1)
+			{
+				string $assignMaterial = (uiRes("m_buildHypergraphNodePopupMenuItems.kAssignMaterialToSelection")); 
+				if( $isOceanShader )
+				{
+					menuItem 
+						-radialPosition "N"
+						-label $assignMaterial
+						-command ("duBuildHypergraphAssignCb( \""+$node+"\", \"assignOceanShader\")" );
+				} 
+				else 
+				{
+					menuItem 
+						-radialPosition "N"
+						-label $assignMaterial
+						-command ("duBuildHypergraphAssignCb( \""+$node+"\", \"hyperShade -assign\")" );
+					menuItem 
+						-radialPosition "NE"
+						-label (uiRes("m_buildHypergraphNodePopupMenuItems.kPaintAssignShader"))
+						-command ("shaderPaintTool " + $node);
+				}
+				menuItem 
+					-radialPosition "E"
+					-label (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectObjectsWithMaterial"))
+					-command ("hyperShade -objects " + $node);
+
+				menuItem 
+					-label (uiRes("m_buildHypergraphNodePopupMenuItems.kFrameObjectsWithMaterial"))
+					-command 
+						("hyperShade -objects " 
+							+ $node 
+							+ ";fitAllPanels -selected");
+
+				menuItem -divider true;
+
+				string $removeOverrideMenuItem = `menuItem 
+					-label (uiRes("m_buildHypergraphNodePopupMenuItems.kRemoveMaterialOverride"))
+					-subMenu true`;
+				menuItem -edit -postMenuCommand
+					("buildMaterialRemoveOverrideMenu -shader "+$node+" "+$removeOverrideMenuItem)
+					$removeOverrideMenuItem;
+				setParent -m ..;
+
+				menuItem -divider true;
+			}
+			else
+			{
+				int $i;
+							
+				$menuDisplayString = (uiRes("m_buildHypergraphNodePopupMenuItems.kAssignToSelection"));
+				for ($i = 0; $i < size($shadingGroupArray); $i++)
+				{
+					menuItem 
+						-radialPosition "N"
+						-label `format -s $shadingGroupArray[$i] $menuDisplayString`
+						-command ("duBuildHypergraphAssignCb( \""+$shadingGroupArray[$i]+"\", \"hyperShade -assign\")" );
+				}
+				
+				string $menuStr1 = (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectObjects"));
+				string $menuStr2 = (uiRes("m_buildHypergraphNodePopupMenuItems.kFrameObjects"));
+				for ($i = 0; $i < size($shadingGroupArray); $i++)
+				{
+					menuItem 
+						-label `format -s $shadingGroupArray[$i] $menuStr1`
+						-radialPosition "E"
+						-command ("hyperShade -objects " + $shadingGroupArray[$i]);
+					menuItem 
+						-label `format -s $shadingGroupArray[$i] $menuStr2` 
+						-command 
+							("hyperShade -objects " 
+								+ $shadingGroupArray[$i] 
+								+ ";fitAllPanels -selected");
+				}
+				menuItem -divider true;
+			}
+		}
+	}
+	// mental ray light shaders
+	// They are shaders, not light.
+	// So RMB menu for light : "Make Links with Selected Objects", "Break Links with Selected Objects"
+	// should not and cannot be supported.
+	// Because they satisfy isClassified($node, "light")
+	// we need a separate block here,
+	// which should come before "light"
+	else if (isClassified($node, "rendernode/mentalray/light") &&
+			!isClassified($node, "rendernode/mentalray/lightmap") )
+	{
+		// We can support "Select Objects Illuminated by Light" and
+		// "Frame Objects Illuminated by Light"
+		// by following a light connected to this shader node.
+
+		string $lightArray[] = 
+			`listConnections 
+				-source false 
+				-destination true 
+				-type "light" 
+				$node`;
+		int $groupSize = size($lightArray);
+		int $i;
+
+		string $menuStr1 = (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectObjectsIlluminated"));
+		string $menuStr2 = (uiRes("m_buildHypergraphNodePopupMenuItems.kFrameObjectsIlluminated"));
+		for ($i = 0; $i < $groupSize; $i++)
+		{
+			menuItem 
+				-radialPosition "E"
+				-label `format -s $lightArray[$i] $menuStr1` 
+				-command ("selectObjectsIlluminatedBy "+$lightArray[$i]);
+			menuItem 
+				-label `format -s $lightArray[$i] $menuStr2`
+				-command ("selectObjectsIlluminatedBy "+$lightArray[$i] + "; fitAllPanels -selected");
+		}
+		menuItem -divider true;
+
+	}
+	// mental ray texture shaders
+	// Handled only if the shader has "outValue" attribute,
+	// because otherwise it's not clear what to do.
+	else if (isClassified($node, "rendernode/mentalray/texture") )
+	{
+		string $tmp[] = `ls ($node + ".outValue")`;
+		if( size($tmp)>0 )
+		{
+			menuItem 
+				-label (uiRes("m_buildHypergraphNodePopupMenuItems.kMentalRayTextureShadersAssign"))
+				-radialPosition "N"
+				-command 
+					("hypergraphAssignTextureToSelection  " + $node);
+		}
+	}
+	// Other mental ray shaders
+	// We need an empty block here 
+	// to prevent them from falling into wrong categories
+	else if (isClassified($node, "rendernode/mentalray") )
+	{
+	}
+	else if (isClassified($node, "texture"))
+	{
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kAssignTextureMaterialToSelection"))
+			-radialPosition "N"
+			-command 
+				("hypergraphAssignTextureToSelection  " + $node);
+
+		menuItem
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kTestTexture"))
+			-command ("select -replace " +
+				`hyperGraph -query -feedbackNode $hypershade` +
+				";TestTexture;")
+			-radialPosition "W" 
+			-annotation (getRunTimeCommandAnnotation ("TestTexture"))
+			;
+
+		if( $nodeType == "psdFileTex" ) {
+			menuItem
+				-label (uiRes("m_buildHypergraphNodePopupMenuItems.kConvertToLayeredTexture"))
+				-command 
+					("hypergraphConvertPsdToLTNetwork  " + $node)
+				-radialPosition "SW" 
+				-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kConvertToLayeredTextureAnnot"))
+				;
+			
+			menuItem
+				-label (uiRes("m_buildHypergraphNodePopupMenuItems.kConvertToFileTexture"))
+				-command 
+					("hypergraphConvertPsdToFile  " + $node)
+				-radialPosition "NW" 
+				-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kConvertToFileTextureAnnot"))
+				;
+		}
+
+		menuItem
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kRenderTextureRange"))
+			-command ("select -replace " +
+				`hyperGraph -query -feedbackNode $hypershade` +
+				";RenderTextureRange;")
+			-radialPosition "E" 
+			-annotation (getRunTimeCommandAnnotation ("RenderTextureRange"))
+			;
+
+		if( ( $nodeType == "psdFileTex" ) || ( $nodeType == "file" )) {
+			menuItem
+				-label (uiRes("m_buildHypergraphNodePopupMenuItems.kEditTexture"))
+				-command ("hyperShadeEditTexture " + $node)
+				-radialPosition "SE" 
+				-annotation (getRunTimeCommandAnnotation ("EditTexture"))
+				;
+		}
+
+		menuItem
+			-label `uiRes( "m_buildHypergraphNodePopupMenuItems.kGenSwatch" )`
+			-command ("updateFileNodeSwatch(\"" + $node + "\")")
+			-radialPosition "SW" 
+			-annotation `uiRes( "m_buildHypergraphNodePopupMenuItems.kGenSwatchAnnot" )`
+			;
+
+		if ($nodeType == "file")
+		{
+			menuItem 
+				-label (uiRes("m_buildHypergraphNodePopupMenuItems.kReloadImageFile"))
+				-command 
+					("string $name=`getAttr "
+						+ $node 
+						+ ".fileTextureName`;"
+						+ "setAttr " 
+						+ $node 
+						+ ".fileTextureName "
+						+ "-type \"string\" $name;");
+			menuItem -divider true;
+		}
+	}
+	else if (isClassified($node, "utility"))
+	{
+		if( $nodeType == "liquidCoShader" )
+		{
+			menuItem
+				-radialPosition "W"
+				-label "Preview"
+				-command ("liquidShaderNodePreview " + $node);
+		}
+		else if( $nodeType == "liquidRibBox" )
+		{
+			// nothing ...
+		}
+		else
+		{
+			// test to make sure the utility node has an output connection
+			// if it does not, convertSolidTx will fail
+			//
+			// a utility node will always be connected to defaultRenderUtilityList
+			// so we want to make sure it has more than 1 connection
+			string $connections[] = `listConnections -s 0 -d 1 $node`;
+			if (`size ($connections)` > 1){
+				menuItem 
+					-label (uiRes("m_buildHypergraphNodePopupMenuItems.kUtilityAssignTextureMaterialToSelection"))
+					-radialPosition "N"
+					-command 
+					("hypergraphAssignTextureToSelection  " + $node);
+				
+				menuItem
+					-label (uiRes("m_buildHypergraphNodePopupMenuItems.kUtilityTestTexture"))
+					-command ("select -replace " +
+					`hyperGraph -query -feedbackNode $hypershade` +
+					";TestTexture;")
+					-radialPosition "W" 
+					-annotation (getRunTimeCommandAnnotation ("TestTexture"))
+					;
+				
+				menuItem
+					-label (uiRes("m_buildHypergraphNodePopupMenuItems.kUtilityRenderTextureRange"))
+					-command ("select -replace " +
+					`hyperGraph -query -feedbackNode $hypershade` +
+					";RenderTextureRange;")
+					-radialPosition "E" 
+					-annotation (getRunTimeCommandAnnotation ("RenderTextureRange"))
+					;
+			}
+		}
+	}
+	else if (isClassified($node, "light")) 
+    {
+        menuItem
+            -label (uiRes("m_buildHypergraphNodePopupMenuItems.kMakeLinksWithSelectedObjects"))
+            -command ("lightlink -make -light "+$node+" -useActiveObjects");
+
+        menuItem
+            -label (uiRes("m_buildHypergraphNodePopupMenuItems.kBreakLinksWithSelectedObjects"))
+            -command ("lightlink -break -light "+$node+" -useActiveObjects");
+
+        menuItem -divider true;
+
+        menuItem
+            -label (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectObjectsIlluminatedByLight"))
+			-radialPosition "E"
+            -command ("selectObjectsIlluminatedBy "+$node);
+
+        menuItem
+            -label (uiRes("m_buildHypergraphNodePopupMenuItems.kFrameObjectsIlluminatedByLight"))
+            -command ("selectObjectsIlluminatedBy "+$node+"; fitAllPanels -selected");
+
+		menuItem -divider true;
+    }
+	else if ($nodeType == "textureBakeSet" || $nodeType == "vertexBakeSet" )
+	{
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kAssignSelectionToBakeSet"))
+			-radialPosition "N"
+			-command ("sets -forceElement " + $node + " `ls -dag -objectsOnly -geometry -selection`" );
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectObjectsInBakeSet"))
+			-radialPosition "E"
+			-command ("select " + $node);
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kFrameObjectsInBakeSet"))
+			-command 
+				("select " + $node + " ;fitAllPanels -selected");
+
+		menuItem -divider true;
+	}
+	else if ($nodeType == "animClip")
+	{
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kCopy"))
+			-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kCopyAnnot")) 
+			-command ("clipCopyMenuCommand " + $node) 
+			ClipCopyItem;
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kInstance"))
+			-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kInstanceAnnot"))
+			-command ("clipInstanceMenuCommand " + $node) 
+			ClipInstanceItem;
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kDuplicate"))
+			-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kDuplicateClip"))
+			-command ("clipDuplicateMenuCommand " + $node) 
+			ClipDuplicateItem;
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kExport"))
+			-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kExportClip"))
+			-command ("doExportClipArgList 2 { \"\", \"" + $node + "\"}") 
+			ClipExportItem;
+		menuItem -divider true;
+		menuItem 
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kApplyPose"))
+			-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kApplyPoseAnnot"))
+			-command ("clipApplyPoseMenuCommand " + $node)
+			ClipApplyPoseItem;
+		menuItem -divider true;
+	}
+
+	menuItem
+		-label (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectInputNodes"))
+		-command ("select -noExpand `listHistory " + $node + "`")
+		-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectInputNodesAnnot"));
+	menuItem
+		-label (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectOutputNodes"))
+		-command 
+			("select -noExpand `listHistory -future true " 
+				+ $node 
+				+ "`")
+		-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectOutputNodesAnnot"));
+
+	menuItem -divider true;
+
+	menuItem 
+		-label (uiRes("m_buildHypergraphNodePopupMenuItems.kRename"))
+		-command ("hyperGraph -e -rename -useFeedbackList " + $hypershade);
+
+	menuItem -divider true;
+
+    menuItem
+	    -label (uiRes("m_buildHypergraphNodePopupMenuItems.kCreateNewContainer")) 
+        -command ("createContainerWithNodes(`ls -sl`)")
+		-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kCreateNewContainerAnnot"));
+
+	if( $nodeType == "container")
+	{
+		string $rootShadingNodes[] = liquidGetShadingRootNodesFromContainer($node);
+		string $containerShadingNode = $node;
+
+		if( !size($rootShadingNodes) )    // if not a shading container, look for a shading container inside
+		{
+			string $inside[] = `container -q -nodeList $node`;
+			string $subContainers[] = `ls -l -type "container" $inside`;
+			if( size($subContainers) == 1 )
+			{
+				$containerShadingNode = $subContainers[0];
+				$rootShadingNodes = liquidGetShadingRootNodesFromContainer($containerShadingNode);
+			}
+		}
+		if( size($rootShadingNodes) )    // if shading container, add menus
+		{
+			$label = "Assign Material To Selection";
+			menuItem
+				-radialPosition "N"
+				-label $label
+				-command ("liquidAssignMaterialContainer(\"" + $containerShadingNode + "\")");
+
+			$label = "Select Objects With Material";
+			menuItem
+				-radialPosition "E"
+				-label $label
+				-command ("liquidSelectAssignedToMaterialContainer " + $containerShadingNode);
+
+			menuItem
+				-radialPosition "W"
+				-label "Preview all nodes"
+				-command ("liquidPreviewAllNodesOnMaterialContainer " + $containerShadingNode);
+		}
+
+		menuItem
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectContainerContent")) 
+			-command ("select -r `container -q -nl " + $node + "`")
+			-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kSelectContainerContentAnnot"));
+
+		menuItem
+			-enable (`container -q -current` != $node)
+			-label (uiRes("m_buildHypergraphNodePopupMenuItems.kSetContainerCurrent")) 
+			-command ("container -e -c 1 " + $node )
+			-annotation (uiRes("m_buildHypergraphNodePopupMenuItems.kSetContainerCurrentAnnot"));
+
+        menuItem -label (uiRes("m_HyperGraphEdMenu.kLayoutContainer"))
+            -annotation (uiRes("m_HyperGraphEdMenu.kLayoutContainerAnnot"))
+            -enable ( `getAttr ($node + ".isCollapsed")` == 0 )
+            -subMenu true;
+
+        menuItem -label (uiRes("m_HyperGraphEdMenu.kCircularLayout"))
+            -command ("hyperGraph -e -layoutSelected circularLayout -useFeedbackList " + $hypershade);
+        menuItem -label (uiRes("m_HyperGraphEdMenu.kHierarchicalLayout"))
+            -command ("hyperGraph -e -layoutSelected hierarchicalLayout -useFeedbackList " + $hypershade);
+        menuItem -label (uiRes("m_HyperGraphEdMenu.kOrthogonalLayout"))
+            -command ("hyperGraph -e -layoutSelected orthogonalLayout -useFeedbackList " + $hypershade);
+        menuItem -label (uiRes("m_HyperGraphEdMenu.kSymetricLayout"))
+            -command ("hyperGraph -e -layoutSelected symmetricLayout -useFeedbackList " + $hypershade);
+        menuItem -label (uiRes("m_HyperGraphEdMenu.kTreeLayout"))
+            -command ("hyperGraph -e -layoutSelected treeLayout -useFeedbackList " + $hypershade);
+        setParent -menu ..;
+
+		menuItem -label (uiRes("m_HyperGraphEdMenu.kSetBackgroundImage"))
+			    -command ("python(\"import maya.app.general.adjustBackgroundImageWin as modu; modu.adjustBackgroundImageWin('" + $hypershade +"')\")");
+
+		string $nodesToAdd = getNodesToAddToContainer($node);
+		menuItem -label (uiRes("m_buildHypergraphNodePopupMenuItems.kAddToContainer"))
+			-enable (size($nodesToAdd) > 0)
+			//-command ("container -e -f -an "+$nodesToAdd+" "+$node);
+			-command ("liquidAddToContainer "+$node);
+
+	}
+
+	// If the mouse is RMB over a node that is not selected,
+	// then only act on it, otherwise act on all selected nodes.
+	//
+	string $removeNodes = getNodesToRemoveFromContainer($node);	
+	
+	menuItem
+		-label (uiRes("m_buildHypergraphNodePopupMenuItems.kRemoveFromContainer"))
+		-enable (size($removeNodes) > 0)
+		-command ("removeNodesFromContainer("+$removeNodes+")");
+}
+
+
+
+global proc liquidAddToContainer(string $node)
+{
+	string $nodesToAdd = getNodesToAddToContainer($node);
+	if( attributeExists("addToContainerCallback", $node) )
+	{
+		string $proc = `getAttr ($node + ".addToContainerCallback")`;
+		int $eval = 1;
+		if( $proc == "" )
+		{
+			$eval = 0;
+		}
+		if( !exists($proc) )
+		{
+			warning("[liquidAddToContainer] addToContainerCallback procedure '"+$proc+"' doesn't exist, use normal callback.");
+			$eval = 0;
+		}
+		if( $eval )
+		{
+			eval($proc + " " + $node + " " + $nodesToAdd);
+			return;
+		}
+	}
+	eval("container -e -f -an " + $nodesToAdd + " " + $node);
+}

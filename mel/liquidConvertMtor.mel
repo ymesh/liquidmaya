@@ -1,0 +1,258 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:    June 28, 2000
+//
+//  Procedure Name:
+//	liquidConvMTOR
+//
+//  Description:
+//	Tries to convert any reference to MTOR in the scene into
+//	matching liquid assignments
+//	BASED ON CURRENT PALETTE
+//
+
+global proc liquidCopyShaderValues( string $slimApp, string $shaderNode )
+{
+  if ( !objExists( $shaderNode ) ) return;
+  
+  string $params[] = stringToStringArray( `slimcmd $slimApp GetProperties`, " ");
+  for ( $parm in $params ) {
+    
+    if ( gmatch( $parm, "attr*") ) continue;
+    if ( gmatch( $parm, "coll*") ) continue;
+    
+    string $name  = `slimcmd $parm GetName`;
+    string $type  = `slimcmd $parm GetType`;
+    string $value = `slimcmd $parm GetValue`;
+    //print ( $slimApp+"::"+$parm+" : "+$name+" ( "+$type+" ) -> "+$value+"\n" );
+    
+    switch( $type ) {
+      case "string":
+        if ( !objExists( ($shaderNode+"."+$name) ) ) break;
+        
+        if ( `attributeQuery -n $shaderNode -multi $name` ) {
+          string $index = `slimcmd $parm GetArrayIndex`;
+          if ( objExists( ($shaderNode+"."+$name+"["+$index+"]") ) ) eval ("setAttr -type \"string\" "+$shaderNode+"."+$name+"["+$index+"] \""+$value+"\"");
+        } else eval ("setAttr -type \"string\" "+$shaderNode+"."+$name+" \""+$value+"\"");
+        break;
+      case "vector":
+      case "point":
+      case "normal":
+      case "color":
+        if ( !objExists( ($shaderNode+"."+$name) ) ) break;
+        
+        string $tmp[] = stringToStringArray( $value, " ");
+        if ( `attributeQuery -n $shaderNode -multi $name` ) {
+          string $index = `slimcmd $parm GetArrayIndex`;
+          if ( objExists( ($shaderNode+"."+$name+"["+$index+"]") ) ) eval ("setAttr "+$shaderNode+"."+$name+"["+$index+"] "+float($tmp[0])+" "+float($tmp[1])+" "+float($tmp[2]));
+        } else eval ("setAttr "+$shaderNode+"."+$name+" "+float($tmp[0])+" "+float($tmp[1])+" "+float($tmp[2]));
+        break;
+        
+      default:
+        if ( !objExists( ($shaderNode+"."+$name) ) ) break;
+        
+        if ( `attributeQuery -n $shaderNode -multi $name` ) {
+          string $index = `slimcmd $parm GetArrayIndex`;
+          if ( objExists( ($shaderNode+"."+$name+"["+$index+"]") ) ) eval ("setAttr "+$shaderNode+"."+$name+"["+$index+"] "+$value);
+        } else eval ("setAttr "+$shaderNode+"."+$name+" "+$value);
+        break;
+    }
+    
+  }
+}
+
+
+global proc liquidConvertMtor () {
+  string $yesno;
+  $yesno = `confirmDialog -title "Confirm" -message ( "Your about to convert MTOR assignments to Liquid assignments, this takes some time - continue?" )
+              -button "Yes" -button "No" -defaultButton "Yes"
+              -cancelButton "No" -dismissString "No"`;
+  if ( $yesno == "Yes" ) {
+    // SLIM
+    string $slimSaveSelection[] = `selectedNodes`;
+
+    string $app, $apps[], $appList = `slimcmd slim GetAppearances -type "_Attachable" -selected ignore`;
+
+    tokenize( $appList, $apps );
+
+    print ( "\nConverting Slim appearances to Liquid shaders ...\n" );
+    for( $app in $apps ) {
+
+      string $appType = `slimcmd $app GetType`;
+      string $label = `slimcmd $app GetLabel`;
+      string $master = `slimcmd $app GetMaster 1`;
+      string $id = `slimcmd $app GetID`;
+
+      print ( "\n>> " + $appType + ": " + $label + "(" + $app + ") : master = " + $master + "\n");
+
+      mtor control pickobjects $id;
+      string $pName, $shapes[] = `ls -dag -shapes -lights -mat -sets -sl`;
+
+      switch ( $appType ) {
+        case "light":
+        case "surface":
+        case "shadingmodel":
+          if ( `slimcmd $app GetProperties -name "Controller"` != "" ) { // skip adaptor...
+            warning "light, surface adaptors can't be resolved...\nonly importing shaders...";
+            break;
+          }
+        case "displacement":
+        case "volume":
+          if ( gmatch( $app, "func*") ) slimcmd $app BuildShader -force;
+          liquidAssignSlimShader( $shapes, $master, $label );
+          if ( !gmatch( $app, "func*") ) liquidCopyShaderValues( $app, $label );
+          break;
+        case "ensemble": {
+
+          if ( `slimcmd $app GetProperties -name "Controller"` != "" ) { // skip ensemble adaptor...
+            warning "ensemble adaptors can't be resolved...";
+            break;
+          }
+          for ( $pName in { "Surface", "Displacement", "Atmosphere", "Light1", "Light2" } ) {
+            string $ppa[], $pps = `slimcmd $app GetProperties -name $pName`;
+            print ( "  " + $pName + " :: " + $pps + "\n" );
+            string $connection_id = `slimcmd $pps GetConnection`;
+            if ( $connection_id != "" ) {
+              string $connectedApp = `slimcmd slim GetAppearances -id $connection_id`;
+              string $connecteLabel = `slimcmd $connectedApp GetLabel`;
+              string $connectedMaster = `slimcmd $connectedApp GetMaster 1`;
+              print ( "  connected to : " + $connecteLabel + "(" + $connectedApp + ") : master = " + $connectedMaster + "\n");
+              if ( gmatch( $connectedApp, "func*") ) slimcmd $connectedApp BuildShader -force;
+              liquidAssignSlimShader( $shapes, $connectedMaster, $label );
+              if ( !gmatch( $connectedApp, "func*") ) liquidCopyShaderValues( $app, $label );
+            }
+          }
+        } break;
+        case "mapgen":
+        case "archiver":
+        case "ribbox":
+        case "tclbox":
+        case "dso":
+        default:
+          warning ("this slim node can't be assigned...");
+          print "\n";
+          break;
+      }
+    }
+    
+    select -r $slimSaveSelection;
+  }
+}
+
+global proc liquidAssignSlimShader( string $shapes[], string $shaderName, string $label )
+{
+  string $shape, $dataNode = "";
+  
+  if ( !gmatch( $shaderName, "/*") ) $shaderName = `workspace -q -rootDirectory` + $shaderName + ".slo";
+  else $shaderName = $shaderName + ".slo";
+  
+  int $ns = size( $shapes );
+  print ("liquidAssignSlimShader -> "+$shaderName+" ( "+$ns+" shapes) \n");
+  
+  if ( $ns == 0 && !objExists( $label ) ) {
+    $dataNode = `liquidNewShaderNode $shaderName`;
+    rename $dataNode $label;
+  }
+  
+  for ( $shape in $shapes ) {
+    print ( ":: " +  $shape + "\n" );
+    string $type;
+    int $sameMaster = false;
+    for ( $type in { "Surface", "Disp", "Light", "Volume" } ) {
+      if ( `attributeQuery -node $shape -ex ( "liquid" + $type + "ShaderNode" )`) {
+        string $shaderNodePlug =  `connectionInfo -sourceFromDestination  ( $shape + ".liquid" + $type + "ShaderNode" )`; //
+        if ( $shaderNodePlug != "" ) {
+          string $shaderNode, $buf[2];
+          tokenize( $shaderNodePlug, ".", $buf );
+          $shaderNode = $buf[0];
+
+          string $connectedMaster = `getAttr ($shaderNode + ".rmanShaderLong")`;
+          if ( $shaderName == $connectedMaster ) {
+            print ( "  already has connected liquid shader: " +  $shaderNode + " (" + $connectedMaster + ")\n" );
+            $sameMaster = true;
+            break;
+          }
+        }
+      }
+    }
+
+    print ("$sameMaster = "+$sameMaster+"\n");
+    if ( $sameMaster ) continue;
+    
+    if ( !objExists( $label ) ) {
+      $dataNode = `liquidNewShaderNode $shaderName`;
+      rename $dataNode $label;
+    }
+    $dataNode = $label;
+    
+    if ( $sameMaster ) continue;
+    
+    liquidAssignShaderNode $shape $dataNode;
+  }
+}
+
+//
+// deprecated piece of code...
+//
+global proc liquidConvertMtorGlimpse () {
+// GLIMPSE
+  int $numApps = `mtor palette length`;
+  for( $i = 0; $i < $numApps; $i++ ) {
+    string $dataNode = "";
+    string $app = `mtor palette findappearance -index $i`;
+    string $appType = `mtor appearance type -key $app`;
+    string $shaderName = `mtor appearance master -key $app -abs`;
+    mtor palette pickobjects -key $app;
+    string $shapes[] = `ls -dag -shapes -lights -mat -sets -sl`;
+    // if it's a lightsource then handle verbatim
+    if ( $appType == "lightsourcef" ) {
+      //string $shape;
+      //for ( $shape in $shapes ) {
+      //	string $data = `liquidNewLightShaderNode $shaderName`;
+      //	liquidAssignLightShaderNode $shape $shaderName;
+      //}
+    }
+    if ( $appType == "surface" ) {
+      print $shaderName;
+      string $shape;
+      for ( $shape in $shapes ) {
+        if ( $dataNode == "" ) {
+          $dataNode = `liquidNewSurfaceShaderNode $shaderName`;
+        }
+        liquidAssignSurfaceShaderNode $shape $dataNode;
+      }
+    }
+    if ( $appType == "displacement" ) {
+      string $shape;
+      for ( $shape in $shapes ) {
+        if ( $dataNode == "" ) {
+          $dataNode = `liquidNewDispShaderNode $shaderName`;
+        }
+        liquidAssignDispShaderNode $shape $dataNode;
+      }
+    }
+  }
+}

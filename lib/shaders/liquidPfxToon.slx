@@ -1,0 +1,28 @@
+surface
+AQSIS_V 1.6.0
+
+
+segment Data
+
+USES 393216
+
+output param varying  color pfxToon_vtxColor
+output param varying  color pfxToon_vtxOpacity
+
+
+segment Init
+	pushif 0
+	setfc
+	pop pfxToon_vtxColor
+	pushif 1
+	setfc
+	pop pfxToon_vtxOpacity
+
+
+segment Code
+	pushv pfxToon_vtxOpacity
+	pop Oi
+	pushv Oi
+	pushv pfxToon_vtxColor
+	mulcc
+	pop Ci

@@ -1,0 +1,245 @@
+/**
+ * This procedure is called when the current renderer has changed from
+ * Liquid renderer to some other renderer. It is called during the
+ * process of copying common globals from Liquid to a new current renderer.
+ * This procedure tells the caller whether the value of the specified
+ * $global can be provided by the liquidGetCommonGlobalValue() procedure.
+ * \returns  a boolean (int) value
+ */
+global proc int liquidmayaHasCommonGlobalValue( string $global )
+{
+  if ( !`liquidGlobalsExists` ) {
+    string $sel[] = `ls -sl`;
+    eval("liquidCreateGlobals();");
+    select $sel;
+  }
+
+  int 	$isSupported = true;
+
+  switch ($global)
+  {
+    case "animation":
+		case "frameSequence":
+		case "framePadding":
+    case "width":
+    case "height":
+    case "pixelAspectRatio":
+    case "deviceAspectRatio":
+    case "preRenderMel":
+    case "postRenderMel":
+      $isSupported = true;
+      break;
+    default:
+      $isSupported = false;
+      break;
+  }
+
+  return $isSupported;
+}
+
+
+/**
+ * This procedure is called when the current renderer has changed from Liquid
+ * to another renderer. Returns the value of the common global specified by $global.
+ * \returns   value of the specified common global, as a string.
+ */
+global proc string liquidmayaGetCommonGlobalValue( string $global )
+{
+  string 	$value;
+
+  if ( !`liquidGlobalsExists` ) {
+    string $sel[] = `ls -sl`;
+    eval("liquidCreateGlobals();");
+    select $sel;
+  }
+
+  switch ($global)
+  {
+    case "animation":
+      $value = `getAttr liquidGlobals.doAnimation`;
+      break;
+    case "frameSequence":
+      $value = `getAttr liquidGlobals.frameSequence`;
+      break;
+    case "framePadding":
+      $value = `getAttr liquidGlobals.padding`;
+      break;
+    case "width":
+      $value = `getAttr liquidGlobals.xResolution`;
+      break;
+    case "height":
+      $value = `getAttr liquidGlobals.yResolution`;
+      break;
+    case "pixelAspectRatio":
+      $value = `getAttr liquidGlobals.pixelAspectRatio`;
+      break;
+    case "deviceAspectRatio":
+      float $x = `getAttr liquidGlobals.xResolution`;
+      float $y = `getAttr liquidGlobals.yResolution`;
+      $value = $x / $y;
+      break;
+    case "preRenderMel":
+      $value = "";
+      break;
+    case "postRenderMel":
+      $value = "";
+      break;
+    default:
+      warning(
+        "liquidmayaGetCommonGlobalValue() was asked for the value "
+        + "of a global ("
+        + $global
+        + ") it does not support. "
+        + "Modify liquidmayaHasCommonGlobalValue() to fix the problem\n");
+      break;
+  }
+
+  return $value;
+}
+
+
+/**
+ * This procedure is called when the current renderer has changed from
+ * some other renderer to Liquid. It is called in the process of copying
+ * common global values from the previous renderer to Liquid.
+ * This procedure sets the value of the global specified by $global to the
+ * value specified by $value.
+ */
+global proc liquidmayaSetCommonGlobalValue( string $global, string $value )
+{
+  int $intValue;
+  float $floatValue;
+
+  if ( !`liquidGlobalsExists` ) 
+  {
+    string $sel[] = `ls -sl`;
+    eval("liquidCreateGlobals();");
+    select $sel;
+  }
+
+  switch ( $global ) 
+  {
+    case "animation":
+      $intValue = $value;
+      setAttr liquidGlobals.doAnimation $intValue;
+      break;
+    case "frameSequence":
+      setAttr liquidGlobals.frameSequence $value;
+      break;
+    case "framePadding":
+      $intValue = $value;
+      setAttr liquidGlobals.padding $intValue;
+      break;
+    case "width":
+      $intValue = $value;
+      setAttr liquidGlobals.xResolution $intValue;
+      break;
+    case "height":
+      $intValue = $value;
+      setAttr liquidGlobals.yResolution $intValue;
+      break;
+    case "pixelAspectRatio":
+      $floatValue = $value;
+      setAttr liquidGlobals.pixelAspectRatio $floatValue;
+      break;
+    case "deviceAspectRatio":
+        // We do not store deviceAspectRatio.
+        // Only pixelAspectRatio ratio is stored.
+      break;
+    case "preRenderMel":
+      break;
+    case "postRenderMel":
+      break;
+    default:
+      warning(
+        "liquidmayaSetCommonGlobalValue() was asked for the value "
+        + "of a global ("
+        + $global
+        + ") it does not support. "
+        + "Modify liquidmayaHasCommonGlobalValue() to fix the problem\n");
+      break;
+  }
+}
+
+/**
+ *  This procedure is run everytime someone clicks the logo button in the
+ *  unified render globals window.
+ *  If LIQUIDHELP is set, it will open a web browser with to the address it contains.
+ *  Otherwise, it will take you to the liquidWiki page.
+ */
+global proc liquidRenderLogoCallback()
+{
+  string $url = `getenv "LIQUIDHELP"`;
+  if ( $url == "" ) $url = "http://liquidmaya.wiki.sourceforge.net/";
+  evalDeferred ( "showHelp -absolute \"" + $url + "\"" );
+}
+
+global proc registerLiquidRenderer()
+{
+  //eval "source createMayaSoftwareCommonGlobalsTab.mel";
+  if ( !`renderer -q -ex liquid` ) 
+  {
+    string $icon = ( liquidGetHome() + "/icons/liquidIcon2.xpm" );
+
+    if ( getApplicationVersionAsFloat() >= 8.0 ) 
+    {
+      eval  (
+        "renderer  -rendererUIName                        \"Liquid\" "                    +
+                  "-addGlobalsNode                        \"liquidGlobals\" "             +
+                  "-renderProcedure                       \"liquidmayaRender\" "          +
+                  "-commandRenderProcedure                \"liquidmayaCmdlineRender\" "   +
+                  "-batchRenderProcedure                  \"liquidmayaBatchRender\" "     +
+                  "-renderRegionProcedure                 \"liquidmayaRenderRegion\" "    +
+                  "-logoImageName                         \"" + $icon + "\" "             +
+                  "-logoCallbackProcedure                 \"liquidRenderLogoCallback\" "  +
+                  "liquid;"
+      );
+    } 
+    else 
+    {
+      eval (
+        "renderer  -rendererUIName                      \"Liquid\" "                          +
+                  "-renderProcedure                     \"liquidmayaRender\" "                +
+                  "-commandRenderProcedure              \"liquidmayaCmdlineRender\" "         +
+                  "-batchRenderProcedure                \"liquidmayaBatchRender\" "           +
+                  "-renderRegionProcedure               \"liquidmayaRenderRegion\" "          +
+                  "-hasCommonGlobalValueProcedure       \"liquidmayaHasCommonGlobalValue\" "  +
+                  "-getCommonGlobalValueProcedure       \"liquidmayaGetCommonGlobalValue\" "  +
+                  "-setCommonGlobalValueProcedure       \"liquidmayaSetCommonGlobalValue\" "  +
+                  "-logoImageName                       \"" + $icon + "\" "                   +
+                  "-logoCallbackProcedure               \"liquidRenderLogoCallback\" "        +
+                  "liquid;"
+      );
+    }
+    evalDeferred liquidAddTabs;
+    renderer -edit -addGlobalsNode "liquidGlobals" liquid;
+  }
+  updateRendererUI();
+}
+
+global proc liquidAddTabs()
+{
+  if ( `renderer -exists "liquid"`)
+  {
+    renderer -edit
+             -addGlobalsTab "Common"
+                            "createMayaSoftwareCommonGlobalsTab"
+                            "updateMayaSoftwareCommonGlobalsTab"
+             liquid;
+          
+    renderer -edit
+             -addGlobalsTab "Liquid"
+                            "liquidCreateGlobalsTab"
+                            "liquidUpdateMayaGlobals"
+             liquid;
+  }
+}
+
+global proc unregisterLiquidRenderer()
+{
+  if ( `renderer -q -ex liquid` ) renderer -unregisterRenderer liquid;
+  updateRendererUI();
+}
+
+
+

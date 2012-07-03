@@ -1,0 +1,390 @@
+proc AEliquidCreateMenu()
+{
+  global string $gAERootLayoutName;
+
+  if ( $gAERootLayoutName == "" ) return ;
+
+  string $parent = `setParent -q`;
+  setParent $gAERootLayoutName;
+
+  if ( `menu -q -ex liquidAEMenu` ) return ;
+
+  menu -label "Liquid" liquidAEMenu;
+      menuItem  -label "Attribute Manager..."   
+                -command liquidAttributeManager 
+                -ann "Liquid attributes manager";
+      //liquidCreateObjectsAttributesMenu( "attrEd" );
+      //liquidCreateLightsAttributesMenu( "attrEd" );
+      //liquidCreateSetsAttributesMenu( "attrEd" );
+
+  setParent $parent;
+}
+
+global proc liquidLargeFieldUpdater()
+{
+  //early exit
+  string $globalsExists = objExists( "liquidGlobals" );
+
+  string $currentLayer = `editRenderLayerGlobals -q -currentRenderLayer`;
+  string $prefix = ($currentLayer == "defaultRenderLayer")? "masterLayer_":"";
+  string $attr[] = { "liqRIBBox", "preframeMel", "postframeMel", "preFrameBegin", "preWorld", "postWorld", "preGeom" };
+  string $obj[]  = { "obj", "", "", "", "", "", "" };
+  string $sel[] = `ls -sl -tr -l -tail 1`;
+  string $ctl;
+
+  for ( $i=0; $i<size( $attr ); $i++ ) 
+	{
+    $ctl = ( $obj[$i] == "obj" )? ("liquidLargeFieldCtl"+$attr[$i]) : ($prefix+"liquidLargeFieldCtl"+$attr[$i]);
+    if ( !`scrollField -q -ex $ctl` ) 
+		{
+      //trace("    >>  skip "+$ctl);
+      continue;
+    }
+
+    if ( $obj[$i] == "obj" ) 
+		{
+    	if( objExists($sel[0]+"."+$attr[$i]) )
+			{  
+				scrollField -e -tx (`getAttr ($sel[0]+"."+$attr[$i])`) $ctl;
+      	//trace ("    >>  updated "+$ctl);
+			}
+    } 
+		else 
+		{
+      if ( $globalsExists ) 
+				scrollField -e -tx (`getAttr ("liquidGlobals."+$attr[$i])`) $ctl;
+      //trace ("    >>  updated "+$ctl);
+    }
+  }
+  //trace "\n";
+}
+
+global proc liquidFieldUpdateMenu( string $msg )
+{
+  string $attr[] = stringToStringArray( $msg, ".");
+  int $en = (`editRenderLayerGlobals -q -crl` == "defaultRenderLayer")? 0 : 1;
+
+  string $nodeOverrides = stringArrayToString( editRenderLayerAdjustment( "-q" ,$msg), " ");
+  string $remove = (gmatch( $nodeOverrides, ("*"+$msg+"*")))? "-remove":"";
+  string $label = ($remove == "")? "Create Layer Override":"Remove Layer Override";
+
+  menuItem -e -l $label -c ("editRenderLayerAdjustment "+$remove+" "+$msg) -en $en ("liquidFieldOverrideMenuItem"+$attr[1]);
+}
+
+
+global proc liquidLargeFieldReplace( string $nodeName, string $label, string $msg )
+{
+  string $attr[] = stringToStringArray( $msg, ".");
+  string $layout = ("liquidLargeFieldLayout"+$attr[1]);
+
+  if ( !objExists( $msg ) ) rowLayout -e -m 0 $layout;
+  else {
+    rowLayout -e -m 1 $layout;
+
+    scrollField -e
+                -tx (`getAttr $msg`)
+                -cc ("{string $s = `scrollField -q -tx liquidLargeFieldCtl"+$attr[1]+"`;setAttr -type \"string\" "+$msg+" $s;}")
+                -ec ("{string $s = `scrollField -q -tx liquidLargeFieldCtl"+$attr[1]+"`;setAttr -type \"string\" "+$msg+" $s;}")
+                ("liquidLargeFieldCtl"+$attr[1]);
+
+    popupMenu -e -pmc ("liquidFieldUpdateMenu "+$msg) ("liquidFieldOverrideMenu"+$attr[1]);
+
+  }
+}
+
+
+global proc liquidLargeFieldNew( string $nodeName, string $label, string $msg )
+{
+  string $attr[] = stringToStringArray( $msg, ".");
+  setUITemplate -pst attributeEditorTemplate;
+  string $layout = `rowLayout -nc 2 -adj 2 ("liquidLargeFieldLayout"+$attr[1])`;
+    string $labelCtl = `text -l $label`;
+    scrollField -wordWrap false -font smallFixedWidthFont -h 100 ("liquidLargeFieldCtl"+$attr[1]);
+    setParent ..;
+  popupMenu -parent ("liquidLargeFieldCtl"+$attr[1]) ("liquidFieldOverrideMenu"+$attr[1]);
+  menuItem -l "Create Layer Override" ("liquidFieldOverrideMenuItem"+$attr[1]);
+  setUITemplate -ppt;
+
+  liquidLargeFieldReplace( $nodeName, $label, $msg );
+}
+
+
+global proc liquidSmallFieldReplace( string $nodeName, string $label, string $msg )
+{
+  string $attr[] = stringToStringArray( $msg, ".");
+  string $ctl = ("liquidSmallFieldCtl"+$attr[1]);
+
+  if ( !objExists( $msg ) ) textFieldGrp -e -m 0 $ctl;
+  else {
+    textFieldGrp -e -m 1 $ctl;
+    connectControl -index 2 $ctl $msg;
+    popupMenu -e -pmc ("liquidFieldUpdateMenu "+$msg) ("liquidFieldOverrideMenu"+$attr[1]);
+  }
+}
+
+
+global proc liquidSmallFieldNew( string $nodeName, string $label, string $msg )
+{
+  string $attr[] = stringToStringArray( $msg, ".");
+  setUITemplate -pst attributeEditorTemplate;
+  textFieldGrp -label $label -adj 2 ("liquidSmallFieldCtl"+$attr[1]);
+  popupMenu -parent ("liquidSmallFieldCtl"+$attr[1]) ("liquidFieldOverrideMenu"+$attr[1]);
+  menuItem -l "Create Layer Override" ("liquidFieldOverrideMenuItem"+$attr[1]);
+  setUITemplate -ppt;
+
+  liquidSmallFieldReplace( $nodeName, $label, $msg );
+}
+
+// for shading group connections
+global proc liquidSGCreateMenuItems( string $parent, string $name, string $msg )
+{
+	string $sg[] = `ls -type shadingEngine`;
+	
+	menuItem -label "Create New Shading Group" 
+		-parent $parent
+		-command ( "liquidSGCreateMenuItemsNew " + $msg )
+		liquidSGMessageMenuItemNew;
+	menuItem -divider 1 -p $parent;
+
+	for( $i = 0; $i < size( $sg ); $i++ )
+	{
+		string $item = `menuItem -label $sg[$i] -p $parent ( "liquidSGMessageMenuItem" + $i )`;
+		menuItem -e -c ( "liquidSGCreateMenuItemsConnect " + $item + " " + $msg ) $item;
+	}
+}
+global proc liquidSGCreateMenuItemsNew( string $msg )
+{
+	string $parts[] = stringToStringArray( $msg, ".");
+	string $con[] = `listConnections -p 1 $msg`;
+	string $ctl = ( "liquidSGMessageGrp" + $parts[1] );
+	string $shader = `shadingNode -asShader liquidSurface`;
+	string $sg = `sets -renderable true -noSurfaceShader true -empty -name ( $shader + "SG" )`;
+	connectAttr -f ( $shader + ".outColor" ) ( $sg + ".surfaceShader" );
+	if( !`gmatch $con[0] ""` )
+		disconnectAttr $con[0] $msg;
+	connectAttr ( $sg + ".message " ) $msg;
+	string $con[] = `listConnections $msg`;
+	if( !`gmatch $con[0] ""` )
+		textFieldButtonGrp -e -eb 1 -tx $con[0] $ctl;
+}
+global proc liquidSGCreateMenuItemsConnect( string $item, string $msg )
+{
+	string $parts[] = stringToStringArray( $msg, ".");
+	string $con[] = `listConnections -p 1 $msg`;
+	string $ctl = ( "liquidSGMessageGrp" + $parts[1] );
+	string $sg = `menuItem -q -l $item`;
+	if( !`gmatch $con[0] ""` )
+		disconnectAttr $con[0] $msg;
+	connectAttr ( $sg + ".message " ) $msg;
+	string $con[] = `listConnections $msg`;
+	if( !`gmatch $con[0] ""` )
+		textFieldButtonGrp -e -eb 1 -tx $con[0] $ctl;
+}
+
+global proc liquidSGSelect( string $msg )
+{
+	string $parts[] = stringToStringArray( $msg, ".");
+	string $SG = `textFieldButtonGrp -q -tx ( "liquidSGMessageGrp" + $parts[1] )`;
+	string $shader[] = `listConnections ( $SG + ".surfaceShader" )`;
+	string $displ[] = `listConnections ( $SG + ".displacementShader" )`;
+	string $vol[] = `listConnections ( $SG + ".volumeShader" )`;
+	if( !`gmatch $shader[0] ""` )
+		select $shader[0];
+	else if( !`gmatch $displ[0] ""` )
+		select $displ[0];
+	else if( !`gmatch $vol[0] ""` )
+		select $vol[0];
+}
+
+global proc liquidSGMessageNew( string $nodeName, string $label, string $msg )
+{
+	string $parts[] = stringToStringArray( $msg, ".");
+	setUITemplate -pst attributeEditorTemplate;
+	columnLayout;
+	textFieldButtonGrp
+		-label $label 
+		-editable 0
+		-enableButton 0 
+		-buttonLabel ">"
+		-buttonCommand ( "liquidSGSelect " + $msg )
+		-annotation "right click to connect"
+		-text "[not connected]"
+		( "liquidSGMessageGrp" + $parts[1] );
+	string $popup = `popupMenu -parent ( "liquidSGMessageGrp" + $parts[1] ) ( "liquidSGMessagePopup" + $parts[1] )`;
+	liquidSGCreateMenuItems( $popup, $parts[0], $msg );
+	setUITemplate -ppt;
+	liquidSGMessageReplace( $nodeName, $msg );
+}
+
+global proc liquidSGMessageReplace( string $nodeName, string $msg )
+{
+	string $parts[] = stringToStringArray( $msg, ".");
+	string $ctl = ( "liquidSGMessageGrp" + $parts[1] );
+	
+	if ( !attributeExists( $parts[1], $parts[0] ) )
+	{
+		textFieldButtonGrp -e -m 0 $ctl;
+	}
+	else
+	{
+		textFieldButtonGrp -e -m 1 $ctl;
+		connectControl -index 1 $ctl $msg;
+		string $con[] = `listConnections $msg`;
+		if( !`gmatch $con[0] ""` )
+			textFieldButtonGrp -e -eb 1 -tx $con[0] $ctl;
+		else
+			textFieldButtonGrp -e -eb 0 -tx "[not connected]" $ctl;
+		popupMenu -e -dai ( "liquidSGMessagePopup" + $parts[1] );
+		liquidSGCreateMenuItems( ( "liquidSGMessagePopup" + $parts[1] ), $parts[0], $msg );
+	}
+}
+
+global proc AEliquidInstanceFlags( string $node )
+{
+  global int $gLiqNewVisibilityStyle;
+
+  AEliquidCreateMenu();
+
+  editorTemplate -beginLayout "Liquid" -collapse true;
+
+    editorTemplate -label "Liquid Invisible" -addDynamicControl "liqInvisible";
+    editorTemplate -label "Ignore Shapes" -addDynamicControl "liqIgnoreShapes";
+
+    editorTemplate -beginLayout "Visibility" -collapse true;
+
+      editorTemplate -label "Camera" -addDynamicControl "liqVisibilityCamera";
+      editorTemplate -label "Ray Tracer" -addDynamicControl "liqVisibilityTrace";
+      editorTemplate -label "Photon" -addDynamicControl "liqVisibilityPhoton";
+      editorTemplate -label "Transmission" -addDynamicControl "liqVisibilityTransmission";
+      editorTemplate -label "Diffuse Rays" -addDynamicControl "liqVisibilityDiffuse";
+      editorTemplate -label "Specular Rays" -addDynamicControl "liqVisibilitySpecular";
+      editorTemplate -label "Transmission Rays" -addDynamicControl "liqVisibilityNewTransmission";
+
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Shading" -collapse true;
+
+      editorTemplate -label "Shading Rate" -addDynamicControl "liqShadingRate";
+      editorTemplate -label "Raster-Oriented Dicing" -addDynamicControl "liqDiceRasterOrient";
+      editorTemplate -label "Double Shaded" -addDynamicControl "liqDoubleShaded";
+      editorTemplate -label "Color" -addDynamicControl "liqColor";
+      editorTemplate -label "Opacity" -addDynamicControl "liqOpacity";
+      editorTemplate -label "Camera Hit-Mode" -addDynamicControl "liqHitModeCamera";
+      editorTemplate -label "Alpha Matte" -addDynamicControl "liqMatte";
+      editorTemplate -ccu ("liquidSGMessageNew "+$node+" \"Custom Shading Group\"") ("liquidSGMessageReplace "+$node ) "liquidCustomShadingGroup";
+
+    editorTemplate -endLayout;
+  
+    editorTemplate -beginLayout "Ray Tracing" -collapse true;
+
+      editorTemplate -label "Diffuse Hit-Mode" -addDynamicControl "liqHitModeDiffuse";
+      editorTemplate -label "Specular Hit-Mode" -addDynamicControl "liqHitModeSpecular";
+      editorTemplate -label "Transmission Hit-Mode" -addDynamicControl "liqHitModeTransmission";
+      editorTemplate -label "Transmission" -addDynamicControl "liqVisibilityTransmission";
+      editorTemplate -addSeparator;
+      editorTemplate -label "Sample Motion" -addDynamicControl "liqTraceSampleMotion";
+      editorTemplate -label "Trace Displacements" -addDynamicControl "liqTraceDisplacements";
+      editorTemplate -label "Trace Bias" -addDynamicControl "liqTraceBias";
+      editorTemplate -addSeparator;
+      editorTemplate -label "Max Diffuse Depth" -addDynamicControl "liqMaxDiffuseDepth";
+      editorTemplate -label "Max Specular Depth" -addDynamicControl "liqMaxSpecularDepth";
+
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Global Illumination" -collapse true;
+
+      editorTemplate -label "Shading Rate"            -addDynamicControl "liqIrradianceShadingRate";
+      editorTemplate -label "Samples"                 -addDynamicControl "liqIrradianceNSamples";
+      editorTemplate -label "Maximum Error"           -addDynamicControl "liqIrradianceMaxError";
+      editorTemplate -label "Maximum Pixel Distance"  -addDynamicControl "liqIrradianceMaxPixelDist";
+      editorTemplate -label "Irradiance Handle"       -addDynamicControl "liqIrradianceHandle";
+      editorTemplate -label "Irradiance File Mode"    -addDynamicControl "liqIrradianceFileMode";
+
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Photon Map" -collapse true;
+
+      editorTemplate -label "Global Map"    -addDynamicControl "liqPhotonGlobalMap";
+      editorTemplate -label "Caustic Map"   -addDynamicControl "liqPhotonCausticMap";
+      editorTemplate -label "Estimator"     -addDynamicControl "liqPhotonEstimator";
+      editorTemplate -label "Shading Model" -addDynamicControl "liqPhotonShadingModel";
+
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Volume" -collapse true;
+
+      editorTemplate -label "Shade Strategy"        -addDynamicControl "liqShadeStrategy";
+      editorTemplate -label "Intersection Strategy" -addDynamicControl "liqVolumeIntersectionStrategy";
+      editorTemplate -label "Intersection Priority" -addDynamicControl "liqVolumeIntersectionPriority";
+
+    editorTemplate -endLayout;
+    
+    editorTemplate -beginLayout "Motion Blur" -collapse true;
+
+      editorTemplate -label "Transformation Blur" -addDynamicControl "liqTransformationBlur";
+      editorTemplate -label "Deformation Blur" -addDynamicControl "liqDeformationBlur";
+      editorTemplate -label "Motion Samples" -addDynamicControl "liqMotionSamples";
+      editorTemplate -label "Motion Factor" -addDynamicControl "liqMotionFactor";
+
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "PrePosterous" -collapse true;
+
+      editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"Pre Transform Mel\"") ("liquidSmallFieldReplace "+$node+" \"Pre Transform Mel\"") "liqPreTransformMel";
+      editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"Post Transform Mel\"") ("liquidSmallFieldReplace "+$node+" \"Post Transform Mel\"") "liqPostTransformMel";
+      editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"Pre Shape Mel\"") ("liquidSmallFieldReplace "+$node+" \"Pre Shape Mel\"") "liqPreShapeMel";
+      editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"Post Shape Mel\"") ("liquidSmallFieldReplace "+$node+" \"Post Shape Mel\"") "liqPostShapeMel";
+
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "RIB" -collapse true;
+
+      editorTemplate -ccu ("liquidLargeFieldNew "+$node+" \"RIB Box\"") ("liquidLargeFieldReplace "+$node+" \"RIB Box\"") "liqRIBBox";
+      editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"RIB Generator\"") ("liquidSmallFieldReplace "+$node+" \"RIB Generator\"") "liqRIBGenerator";
+      editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"Read Archive\"") ("liquidSmallFieldReplace "+$node+" \"Read Archive\"") "liqRIBReadArchive";
+      editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"Delayed Read Archive\"") ("liquidSmallFieldReplace "+$node+" \"Delayed Read Archive\"") "liqRIBDelayedReadArchive";
+   		editorTemplate -label "Disable RIBBox Parsing" -addDynamicControl "liqDisableRibBoxParsing";   
+			editorTemplate -label "DRA Bounding Box" -addDynamicControl "ribDelayedArchiveBBox";
+      editorTemplate -label "DRA Bounds Scaling" -addDynamicControl "liqRIBDelayedReadArchiveBBoxScale";
+
+      editorTemplate -beginLayout "Shadow RIB" -collapse true;
+
+        editorTemplate -ccu ("liquidLargeFieldNew "+$node+" \"Shadow RIB Box\"") ("liquidLargeFieldReplace "+$node+" \"Shadow RIB Box\"") "liqShdRIBBox";
+        editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"Shadow RIB Generator\"") ("liquidSmallFieldReplace "+$node+" \"Shadow RIB Generator\"") "liqShdRIBGenerator";
+        editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"Shadow Read Archive\"") ("liquidSmallFieldReplace "+$node+" \"Shadow Read Archive\"") "liqShdRIBReadArchive";
+        editorTemplate -ccu ("liquidSmallFieldNew "+$node+" \"Shadow Delayed Read Archive\"") ("liquidSmallFieldReplace "+$node+" \"Shadow Delayed Read Archive\"") "liqShdRIBDelayedReadArchive";
+        editorTemplate -label "DRA Bounding Box" -addDynamicControl "ribShdDelayedArchiveBBox";
+        editorTemplate -label "DRA Bounds Scaling" -addDynamicControl "liqShdRIBDelayedReadArchiveBBoxScale";
+
+      editorTemplate -endLayout;
+
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Instancing" -collapse true;
+
+      editorTemplate -label "Inherit Particle Color" -addDynamicControl "liqInheritPPColor";
+
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "3Delight" -collapse true;
+      editorTemplate -beginLayout "Sub Surface Scattering" -collapse true;
+
+        editorTemplate -label "Shading Rate" -addDynamicControl "liqDelightSSShadingRate";
+        editorTemplate -label "Group Name" -addDynamicControl "liqDelightSSGroupName";
+
+        editorTemplate -label "Scattering" -addDynamicControl "liqDelightSSScattering";
+        editorTemplate -label "Absorption" -addDynamicControl "liqDelightSSAbsorption";
+
+        editorTemplate -label "Reflectance" -addDynamicControl "liqDelightSSReflectance";
+        editorTemplate -label "Meanfreepath" -addDynamicControl "liqDelightSSMeanfreepath";
+        
+        editorTemplate -label "Refraction Index" -addDynamicControl "liqDelightSSRefraction";
+        editorTemplate -label "Scale (mm)" -addDynamicControl "liqDelightSSScale";
+        editorTemplate -label "Reference Camera" -addDynamicControl "liqDelightSSReferenceCamera";
+        
+      editorTemplate -endLayout;
+    editorTemplate -endLayout;
+
+  editorTemplate -endLayout;
+}
+

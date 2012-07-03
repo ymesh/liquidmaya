@@ -1,0 +1,12 @@
+global proc AEliquidSubdivisionSurfaceShape(string $node)
+{
+  editorTemplate -beginLayout "Liquid" -collapse true;
+
+    editorTemplate  -beginLayout "Rendering" -collapse false;
+
+      editorTemplate -label "Maya Crease Hardness" -addControl "liqSubdivMayaCrease";
+
+    editorTemplate -endLayout;
+
+  editorTemplate -endLayout;
+}

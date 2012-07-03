@@ -1,0 +1,120 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the 
+// "License"); you may not use this file except in compliance with the License. You may 
+// obtain a copy of the License at http://www.mozilla.org/MPL/ 
+// 
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT 
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific 
+// language governing rights and limitations under the License. 
+//
+// The Original Code is the Liquid Rendering Toolkit. 
+// 
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by 
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved. 
+// 
+// Contributor(s): Berj Bannayan. 
+//
+// 
+// The RenderMan (R) Interface Procedures and Protocol are:// Copyright 1988, 1989, Pixar// All Rights Reserved////// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:    June 28, 2000
+//
+//  Procedure Name:
+//	liquidConvMTOR
+//
+//  Description:
+//	Tries to convert any reference to MTOR in the scene into
+//	matching liquid assignments
+//	BASED ON CURRENT PALETTE
+//
+
+global proc liquidConvMTOR ( )
+{ 
+ string $yesno;
+ $yesno = `confirmDialog -title "Confirm" -message ( "Your about to convert MTOR assignments to Liquid assignments, this takes some time - continue?" )
+		          -button "Yes" -button "No" -defaultButton "Yes"
+	            -cancelButton "No" -dismissString "No"`;
+ if ( $yesno == "Yes" ) {
+	// GLIMPSE
+	int $numApps = `mtor palette length`;
+	for( $i = 0; $i < $numApps; $i++ ) {
+		string $dataNode = "";
+		string $app = `mtor palette findappearance -index $i`;
+		string $appType = `mtor appearance type -key $app`;
+		string $shaderName = `mtor appearance master -key $app -abs`;
+		mtor palette pickobjects -key $app;
+		string $shapes[] = `ls -dag -shapes -lights -mat -sets -sl`;
+		// if it's a lightsource then handle verbatim
+		if ( $appType == "lightsourcef" ) {
+			//string $shape;
+			//for ( $shape in $shapes ) {
+			//	string $data = `liquidNewLightShaderNode $shaderName`;
+			//	liquidAssignLightShaderNode $shape $shaderName;	
+			//}
+		}
+		if ( $appType == "surface" ) {
+			print $shaderName;
+			string $shape;
+			for ( $shape in $shapes ) {
+				if ( $dataNode == "" ) {
+					$dataNode = `liquidNewSurfaceShaderNode $shaderName`;	
+				} 
+				liquidAssignSurfaceShaderNode $shape $dataNode;	
+			}
+		} 
+		if ( $appType == "displacement" ) {
+			string $shape;
+			for ( $shape in $shapes ) {
+				if ( $dataNode == "" ) {
+					$dataNode = `liquidNewDispShaderNode $shaderName`;	
+				} 
+				liquidAssignDispShaderNode $shape $dataNode;	
+			}
+		} 
+	}
+ }
+ 	// SLIM
+	string $appList = `slimcmd slim GetAppearances`;
+	string $apps[];
+	tokenize( $appList, $apps );
+	print $apps;
+	int $numApps = size( $apps );
+	for( $i = 0; $i < $numApps; $i++ ) {
+		string $dataNode = "";
+		string $appType = `slimcmd $apps[$i] GetType`;
+		mtor control pickobjects `slimcmd $apps[$i] GetID`;
+		//slimcmd $apps[$i] PickObjects;
+		string $shapes[] = `ls -dag -shapes -lights -mat -sets -sl`;
+		// if it's a lightsource then handle verbatim
+		if ( $appType == "lightsource" ) {
+			string $shape;
+			string $shaderName = `slimcmd $apps[$i] GetMaster 1`;
+			for ( $shape in $shapes ) {
+				string $data = `liquidNewLightShaderNode $shaderName`;
+				liquidAssignLightShaderNode $shape $shaderName;		
+			}
+		}
+		if ( $appType == "surface" ) {
+			string $shape;
+			string $shaderName = `slimcmd $apps[$i] GetMaster 1`;
+			for ( $shape in $shapes ) {
+				if ( $dataNode == "" ) {
+					$dataNode = `liquidNewSurfaceShaderNode $shaderName`;	
+				} 
+				liquidAssignSurfaceShaderNode $shape $dataNode;	
+			}
+		} 
+		if ( $appType == "displacement" ) {
+			string $shape;
+			string $shaderName = `slimcmd $apps[$i] GetMaster 1`;
+			for ( $shape in $shapes ) {
+				if ( $dataNode == "" ) {
+					$dataNode = `liquidNewDispShaderNode $shaderName`;	
+				} 
+				liquidAssignDispShaderNode $shape $dataNode;	
+			}
+		} 
+	}
+
+}

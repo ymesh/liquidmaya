@@ -1,0 +1,422 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar All Rights Reserved
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:    21.05.2003 22:08
+//
+//  Procedure Name:
+//	liqSubdivinspector.mel
+//
+//	version 1.0
+//
+//	Written by Yuri Meshalkin (aka mesh) www.geocities.com/mesh_studio
+//
+// Description:
+//	liqSubdivinspector shows UI window with
+//	common Liquid subdivision attributes
+//	and lists also:
+//	- creases
+//	- holes
+//	- corners
+//	- stitches
+//
+//	- creases and corners hardness are keyable
+//	- UI window remains active in component mode also
+//	- menu item for adding creases, corners, holes, stitches
+
+
+global string $liq_inspectorWin = "liqSubdivInspectorWin";
+global int $liq_inspInCompMode;
+
+global proc liquidSubdivInspector( ) {
+global string $liq_inspectorWin;
+
+  if ( `window -exists $liq_inspectorWin` ) {
+    deleteUI -window $liq_inspectorWin;
+  }
+
+  if ( !`window -exists $liq_inspectorWin` ) {
+    window  -rtf true -title "Liquid Subdivision Surface Inspector" $liq_inspectorWin; //
+    liquidUpdateSubdivInspector();
+  }
+
+  showWindow $liq_inspectorWin;  //	 show the new window
+
+  scriptJob -e "SelectionChanged" liquidUpdateSubdivInspector -p $liq_inspectorWin;
+}
+
+proc dispSelectedName( string $curSelection) {
+
+  setParent liq_sbd_insp_main;
+
+  if ( !`formLayout -exists liq_sbd_insp_SelectedNameForm`) {
+
+    formLayout  -numberOfDivisions 100  liq_sbd_insp_SelectedNameForm;
+      nameField  liq_sbd_insp_nameObject;
+      symbolButton -i "inArrow.xpm" -ann "pick Up node" -w 32 -h 18 -c ("pickWalk -d up") liq_sbd_insp_btnUpNode;
+      symbolButton -i "outArrow.xpm" -ann "pick Down node" -w 32 -h 18 -c ("pickWalk -d down") liq_sbd_insp_btnDnNode;
+    setParent ..;
+
+    formLayout  -edit
+                -af liq_sbd_insp_nameObject left 2
+                -af liq_sbd_insp_nameObject top 9
+                -af liq_sbd_insp_nameObject bottom 9
+
+                -af liq_sbd_insp_btnUpNode top 9
+                -af liq_sbd_insp_btnUpNode bottom 9
+
+                -af liq_sbd_insp_btnDnNode top 9
+                -af liq_sbd_insp_btnDnNode bottom 9
+                -af liq_sbd_insp_btnDnNode right 0
+
+                -ac liq_sbd_insp_btnUpNode  right -2 liq_sbd_insp_btnDnNode
+                -ac liq_sbd_insp_nameObject right 4 liq_sbd_insp_btnUpNode
+
+                liq_sbd_insp_SelectedNameForm;
+  }
+
+  nameField -edit -object $curSelection liq_sbd_insp_nameObject;
+
+
+}
+
+global proc liq_sbd_insp_dispAttributes( string $shape ) {
+
+  //string $liqNodes[] = `listConnections -s false -sh 1 -type liqSubdivNode $shape`;
+  //string $liq_sbd_Node = $liqNodes[0];
+  string $attr, $str, $onCommand, $offCommand;
+  int $ck, $SubdivSteps;
+
+  setParent liq_sbd_insp_attr;
+
+  if ( `columnLayout -exists liq_sbd_insp_attrLayout`)
+    deleteUI -layout liq_sbd_insp_attrLayout;
+
+  columnLayout -cat both 10 -adj true -rowSpacing 0 liq_sbd_insp_attrLayout;
+
+  string $appCmdPop = `popupMenu -p liq_sbd_insp_attrLayout`;
+    menuItem -label "Refresh" -command ( "liq_sbd_insp_dispAttributes " + $shape );
+    menuItem -divider true;
+    menuItem -label "Toggle Object XRay" -c liqToggleXray;
+
+  $attr = $shape + ".liqSubdiv";
+  $ck = `getAttr $attr`;
+  $onCommand = ( "setAttr " + $attr + " true; " );
+  $offCommand = ( "setAttr " + $attr + " false; " );
+  checkBoxGrp -label "Subdivision Mesh" -l1 "" -v1 $ck -on1 $onCommand -of1 $offCommand render;
+
+  if ( `attributeQuery -node $shape -ex "liqSubdivInterpolateBoundary"`) {
+    $attr = $shape + ".liqSubdivInterpolateBoundary";
+
+    string $liqUVinterpModes[];
+
+    $liqUVinterpModes = {
+      "Off",
+      "Sharp",
+      "Smooth"
+    };
+
+    string $menu = `optionMenuGrp -cal 1 "right" -label "Interpolate Boundary"`;
+    int $i;
+    for( $i = 0; $i < 3; ++$i ) {
+      menuItem -data $i -label $liqUVinterpModes[ $i ];
+    }
+
+    connectControl -index 2 $menu ( $attr );
+  }
+
+  if ( `attributeQuery -node $shape -ex "liqSubdivUVInterpolation"`) {
+    $attr = $shape + ".liqSubdivUVInterpolation";
+
+    string $liqUVinterpModes[];
+
+    $liqUVinterpModes = {
+      "True Facevarying",
+      "New Facevarying",
+      "Facevertex"
+    };
+
+    string $menu = `optionMenuGrp -cal 1 "right" -label "UV Interpolation"`;
+    int $i;
+    for( $i = 0; $i < 3; ++$i ) {
+      menuItem -data $i -label $liqUVinterpModes[ $i ];
+    }
+
+    connectControl -index 2 $menu ( $attr );
+  }
+  setParent liq_sbd_insp_attr_tabs;
+}
+
+global proc liq_sbd_insp_dispExtraTags( string $shape ) {
+  string $inSetNodes[] = `listConnections -s false -type objectSet $shape`;
+  string $inSetNode;
+  string $attr, $str, $onCommand, $offCommand;
+  int $hardness, $i=0;
+  string $creases[], $holes[], $corners[], $stitches[];
+  int $i_creases=0, $i_holes=0, $i_corners=0, $i_stitches=0;
+  int $cw2 = 32;
+  string $label_refresh = "Refresh";
+  string $label_add = "Add";
+  string $label_select = "Select";
+  string $label_select_memb = "Select members";
+  string $label_delete = "Delete";
+
+  setParent liq_sbd_insp_extra_tags;
+  if ( `columnLayout -exists liq_sbd_insp_tagsList`)
+    deleteUI -layout liq_sbd_insp_tagsList;
+
+  columnLayout -cat both 5 -adj true -rowSpacing 0 liq_sbd_insp_tagsList;
+
+  if ( size( $inSetNodes ) )
+    for ( $inSetNode in $inSetNodes ) {
+      if ( `attributeExists "liqSubdivCrease" $inSetNode` ) {
+        $creases[ $i_creases++ ] = $inSetNode;
+      } else if ( `attributeExists "liqSubdivHole" $inSetNode` ) {
+        $holes[ $i_holes++ ] = $inSetNode;
+      } else if ( `attributeExists "liqSubdivCorner" $inSetNode` ) {
+        $corners[ $i_corners++ ] = $inSetNode;
+      } else if ( `attributeExists "liqSubdivStitch" $inSetNode` ) {
+        $stitches[ $i_stitches++ ] = $inSetNode;
+      }
+    }
+  frameLayout -mh 5 -mw 5 -bs "etchedIn" -l "Creases" -cll true -cl false frm_creases;
+    columnLayout -adj true col_creases;
+      if ( size( $creases ) ) {
+        $i=0;
+        for ( $inSetNode in $creases ) {
+          $attr = $inSetNode + ".liqSubdivCrease";
+          rowLayout -nc 2 -cw2 300 30 -ct2 both both -adj 1;
+            attrFieldSliderGrp -width 300 -adj 3 -cw4 100 50 1 1 -ct4 "both" "both" "both" "both" -label $inSetNode -at $attr -pre 2 -min 0 -max 10 -fs 0.1 -ss 0.1;
+            iconTextButton -style "iconOnly" -w 19 -h 18 -mw 0 -mh 0 -image (liquidGetHome()+"/icons/liquidMenuButton.xpm");
+            string $appCmdPop = `popupMenu -b 1`;
+              menuItem -label $label_refresh -command ("liq_sbd_insp_dispExtraTags " + $shape);
+              menuItem -divider true;
+              menuItem -label $label_add -c "liquidSubdivCreaseUI";
+              menuItem -label $label_select -c ("select -noExpand " + $inSetNode + ";");
+              menuItem -label $label_select_memb -c ("select " + $inSetNode + ";");
+              menuItem -label $label_delete -c ("partition -rm liquidCreasePartition " + $inSetNode + "; delete " + $inSetNode + "; liq_sbd_insp_dispExtraTags " + $shape + ";");
+          setParent ..;
+          $i++;
+        }
+      } else {
+        text -align "center" -label "No Creases Defined" ;
+        string $appCmdPop = `popupMenu`;
+        menuItem -label $label_add -c "liquidSubdivCreaseUI";
+      }
+    setParent liq_sbd_insp_tagsList;
+
+  frameLayout -mh 5 -mw 5 -bs "etchedIn" -l "Corners" -cll true -cl false frm_corners;
+  columnLayout -adj true col_corners;
+  if ( size( $corners ) ) {
+    $i=0;
+    for ( $inSetNode in $corners ) {
+      $attr = $inSetNode + ".liqSubdivCorner";
+      rowLayout -nc 2 -cw2 300 30 -ct2 both both -adj 1;
+        attrFieldSliderGrp -width 300 -adj 3 -cw4 100 50 1 1 -ct4 "both" "both" "both" "both" -label $inSetNode -at $attr -pre 2 -min 0 -max 10 -fs 0.1 -ss 0.1;
+        iconTextButton -style "iconOnly" -w 19 -h 18 -mw 0 -mh 0 -image (liquidGetHome()+"/icons/liquidMenuButton.xpm");
+        string $appCmdPop = `popupMenu -b 1`;
+          menuItem -label $label_refresh -command ("liq_sbd_insp_dispExtraTags " + $shape);
+          menuItem -divider true;
+          menuItem -label $label_add -c "liquidSubdivCornerUI";
+          menuItem -label $label_select -c ("select -noExpand " + $inSetNode + ";");
+          menuItem -label $label_select_memb -c ("select " + $inSetNode + ";");
+          menuItem -label $label_delete -c ("partition -rm liqCornerPartition " + $inSetNode + "; delete " + $inSetNode + "; liq_sbd_insp_dispExtraTags " + $shape + ";");
+      setParent ..;
+      $i++;
+    }
+  } else {
+    text -align "center" -label "No Corners Defined" ;
+    string $appCmdPop = `popupMenu`;
+    menuItem -label $label_add -c "liquidSubdivCornerUI";
+  }
+  setParent liq_sbd_insp_tagsList;
+  frameLayout -mh 5 -mw 5 -bs "etchedIn" -l "Holes" -cll true -cl false frm_holes;
+  columnLayout -adj true col_holes;
+  if ( size( $holes ) ) {
+    $i=0;
+    for ( $inSetNode in $holes ) {
+      $attr = $inSetNode + ".liqSubdivHole";
+      $ck = `getAttr $attr`;
+      $onCommand = ("setAttr " + $attr + " true; ");
+      $offCommand = ("setAttr " + $attr + " false; ");
+      rowLayout -nc 2 -cw2 300 30 -ct2 both both -adj 1;
+        checkBoxGrp -label $inSetNode -l1 "" -v1 $ck -on1 $onCommand -of1 $offCommand ("holeFld" + $i);
+        iconTextButton -style "iconOnly" -w 19 -h 18 -mw 0 -mh 0 -image (liquidGetHome()+"/icons/liquidMenuButton.xpm");
+        string $appCmdPop = `popupMenu -b 1`;
+          menuItem -label $label_refresh -command ("liq_sbd_insp_dispExtraTags " + $shape);
+          menuItem -divider true;
+          menuItem -label $label_add -c "liquidSubdivHoleUI";
+          menuItem -label $label_select -c ("select -noExpand " + $inSetNode + ";");
+          menuItem -label $label_select_memb -c ("select " + $inSetNode + ";");
+          menuItem -label $label_delete -c ("partition -rm liqHolePartition " + $inSetNode + "; delete " + $inSetNode + "; liq_sbd_insp_dispExtraTags " + $shape + ";");
+      setParent ..;
+      $i++;
+    }
+  } else {
+    text -align "center" -label "No Holes Defined" ;
+    string $appCmdPop = `popupMenu`;
+    menuItem -label $label_add -c "liquidSubdivHoleUI";
+  }
+  setParent liq_sbd_insp_tagsList;
+  frameLayout -mh 5 -mw 5 -bs "etchedIn" -l "Stitch Seams" -cll true -cl false frm_stitches;
+  columnLayout -adj true col_stitches;
+  if ( size( $stitches ) ) {
+    $i=0;
+    for ( $inSetNode in $stitches ) {
+      $attr = $inSetNode + ".liqSubdivStitch";
+      int $ck = `getAttr $attr`;
+      rowLayout -nc 2 -cw2 300 30 -ct2 both both -adj 1;
+        attrFieldSliderGrp  -width 300 -cw 2 80 -label $inSetNode -at $attr ;
+        iconTextButton -style "iconOnly" -w 19 -h 18 -mw 0 -mh 0 -image (liquidGetHome()+"/icons/liquidMenuButton.xpm");
+          string $appCmdPop = `popupMenu -b 1`;
+            menuItem -label $label_refresh -command ("liq_sbd_insp_dispExtraTags " + $shape);
+            menuItem -divider true;
+            menuItem -label $label_add -c "liquidSubdivStitchUI";
+            menuItem -label $label_select -c ("select -noExpand " + $inSetNode + ";");
+            menuItem -label $label_select_memb -c ("select " + $inSetNode + ";");
+            menuItem -label $label_delete -c ("partition -rm liqStitchPartition " + $inSetNode + "; delete " + $inSetNode + "; liq_sbd_insp_dispExtraTags " + $shape + ";");
+      setParent ..;
+      $i++;
+    }
+  } else {
+    text -align "center" -label "No Stitch Seams Defined" ;
+    string $appCmdPop = `popupMenu`;
+    menuItem -label $label_add -c "liquidSubdivStitchUI";
+  }
+
+  setParent liq_sbd_insp_attr_tabs;
+}
+
+
+proc string liq_sbd_insp_selected_mesh( string $selection ) {
+  string  $ret = "";
+
+  if ( size( $selection ) ) {
+    string $shapes[] = `listRelatives -shapes $selection`;
+    string	$shape = ( size( $shapes ) )? $shapes[ 0 ] : $selection;
+    string $nt = objectType( $shape );
+
+    if ( $nt == "mesh"  && `attributeExists "liqSubdiv" $shape` )
+      $ret = $shape; // liqSubdiv selected
+    // print ("node type: " + $nt + "\n" );
+  }
+  return $ret;
+}
+
+
+global proc liquidUpdateSubdivInspector() {
+global string $liq_inspectorWin;
+global int $liq_inspInCompMode;
+
+string $activeLayout, $shape ;
+string $compModeSelection[] = `ls -hl`;
+string $selection[] = `ls -sl`;
+
+  $liq_inspInCompMode = size( $compModeSelection );
+
+  if ( $liq_inspInCompMode )
+    if ( !size( $selection ) ) { // if nothing selected  we probably just switched to component mode?
+      $selection[ 0 ] = $compModeSelection[ 0 ]; // change selection to first object in component mode
+    } else { // vertex, edge or face probably selected
+
+          string $dagnodes[];
+          $dagnodes = `selectedNodes -dagObjects`; // Return dag objects only
+      $selection[ 0 ] = $dagnodes[ 0 ];
+    }
+
+  $shape = liq_sbd_insp_selected_mesh( $selection[ 0 ] );
+
+  setParent $liq_inspectorWin;
+
+  if ( !`layout -exists liq_sbd_insp_main_form`) {
+    formLayout -numberOfDivisions 100  liq_sbd_insp_main_form;
+  }
+
+  if ( !`columnLayout -exists liq_sbd_insp_empty`) { // nothing selected layout
+    columnLayout -co left 5 -vis false  liq_sbd_insp_empty;
+    text -align "center" -vis true -label "Select a Liquid Subdivision Surface" ;
+    setParent ..;
+  }
+
+  if ( !`formLayout -exists liq_sbd_insp_main`) {
+    formLayout -numberOfDivisions 100 -vis false  liq_sbd_insp_main;
+    setParent ..;
+  }
+
+  if ( $shape == "" ) {
+    formLayout -e -vis false liq_sbd_insp_main;
+    columnLayout -e -vis true liq_sbd_insp_empty;
+    $activeLayout = "liq_sbd_insp_empty";
+  } else {
+    columnLayout -e -vis false liq_sbd_insp_empty;
+    formLayout -e -vis true liq_sbd_insp_main;
+    $activeLayout = "liq_sbd_insp_main";
+
+    dispSelectedName( $selection[0] );
+
+    if ( !`tabLayout -exists liq_sbd_insp_attr_tabs`)
+      tabLayout -scr true -cr true -p liq_sbd_insp_main liq_sbd_insp_attr_tabs;
+
+    if ( !`columnLayout -exists liq_sbd_insp_attr`)
+      columnLayout -cat both 0 -adj true -rowSpacing 10 liq_sbd_insp_attr;
+    liq_sbd_insp_dispAttributes( $shape );
+
+    if ( !`columnLayout -exists liq_sbd_insp_extra_tags`)
+      columnLayout -cat both 0 -adj true -rowSpacing 10  liq_sbd_insp_extra_tags;
+    liq_sbd_insp_dispExtraTags( $shape );
+
+    tabLayout -e -tabLabel "liq_sbd_insp_attr"       "Rendering"
+                 -tabLabel "liq_sbd_insp_extra_tags" "Tags"
+                 liq_sbd_insp_attr_tabs;
+
+    setParent ..;
+
+    formLayout -edit
+    -attachForm liq_sbd_insp_SelectedNameForm "top" 0
+    -attachForm liq_sbd_insp_SelectedNameForm "left" 0
+    -attachForm liq_sbd_insp_SelectedNameForm "right" 0
+    -attachControl liq_sbd_insp_attr_tabs "top" 0 liq_sbd_insp_SelectedNameForm
+    -attachForm liq_sbd_insp_attr_tabs "left" 0
+    -attachForm liq_sbd_insp_attr_tabs "right" 0
+    -attachForm liq_sbd_insp_attr_tabs "bottom" 0
+    liq_sbd_insp_main;
+  }
+
+  setParent ..;
+
+  if ( !`button -exists liq_sbd_insp_CloseButton`) {
+    button -label "Close" -command ("window -e -vis false "+ $liq_inspectorWin)  liq_sbd_insp_CloseButton;
+  }
+
+  formLayout -edit
+  -attachForm liq_sbd_insp_CloseButton "bottom" 2
+  -attachForm liq_sbd_insp_CloseButton "left" 2
+  -attachForm liq_sbd_insp_CloseButton "right" 2
+
+  -attachForm $activeLayout "left" 2
+  -attachForm $activeLayout "right" 2
+  -attachForm $activeLayout "top" 2
+  -attachControl $activeLayout "bottom" 2 liq_sbd_insp_CloseButton
+  liq_sbd_insp_main_form;
+
+}
+
+

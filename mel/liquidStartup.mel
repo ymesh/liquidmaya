@@ -1,0 +1,816 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:
+//
+//  Procedure Name:
+//
+//
+//  Description:  startup sequence
+//
+//
+/**
+ * 
+ */
+global proc ltrace_set()
+{
+	global int $gLiquid_ltrace;
+	
+	string $doTrace = `getenv "LIQUIDTRACE"`;
+	
+	if ( size( $doTrace ) ) 
+		$gLiquid_ltrace = 1;
+	else 
+		$gLiquid_ltrace = 0;
+}
+/**
+ * 
+ */
+global proc ltrace( string $msg )
+{
+	global int $gLiquid_ltrace;
+	
+	// print ($msg + "\n");
+	
+	if ( $gLiquid_ltrace )
+	{ 
+	  trace ( $msg );
+	}
+}
+/**
+ * 
+ */
+global proc string liquidGetHome()
+{
+  string $home = `getenv "LIQUIDHOME"`;
+  if ( !size( $home ) ) 
+  {
+    warning( "Environment variable LIQUIDHOME is not set - please set to the base Liquid directory (containing /mel, etc)" );
+    string $promptStr = "The LIQUIDHOME environment variable is not currently set.\n\
+                         The Liquid plugin needs this to find various files.\n\n\
+                         You should set this environment variable before using Liquid,\n\
+                         but for the moment you can temporarily set it below:";
+    
+    string $res = `promptDialog -ma "center" 
+                                -m $promptStr 
+                                -title "LIQUIDHOME" 
+                                -text "/usr/local/liquid" 
+                                -b "Set" -b "Cancel" -cb "Cancel" -ds "Cancel"`;
+    if ( $res == "Set" ) 
+    {
+      $home = `promptDialog -q -text`;
+      putenv "LIQUIDHOME" $home;
+    }
+  }
+  // make sure we don't have a trailing slash
+  $home = substitute("/$", $home, "");
+  return $home;
+}
+/**
+ * 
+ */
+global proc string liquidGetPluginName()
+{
+  string $plugs[] = `pluginInfo -q -listPlugins`;
+  for ( $p in $plugs ) 
+    if ( gmatch( $p, "liquid*") ) return $p;
+  return "";
+}
+/**
+ * 
+ */
+global proc liquidLoadScripts()
+{
+  string $mel_files[] = {
+    "AEdagNodeInclude.mel",
+    "AEliquidFGGIOverrideFlags.mel",
+    "AEliquidInstanceFlags.mel",
+    "AEliquidNurbsCurveShape.mel",
+    "AEliquidSetFlags.mel",
+    "AEliquidCamera.mel",
+    "AEliquidPaintEffects.mel",
+    "AEliquidShadowControls.mel",
+    "AEliquidSubdivisionSurfaceShape.mel",
+    "AEobjectSetTemplate.mel",
+    "AEoldBlindDataBaseTemplate.mel",
+    "AEliquidSurfaceTemplate.mel",
+    "AEliquidDisplacementTemplate.mel",
+    "AEliquidVolumeTemplate.mel",
+    "AEliquidLightTemplate.mel",
+    "AEliquidCoShaderTemplate.mel",    
+    "AEliquidRibBoxTemplate.mel",
+    //"AEliquidSLTemplate.mel",
+    "AEliquidCoordSysTemplate.mel",
+    "AEliquidSurfaceRelated.mel",
+    "AEliquidCoShaderRelated.mel",        
+    "liquidBuildHypergraphNodePopupMenuItems.mel",
+    "getMultiListerSelection.mel",
+    "connectNodeToAttrOverride.mel",
+    "connectNodeToNodeOverride.mel",
+    "liquidIni.mel",
+    "liquidSlParseSdl.mel",
+    "liquidSlParseSdr.mel",
+    "liquidSlParseSlo.mel",
+    "liquidSlParseSlx.mel",
+    "liquidSlParseSlb.mel",
+    "liquidSlParseLif.mel",
+    "liquidSlInfo.mel",
+    "liquidAttachParams.mel",
+    //"liquidAttrWindow.mel",
+    //"liquidAttributes.mel",
+    "liquidCommon.mel",
+    "liquidConvMTOR.mel",
+    "liquidConvertMtor.mel",
+    "liquidDelayedReadArchive.mel",
+    "liquidFileBrowser.mel",
+    "liquidFluid.mel",
+    //"liquidFluidOutliner.mel",
+    "liquidGlobals.mel",
+    "liquidHelpers.mel",
+    "liquidMenuHelp.mel",
+    "liquidPaintEffects.mel",
+    "liquidParamDialogWindow.mel",
+    "liquidPrefAttribute.mel",
+    "liquidReAttachParams.mel",
+    "liquidReadArchive.mel",
+    "liquidRenderCurve.mel",
+    "liquidRibBox.mel",
+    "liquidRibGen.mel",
+    "liquidShaders.mel",
+    "liquidShutdown.mel",
+    "liquidSubdiv.mel",
+    "liquidSubdivInspector.mel",
+    "liquidWriteRSL_materials.mel",
+    "liquidWriteRSL_textures.mel",
+    "liquidWriteRSL_utilities.mel",
+    "liquidConvertShadingNetworkToRSL.mel",
+    "liquidShaderNodes.mel",
+    "liquidLifWidgets.mel",
+    "registerLiquidRenderer.mel",
+    "liquidCreateGlobalsTab.mel",
+    "liquidRenderView.mel",
+    "liquidLightLinker.mel",
+    "liquidAttributeManager.mel",
+     "AEliquidSurfaceSwitcherTemplate.mel",
+    "AEliquidDisplacementSwitcherTemplate.mel",
+    "AEliquidSwitcherRelatedTemplate.mel",
+    "liquidSwitcherNodes.mel"
+  };
+
+  string $liquidHome = liquidGetHome();
+  int $i;
+  for ( $i = 0; $i < size( $mel_files ); $i++ ) 
+    eval( "source \"" + $liquidHome + "/mel/" + $mel_files[$i]  + "\"" );
+    
+  // ltrace_set();
+}
+/**
+ * 
+ */
+global proc liquidMayaVersionOverwrite()
+{
+  global string $liq_maya_version;
+  
+  string $maya_version_str[] = stringToStringArray( `about -version`, " " );
+  $liq_maya_version = $maya_version_str[0];
+  
+  string $liquidHome = liquidGetHome();
+  
+  int $liq_maya_version_int = $liq_maya_version;
+
+  if ( $liq_maya_version_int >= 2011 )
+  {	
+  	eval( "source \"" + $liquidHome + "/mel/2011/liquidParamDialogWindow.mel"  + "\"" );
+  } 
+  if ( $liq_maya_version_int >= 2012 )
+  {	
+  	eval( "source \"" + $liquidHome + "/mel/2012/liquidBuildHypergraphNodePopupMenuItems.mel"  + "\"" );
+  } 
+}
+/**
+ * 
+ */
+global proc liquidAETemplateOverwrite()
+{
+  //liquidDebugPrint("OVERWRITING DEFAULT AE TEMPLATES");
+  // eval( "source \"" + liquidGetHome() + "/mel/AEdagNodeInclude.mel\"" );
+  // eval( "source \"" + liquidGetHome() + "/mel/AEtransformTemplate.mel\"" );
+  eval( "source \"" + liquidGetHome() + "/mel/AEliquidSurfaceRelated.mel\"" );
+  eval( "source \"" + liquidGetHome() + "/mel/AEliquidCoShaderRelated.mel\"" );
+}
+/**
+ * 
+ */
+global proc liquidShowAbout()
+{
+  if (`window -exists liquidAbout`) deleteUI liquidAbout;
+
+  // find where the liquid MEL scripts are kept, which is where
+  // the Liquid logo image is too
+	string $imagePath = `whatIs liquidStartup`;
+	string $parts[] = stringToStringArray( $imagePath, " " );
+	$parts = stringToStringArray( $parts[ size( $parts ) -1 ], "/" );
+	$parts[ size( $parts ) -1 ] = "liquidabout.png";
+	$imagePath = stringArrayToString( $parts, "/" );
+
+  window -wh 470 210 -rtf true -bgc 1 1 1 -title "About Liquid" liquidAbout;
+  formLayout -bgc 1 1 1 -numberOfDivisions 200 liquidAboutForm;
+    rowLayout -bgc 1 1 1 -nc 3 -cw3 170 12 280 liquidAboutContent;
+      columnLayout -co "left" 10;
+        image -image $imagePath -width 164 -height 186 -bgc 1 1 1;
+      setParent ..;
+      columnLayout;
+      setParent ..;
+      columnLayout;
+        text -width 280 -align "left" -bgc 1 0.7 0.5 -l ("Liquid " + `pluginInfo -q -v (liquidGetPluginName())`) -font "boldLabelFont" -height 25;
+        text -width 280 -align "left" -bgc 1 1 1 -l "Initial code by Colin Doncaster";
+        text -width 280 -height 10 -bgc 1 1 1 -l "";
+        text -width 280 -align "left" -bgc 1 1 1 -l "Contributors:";
+        text -width 280 -align "left" -bgc 1 1 1 -l "Andrew Chapman, Cedric Paille, Berj Bannayan,";
+        text -width 280 -align "left" -bgc 1 1 1 -l "Dan Bethell, George Harker, Jamie McCarter,";
+        text -width 280 -align "left" -bgc 1 1 1 -l "Ken McGaugh, Michael Duffy, Moritz Moeller,";
+        text -width 280 -align "left" -bgc 1 1 1 -l "Paul Scruby, Philippe Leprince, Richard Pickler,";
+        text -width 280 -align "left" -bgc 1 1 1 -l "Rob Pieke, Stephane Deverly, Yuri Meshalkin,";
+        text -width 280 -align "left" -bgc 1 1 1 -l "Alf Kraus";
+        text -width 280 -height 10 -bgc 1 1 1 -l "";
+        text -width 280 -align "left" -bgc 1 1 1 -l "http://liquidmaya.sourceforge.net/";
+        text -width 280 -bgc 1 1 1 -l "";
+      setParent ..;
+    setParent ..;
+  setParent ..;
+  formLayout -e -attachPosition liquidAbout|liquidAboutForm|liquidAboutContent "left" 0 0 liquidAbout|liquidAboutForm;
+  formLayout -e -attachPosition liquidAbout|liquidAboutForm|liquidAboutContent "top"  0 8 liquidAbout|liquidAboutForm;
+
+  showWindow liquidAbout;
+}
+/**
+ * 
+ */
+global proc liquidMenuPostVisibilityAttributes( string $prefix )
+{
+  int $newStyle = liquidGlobalsFeatureQuery( "AdvancedVisibility" );
+
+  if ( `menuItem -q -ex ($prefix+"LiquidMenuItemVisibilityTrace")` )    menuItem -e -en (1-$newStyle) ($prefix+"LiquidMenuItemVisibilityTrace");
+  if ( `menuItem -q -ex ($prefix+"LiquidMenuItemVisibilityDiffuse")` )  menuItem -e -en $newStyle     ($prefix+"LiquidMenuItemVisibilityDiffuse");
+  if ( `menuItem -q -ex ($prefix+"LiquidMenuItemVisibilitySpecular")` ) menuItem -e -en $newStyle     ($prefix+"LiquidMenuItemVisibilitySpecular");
+}
+/**
+ * 
+ */
+global proc liquidMenuPostRaytracingAttributes( string $prefix )
+{
+  int $newStyle = liquidGlobalsFeatureQuery( "AdvancedVisibility" );
+
+  if ( `menuItem -q -ex ($prefix+"LiquidMenuItemDiffuseHitMode")` )     menuItem -e -en $newStyle ($prefix+"LiquidMenuItemDiffuseHitMode");
+  if ( `menuItem -q -ex ($prefix+"LiquidMenuItemSpecularHitMode")` )    menuItem -e -en $newStyle ($prefix+"LiquidMenuItemSpecularHitMode");
+  if ( `menuItem -q -ex ($prefix+"LiquidMenuItemTransmissionHitMode")`) menuItem -e -en $newStyle ($prefix+"LiquidMenuItemTransmissionHitMode");
+}
+/**
+ * 
+ */
+global proc liquidMenuPostShadingAttributes( string $prefix )
+{
+  int $newStyle = liquidGlobalsFeatureQuery( "AdvancedVisibility" );
+
+  if ( `menuItem -q -ex ($prefix+"LiquidMenuItemCameraHitMode")` )     menuItem -e -en $newStyle ($prefix+"LiquidMenuItemCameraHitMode");
+}
+/**
+ * 
+ */
+global proc liquidCreateObjectsAttributesMenu( string $prefix )
+{
+  menuItem -label "Object Attributes" -subMenu true -tearOff true;
+    menuItem -label "Create Shading Group" -command liquidCreateShadingAttributes -ann "Add Shading attributes to selected Transform node(s)";
+    menuItem -label "Shading Add" -subMenu true -tearOff true -postMenuCommand ("liquidMenuPostShadingAttributes "+$prefix);
+      menuItem -label "Shading Rate"          -command liquidCreateShadingRateAttribute;
+      menuItem -label "Color"                 -command liquidCreateColorAttribute;
+      menuItem -label "Opacity"               -command liquidCreateOpacityAttribute;
+      menuItem -label "Matte"                 -command liquidCreateMatteAttribute;
+      menuItem -label "Camera Hit-Mode"       -command liquidCreateCameraHitModeAttribute ($prefix+"LiquidMenuItemCameraHitMode");
+      menuItem -label "Raster-Oriented Dicing" -command "liquidCreateRasterOrientedDicingAttribute( 1 )";
+      menuItem -label "Double Shaded" -command "liquidCreateDoubleShadedAttribute( 0 )";
+      menuItem -label "Custom Shading Group" -command liquidCreateCustomSGAttribute;
+    setParent -menu ..;
+    menuItem -label "Remove Shading Group" -command liquidDeleteShadingAttributes -ann "Remove Shading attributes from selected Transform node(s)";
+    menuItem -d true;
+    menuItem -label "Create Visibility Group" -command liquidCreateVisibilityAttributes -ann "Add Visibility attributes to selected Transform node(s)";
+    menuItem -label "Visibility Add" -subMenu true -tearOff true -postMenuCommand ("liquidMenuPostVisibilityAttributes "+$prefix);
+      menuItem -label "Camera"            -command liquidCreateVisibilityCameraAttribute  ($prefix+"LiquidMenuItemVisibilityCamera");
+      menuItem -label "Ray Tracer"        -command liquidCreateVisibilityTraceAttribute   ($prefix+"LiquidMenuItemVisibilityTrace");
+      menuItem -label "Diffuse Rays"      -command liquidCreateVisibilityDiffuse          ($prefix+"LiquidMenuItemVisibilityDiffuse");
+      menuItem -label "Specular Rays"     -command liquidCreateVisibilitySpecular         ($prefix+"LiquidMenuItemVisibilitySpecular");
+      menuItem -label "Transmission Rays" -command liquidCreateVisibilityTransmission     ($prefix+"LiquidMenuItemVisibilityTransmission");
+    setParent -menu ..;
+    menuItem -label "Remove Visibility Group" -command liquidDeleteVisibilityAttributes -ann "Remove Visibility attributes from selected Transform node(s)";
+    menuItem -d true;
+    menuItem -label "Create Ray Tracing Group" -command liquidCreateObjectRayTracingAttributes -ann "Add Ray Tracing attributes to selected Transform node(s)";
+    menuItem -label "Ray Tracing Add" -subMenu true -tearOff true -postMenuCommand ("liquidMenuPostRaytracingAttributes "+$prefix) ($prefix+"LiquidMenuRaytracingSubMenu");
+      menuItem -label "Sample Motion"          -command liquidCreateSampleMotionAttribute;
+      menuItem -label "Trace Displacements"    -command liquidCreateTraceDisplacementsAttribute;
+      menuItem -label "Trace Bias"             -command liquidCreateTraceBiasAttribute;
+      menuItem -label "Maximum Diffuse Depth"  -command liquidCreateMaxDiffuseDepthAttribute;
+      menuItem -label "Maximum Specular Depth" -command liquidCreateMaxSpecularDepthAttribute;
+      menuItem -label "Diffuse Hit-Mode"       -command liquidCreateHitModeDiffuseAttribute      ($prefix+"LiquidMenuItemDiffuseHitMode");
+      menuItem -label "Specular Hit-Mode"      -command liquidCreateHitModeSpecularAttribute     ($prefix+"LiquidMenuItemSpecularHitMode");
+      menuItem -label "Transmission Hit-Mode"  -command liquidCreateHitModeTransmissionAttribute ($prefix+"LiquidMenuItemTransmissionHitMode");
+    setParent -menu ..;
+    menuItem -label "Remove Ray Tracing Group" -command liquidDeleteRayTracingAttributes -ann "Remove Ray Tracing attributes from selected Transform node(s)";
+    menuItem -d true;
+    menuItem -label "Create Global Illumination Group" -command  liquidCreateGlobalIlluminationAttributes -ann "Add Global Illumination attributes to selected Transform node(s)";
+    menuItem -label "Remove Global Illumination Group" -command  liquidDeleteGlobalIlluminationAttributes -ann "Remove Global Illumination attributes from selected Transform node(s)";
+    menuItem -d true;
+    menuItem -label "Create PhotonMap Group" -command  liquidCreatePhotonAttributes -ann "Add Photon Mapping attributes to selected Transform node(s)";
+    menuItem -label "Remove PhotonMap Group" -command  liquidDeletePhotonAttributes -ann "Remove Photon Mapping attributes from selected Transform node(s)";
+    menuItem -d true;
+    menuItem -label "Create Motion Blur Group" -command liquidCreateMotionBlurAttributes -ann "Add Motion Blur attributes to selected Transform node(s)";
+    menuItem -label "Motion Blur Add" -subMenu true -tearOff true;
+      menuItem -label "Transformation Blur" -command liquidCreateTransformationBlurAttribute;
+      menuItem -label "Deformation Blur" -command liquidCreateDeformationBlurAttribute;
+      menuItem -label "Motion Samples" -command liquidCreateMotionSamplesAttribute;
+      menuItem -label "Motion Factor" -command liquidCreateMotionFactorAttribute;
+    setParent -menu ..;
+    menuItem -label "Remove Motion Blur Group" -command liquidDeleteMotionBlurAttributes -ann "Remove Motion Blur attributes from selected Transform node(s)";
+    menuItem -d true;
+    menuItem -label "Add PrePosterous" -subMenu true -tearOff true;
+      menuItem -label "Pre Transform Mel" -command liquidCreatePreTransformMelAttribute;
+      menuItem -label "Post Transform Mel" -command liquidCreatePostTransformMelAttribute;
+      menuItem -label "Pre Shape Mel" -command liquidCreatePreShapeMelAttribute;
+      menuItem -label "Post Shape Mel" -command liquidCreatePostShapeMelAttribute;
+    setParent -menu ..;
+    menuItem -label "Remove PrePosterous" -subMenu true -tearOff true;
+      menuItem -label "Pre Transform Mel"  -command liquidDeletePreTransformMelAttribute;
+      menuItem -label "Post Transform Mel" -command liquidDeletePostTransformMelAttribute;
+      menuItem -label "Pre Shape Mel"      -command liquidDeletePreShapeMelAttribute;
+      menuItem -label "Post Shape Mel"     -command liquidDeletePostShapeMelAttribute;
+    setParent -menu ..;
+    menuItem -d true;
+    menuItem -label "Create RIB Group" -command liquidCreateRIBAttributes -ann "Add RIB attributes to selected Transform node(s)";
+    menuItem -label "RIB Add" -subMenu true -tearOff true;
+      menuItem -label "RIB Box"              -command liquidCreateRIBBoxAttribute;
+      menuItem -label "RIB Generator"        -command liquidCreateRIBGeneratorAttribute;
+      menuItem -label "Read Archive"         -command liquidCreateReadArchiveAttribute;
+      menuItem -label "Delayed Read Archive" -command liquidCreateDelayedReadArchiveAttribute;
+    setParent -menu ..;
+    menuItem -label "Shadow RIB Add" -subMenu true -tearOff true;
+      menuItem -label "Shadow RIB Box"              -command liquidCreateShdRIBBoxAttribute;
+      menuItem -label "Shadow RIB Generator"        -command liquidCreateShdRIBGeneratorAttribute;
+      menuItem -label "Shadow Read Archive"         -command liquidCreateShdReadArchiveAttribute;
+      menuItem -label "Shadow Delayed Read Archive" -command liquidCreateShdDelayedReadArchiveAttribute;
+    setParent -menu ..;
+    menuItem -label "Remove RIB Group"        -command liquidDeleteRIBAttributes -ann "Remove RIB attributes from selected Transform node(s)";
+    menuItem -label "Remove Shadow RIB Group" -command liquidDeleteShdRIBAttributes -ann "Remove Shadow RIB attributes from selected Transform node(s)";
+    menuItem -d true;
+    menuItem -label "Add Instancing"    -command liquidCreateInstancingAttributes -ann "Add Instancing control to selected node";
+    menuItem -label "Delete Instancing" -command liquidDeleteInstancingAttributes -ann "Remove Instancing control from selected Transform node(s)";
+    menuItem -d true;
+    menuItem -label "Create 3Delight Sub Surface Scattering Group" -command liquidCreate3DelightSubSurfaceScatteringAttributes -ann "Add 3Delight Sub Surface Scattering control to selected node";
+    menuItem -label "Remove 3Delight Sub Surface Scattering Group" -command liquidDelete3DelightSubSurfaceScatteringAttributes -ann "Remove 3Delight Sub Surface Scattering control to selected node";
+    menuItem -d true;
+    menuItem -label "Add Liquid Invisible"    -command liquidCreateLiquidInvisibleAttribute -ann "Add Liquid Invisible control to selected node";
+    menuItem -label "Delete Liquid Invisible" -command liquidDeleteLiquidInvisibleAttribute -ann "Remove Liquid Invisible control to selected node";
+    menuItem -d true;
+    menuItem -label "Add Liquid Ignore Shapes"    -command liquidCreateIgnoreShapesAttribute -ann "Add Liquid Ignore Shapes control to selected node";
+    menuItem -label "Delete Liquid Ignore Shapes" -command liquidDeleteIgnoreShapesAttribute -ann "Remove Liquid Ignore Shapes control to selected node";
+  setParent -menu ..;
+}
+
+global proc liquidCreateLightsAttributesMenu( string $prefix )
+{
+  menuItem -label "Light Attributes" -subMenu true -tearOff true;
+    menuItem -label "Create Area Light Attributes" -command liquidCreateAreaLightAttributes -ann "Add Area Light attributes to selected Light shape node(s)";
+    menuItem -label "Remove Area Light Attributes" -command liquidDeleteAreaLightAttributes -ann "Remove Area Light attributes from selected Light shape node(s)";
+    menuItem -d true;
+    menuItem -label "Create Shadow Attributes" -command liquidCreateLightShadowAttributes -ann "Add shadow attributes to selected Light shape node(s)";
+    menuItem -label "Remove Shadow Attributes" -command liquidDeleteLightShadowAttributes -ann "Remove shadow attributes from selected Light shape node(s)";
+    menuItem -d true;
+    menuItem -label "Create Output Attributes" -command liquidCreateLightOutputAttributes -ann "Add output attributes to selected Light shape node(s)";
+    menuItem -label "Remove Output Attributes" -command liquidDeleteLightOutputAttributes -ann "Remove output attributes from selected Light shape node(s)";
+    menuItem -d true;
+    menuItem -label "Create Decay Region Attributes" -command liquidCreateDecayRegionAttributes -ann "Add Decay Region attributes to selected Light shape node(s)";
+    menuItem -label "Remove Decay Region Attributes" -command liquidDeleteDecayRegionAttributes -ann "Remove Decay Region attributes from selected Light shape node(s)";
+    menuItem -d true;
+    menuItem -label "Create Shadow RIB Attributes" -command liquidCreateLightShadowRIBAttributes -ann "Add Shadow RIB attributes to selected Light shape node(s)";
+    menuItem -label "Remove Shadow RIB Attributes" -command liquidDeleteLightShadowRIBAttributes -ann "Remove Shadow RIB attributes from selected Light shape node(s)";
+    menuItem -d true;
+    menuItem -label "Create Ray Tracing Group" -command liquidCreateLightRayTracingAttributes -ann "Add Ray Tracing attributes to selected Light Transform node(s)";
+    menuItem -label "Ray Tracing Add" -subMenu true -tearOff true;
+      menuItem -label "Sample Motion"       -command liquidCreateSampleMotionAttribute;
+      menuItem -label "Trace Displacements" -command liquidCreateTraceDisplacementsAttribute;
+      menuItem -label "Trace Bias"          -command liquidCreateTraceBiasAttribute;
+    setParent -menu ..;
+    menuItem -label "Remove Ray Tracing Group" -command liquidDeleteRayTracingAttributes -ann "Remove Ray Tracing attributes from selected Light Transform node(s)";
+    menuItem -d true;
+    menuItem -label "Add Z-Threshold"    -command liquidAddZThres    -ann "Add a z-threshold control to selected light(s)";
+    menuItem -label "Delete Z-Threshold" -command liquidRemoveZThres -ann "Remove a z-threshold control from selected light(s)";
+  setParent -menu ..;
+}
+
+global proc liquidCreateSetsAttributesMenu( string $prefix )
+{
+  menuItem -label "Set Attributes" -subMenu true -tearOff true;
+    menuItem -label "Add Trace Set Attribute" -command liquidCreateSetAttributes -ann "Add Set attributes to the selected Set node(s)";
+    menuItem -label "Delete Trace Set Attribute" -command liquidDeleteSetAttributes -ann "Remove Set attributes from selected Set node(s)";
+  setParent -menu ..;
+}
+
+global proc liquidCreateShaderAttributesMenu( string $prefix )
+{
+  menuItem -label "Shader Attributes" -subMenu true -tearOff true;
+    menuItem -label "Add RIBBox" -command liquidCreateShaderRIBBox -ann "Add a RIBBox on selected shader(s)";
+    menuItem -label "Remove RIB Group" -command liquidRemoveShaderRIBBox -ann "Remove all RIBBox attributes";
+  setParent -menu ..;
+}
+
+/**
+ * create the liquid menu interface
+ */
+global proc liquidCreateMenus()
+{
+  global string $gMainWindow;
+
+  string $iconPath = (liquidGetHome()+"/icons/");
+
+  // keep it nice and clean
+  if ( `menu -exists liquidMainWindowMenu` ) deleteUI liquidMainWindowMenu;
+
+  if ( $gMainWindow != "" )
+  {
+    setParent $gMainWindow;
+    menu -label "Liquid" -tearOff true liquidMainWindowMenu;
+      menuItem -label "Render" -ann "Render" -command "liquidRender" -image ($iconPath+"liquidRender.xpm");
+      menuItem -label "Render Selected" -ann "Render only Selected Objects" -command "liquidRenderSelected";
+      menuItem -d true;
+      menuItem -label "Attribute Manager..."   -command liquidAttributeManager -ann "Liquid attributes manager";
+      //liquidCreateObjectsAttributesMenu( "main" );
+      //liquidCreateLightsAttributesMenu( "main" );
+      //liquidCreateSetsAttributesMenu( "main" );
+      menuItem -d true;
+      menuItem -label "Subdivision Surfaces" -subMenu true -tearOff true -aob true;
+        if ( !`optionVar -exists liqSubivMesh` )                 optionVar -iv liqSubdiv true;
+        if ( !`optionVar -exists liqSubdivFacevaryingUVs` )      optionVar -iv liqFacevaryingUVs false;
+        if ( !`optionVar -exists liqSubdivInterpolateBoundary` ) optionVar -iv liqInterpolateBoundary true;
+        if ( !`optionVar -exists liqSubdivCrease` )              optionVar -iv liqSubdivCrease 3;
+        if ( !`optionVar -exists liqSubdivCorner` )              optionVar -iv liqSubdivCorner 3;
+        if ( !`optionVar -exists liqSubdivHole` )                optionVar -iv liqSubdivHole true;
+        if ( !`optionVar -exists liqSubdivStitch` )              optionVar -iv liqSubdivStitch 1; // unique curve ID for pair stitched surfaces
+        menuItem -label "Tag as Subdivision Surface"   -command liquidMakeSubdiv -aob true -ann "Tag selected mesh(es) as a subdivision surface";
+        menuItem -c liquidMakeSubdivUI -ob true;
+        menuItem -label "Untag as Subdivision Surface" -command liquidUnMakeSubdiv -ann "Untag subdivision surface tag from selected mesh(es)";
+        menuItem -d true;
+        menuItem -label "Add Crease" -command liquidSubdivCreaseApply -aob true -ann "Add creases to selected edges";
+        menuItem -c liquidSubdivCreaseUI -ob true;
+        menuItem -label "Add Corner" -command liquidSubdivCornerApply -aob true -ann "Add corners to selected vertices";
+        menuItem -c liquidSubdivCornerUI -ob true;
+        menuItem -label "Add Hole" -command liquidSubdivHoleApply -aob true -ann "Add holes to selected faces";
+        menuItem -c liquidSubdivHoleUI -ob true;
+        menuItem -label "Add Stitch Seam" -command liquidSubdivStitchApply -aob true -ann "Add Stitch to selected vertices (new tag in PRman 11)";
+        menuItem -c liquidSubdivStitchUI -ob true;
+        menuItem -d true;
+        menuItem -label "Subdivison Surface Inspector..." -command liquidSubdivInspector;
+      setParent -menu ..;
+      //menuItem -label "Nurbs" -subMenu true -tearOff true;
+      //	menuItem -label "Add noNormalizeNurbs attribute" -command liquidAddNoNormalizeNurbs -ann "Tag NURBS as NOT normalized";
+      //setParent -menu ..;
+      menuItem -label "Curves" -subMenu true -tearOff true;
+        menuItem -label "Tag as Render Curve"       -command liquidMakeRenderCurve -ann "Tag selected NURBS curve(s) as renderable";
+        menuItem -label "Untag as Render Curve"     -command liquidUnMakeRenderCurve -ann "Untag renderable tag from selected NURBS curve(s)";
+        menuItem -label "Create Render Curve Group" -command liquidCreateCurveGroup -ann "Group multiple curves";
+      setParent -menu ..;
+      menuItem -label "Paint Effects" -subMenu true -tearOff true;
+        menuItem -label "Add Paint Effects Attributes"    -command liquidAddPFXAttributes -ann "Add Paint Effects Attributes Group to Stroke";
+        menuItem -label "Remove Paint Effects Attributes" -command liquidRemovePFXAttributes -ann "Remove Paint Effects Attributes Group from Stroke";
+      setParent -menu ..;
+      menuItem -label "Reference Geometry" -subMenu true -tearOff true;
+        menuItem -label "Freeze Reference Pose (__Pref)" -command liquidAddPrefAttribute -ann "Lock reference attribute (__Pref) to current position";
+        menuItem -label "Delete Reference Pose" -command liquidDeletePrefAttribute -ann "Delete reference attribute (__Pref)";
+        menuItem -d true;
+        menuItem -label "Freeze Reference Normals (__Nref)" -command liquidAddNrefAttribute -ann "Lock reference attribute (__Nref) to current normals";
+        menuItem -label "Delete Reference Normals" -command liquidDeleteNrefAttribute -ann "Delete reference attribute (__Nref)";
+      setParent -menu ..;
+      menuItem -d true;
+      menuItem -label "Create Coordinate System" -command liquidAddCoordSystem;
+      menuItem -label "Create Clipping Plane" -command liquidAddClipPlane;
+      menuItem -d true;
+      menuItem -label "Helpers" -subMenu true -tearOff true;
+        menuItem -label "Map Generators" -subMenu true -tearOff true -aob true;
+          if ( !`optionVar -exists liqRefPoleAxis` )    optionVar -sv liqRefPoleAxis "XZ";
+          if ( !`optionVar -exists liqRefPlaneSize` )   optionVar -iv liqRefPlaneSize 24;
+          if ( !`optionVar -exists liqRefMapSize` )     optionVar -iv liqRefMapSize 512;
+          if ( !`optionVar -exists liqRefShadingRate` ) optionVar -iv liqRefShadingRate 5;
+          if ( !`optionVar -exists liqRefEveryFrame` )  optionVar -iv liqRefEveryFrame true;
+          menuItem -label "Reflection" -aob true -command liquidAddReflection -ann "Add liquid Reflection map generator.";
+          menuItem -ob true -command liquidAddReflectionUI -ann "Add liquid Reflection map generator.";
+          if ( !`optionVar -exists liqEnvMapSize` )     optionVar -iv liqEnvMapSize 512;
+          if ( !`optionVar -exists liqEnvShadingRate` ) optionVar -iv liqEnvShadingRate 5;
+          if ( !`optionVar -exists liqEnvEveryFrame` )  optionVar -iv liqEnvEveryFrame true;
+          menuItem -label "Environment" -aob true -command liquidAddEnvironment -ann "Add liquid Environment map generator.";
+          menuItem -ob true -command liquidAddEnvironmentUI -ann "Add liquid Environment map generator.";
+        setParent -menu ..;
+        menuItem -d true;
+        menuItem -label "View Last Generated RIB" -command liquidViewLastRib -image ($iconPath+"liquidViewLastRib.xpm");
+        menuItem -label "View Last Render Script" -command liquidViewLastRenderScript;
+        menuItem -d true;
+                menuItem  -label "Convert Shading Network to RSL" -command liquidConvertShadingNetworkToRSL
+                  -ann "Tries to convert selected hypershade shaders / networks to Sl, compile them and attach them";
+        menuItem  -label "Convert MtoR to Liquid" -command liquidConvertMtor
+                  -ann "Tries to convert any reference to MtoR/RAT in the scene into matching liquid assignments BASED ON CURRENT PALETTE";
+        //menuItem -label "Shader Manager" -ann "Shader Source Manager" -command "liquidSLManager";
+        menuItem -label "SL Search/Replace..." -ann "SL search/replace utility" -command "liquidSLEditor";
+      setParent -menu ..;
+      menuItem -label "External RIB" -subMenu true -tearOff true;
+        menuItem -label "Add RIB Generator..." -command liquidAssignRibGenCMD;
+        menuItem -label "Delete RIB Generator" -command liquidRibGenDelete;
+        menuItem -d true;
+        menuItem -label "Add RIB Box" -command liquidAddRibBox -ann "Add Additional RIB Node";
+        menuItem -label "Add Ribbox node..." -command ("liquidNewRibboxNode \"\"") -ann "Add a Ribbox Node";
+        menuItem -label "Delete RIB Box" -command liquidDeleteRibBox -ann "Remove Additional RIB node";
+        menuItem -d true;
+        menuItem -label "Add ReadArchive" -command liquidReadArchive -ann "Add A RiReadArchive node";
+        menuItem -label "Delete ReadArchive" -command liquidDeleteReadArchive -ann "Remove A RiReadArchive node";
+        menuItem -d true;
+        menuItem -label "Add DelayedReadArchive" -command liquidDelayedReadArchive;
+        menuItem -label "Delete DelayedReadArchive" -command liquidDeleteDelayedReadArchive;
+        menuItem -d true;
+        menuItem -label "Export Selected as RIB Archive" -ann "Write a RIB file for selected object only" -command "liquid -GL -ra -nolr -sel";
+        menuItem -label "Export Selected as RIB Archive Without Shaders" -enable false -ann "Write a RIB file for selected object only without shaders";
+      setParent -menu ..;
+      menuItem -d true;
+      menuItem -label "Clear Liquid..." -ann "Remove all Liquid nodes from the current scene" -command "liquidCleanup( 1 )";
+      menuItem -d true;
+      menuItem -label "Liquid Light Linker" -ann "Use Liquids Set Light linking" -command LLL_lightCentricUI;
+      menuItem -d true;
+      menuItem -label "Help" -ann "HTML Help" -command "liquidMenuHelp";
+      menuItem -label "About..." -command "liquidShowAbout";
+  }
+}
+/**
+ * Destroy the liquid menu interface
+ */
+global proc liquidRemoveMenus()
+{
+  deleteUI liquidMainWindowMenu;
+}
+/**
+ * Command called when the preview menu item is picked
+ */
+global proc liquidRender()
+{
+  if ( !`liquidGlobalsExists` ) liquidCreateGlobals;
+  liquid -GL;
+}
+/**
+ * 
+ */
+global proc int[] liquidPreview_getRenderViewResolution()
+{
+  float $xres = `getAttr liquidGlobals.xResolution`;
+  float $yres = `getAttr liquidGlobals.yResolution`;
+  int   $res, $width, $heigth;
+  if ( `optionVar -ex renderViewTestResolution` ) 
+    $res  = `optionVar -q renderViewTestResolution`;
+
+  switch ( $res ) 
+  {
+    case 2:
+      $width  = $xres * 0.1;
+      $heigth = $yres * 0.1;
+      break;
+    case 3:
+      $width  = $xres * 0.25;
+      $heigth = $yres * 0.25;
+      break;
+    case 4:
+      $width  = $xres * 0.5;
+      $heigth = $yres * 0.5;
+      break;
+    case 5:
+      $width  = $xres * 0.75;
+      $heigth = $yres * 0.75;
+      break;
+    case 6:
+      $width  = $xres * 1.1;
+      $heigth = $yres * 1.1;
+      break;
+    case 7:
+      $width  = $xres * 1.25;
+      $heigth = $yres * 1.25;
+      break;
+    case 8:
+      $width  = $xres * 1.5;
+      $heigth = $yres * 1.5;
+      break;
+    default:
+      $width  = $xres;
+      $heigth = $yres;
+      break;
+  }
+  return {$width, $heigth};
+}
+/**
+ * 
+ */
+global proc float[] liquidPreview_getRenderViewCropWindow()
+{
+  int $imageSize[] = liquidPreview_getRenderViewResolution();
+  int $renderRegion[] = `liquidRenderView -rg`;
+  float $x1, $x2, $y1, $y2;
+
+  $x1 = max( 0.0, float( $renderRegion[0] ) / ( $imageSize[0] - 1 ) );
+  $x2 = max( 0.0, float( $renderRegion[1] ) / ( $imageSize[0] - 1 ) );
+  $y1 = min( 1.0, float( $imageSize[1] - $renderRegion[3] - 2 ) / ( $imageSize[1] ) );
+  $y2 = min( 1.0, float( $imageSize[1] - $renderRegion[2] - 1 ) / ( $imageSize[1] ) );
+
+  return {$x1, $x2, $y1, $y2};
+}
+/**
+ * 
+ */
+global proc liquidmayaCmdlineRender( string $options )
+{
+  string $cmd = ( "liquid -GL " + $options );
+  eval $cmd;
+}
+/**
+ * 
+ */
+global proc liquidmayaBatchRender( string $options )
+{
+  if ( ! `pluginInfo -q -l "liquid"` ) loadPlugin "liquid";
+  string $cmd = ( "liquid -GL " + $options );
+  eval $cmd;
+}
+/**
+ * 
+ */
+global proc liquidPreview()
+{
+  if ( !`liquidGlobalsExists` ) liquidCreateGlobals;
+  
+  undoInfo -stateWithoutFlush 0;
+  int $mods = `getModifiers`;
+  if ( ($mods / 1) % 2)  liquidPreviewSelected();
+  else 
+  {
+    int $imageSize[2] = liquidPreview_getRenderViewResolution();
+    liquid -GL -renderView -x $imageSize[0] -y $imageSize[1];
+  }
+  undoInfo -stateWithoutFlush 1;
+}
+/**
+ * 
+ */
+global proc liquidCropPreview()
+{
+  if ( !`liquidGlobalsExists` ) liquidCreateGlobals;
+  
+  int $imageSize[2] = liquidPreview_getRenderViewResolution();
+  float $crop[] = liquidPreview_getRenderViewCropWindow();
+  liquid -GL -renderView -x $imageSize[0] -y $imageSize[1] -cw $crop[0] $crop[1] $crop[2] $crop[3];
+}
+/**
+ * 
+ */
+global proc liquidRenderSelected()
+{
+  if ( !`liquidGlobalsExists` ) liquidCreateGlobals;
+
+  liquid -GL -sel;
+}
+/**
+ * 
+ */
+global proc liquidPreviewSelected()
+{
+  if ( !`liquidGlobalsExists` ) liquidCreateGlobals;
+  
+  liqShowRV();
+  int $imageSize[2] = liquidPreview_getRenderViewResolution();
+  liquid -GL -renderView -x $imageSize[0] -y $imageSize[1] -sel;
+}
+/**
+ * Returns the name of the Maya Scene
+ */
+global proc string liquidGetSceneName()
+{
+  string $fullName = `file -q -a`;
+  string $choppedName[];
+  tokenize $fullName "/" $choppedName;
+  string $shortName = $choppedName[ size( $choppedName ) - 1 ];
+  tokenize $shortName "." $choppedName;
+  $shortName = $choppedName[0];
+  return $shortName;
+}
+/**
+ *  register the available functions in the sl lib
+ */
+global proc liquidRegisterSlLib()
+{
+  global string $gLiquidSlLibFunctions[];
+  clear $gLiquidSlLibFunctions;
+
+  string $libPath = (liquidGetHome()+"/slLib");
+  string $null = "\"\"";
+
+  if ( `filetest -d $libPath` ) 
+  {
+    $libPath += "/";
+    string $categories[] = `getFileList -fld $libPath`;
+    for ( $cat in $categories ) 
+    {
+      string $tmp[] = `getFileList -fld ($libPath+$cat+"/") -fs "*.h"`;
+      int $i = 0;
+      while ( $tmp[$i] != "" ) 
+      {
+        int $s = size( $tmp[$i] );
+        $tmp[$i] = substring( $tmp[$i], 1, $s-2);
+        $i++;
+      }
+      $gLiquidSlLibFunctions[size( $gLiquidSlLibFunctions )] = ($cat+":"+stringArrayToString( $tmp, ":") );
+    }
+  } 
+  else 
+    warning ("The slLib is not in "+$libPath+" !!!");
+}
+/**
+ * Removes all liquid interface windows from the scene.
+ */
+global proc liquidCleanUp()
+{
+  // nothing to do
+}
+/**
+ * Create a script node in charge of closing gui elements before loading a new scene.
+ * This script node is NOT active in batch mode.
+ * \see liquidCleanUp()
+ */
+global proc liquidCreateScriptNode()
+{
+  if ( !objExists( "liquidCleanUpNode" ) )  
+    scriptNode  -scriptType     2
+                -beforeScript   "if ( `whatIs liquid` == \"Command\" ) liquidCreateScriptNode;"
+                -afterScript    "if ( `whatIs liquid` == \"Command\" ) liquidCleanUp;"
+                -name           liquidCleanUpNode;
+}
+/**
+ * 
+ */
+global proc liquidCreateScriptJobs()
+{
+  // setup a scriptJob to update some widgets
+  // when the renderlayers change
+  string $jobs[] = `scriptJob -lj`;
+  for ( $j in $jobs ) 
+  {
+    if ( gmatch( $j, "*liquidLargeFieldUpdater*") )        scriptJob -kill (int(match("[0-9]+", $j))) -force;
+    if ( gmatch( $j, "*liquidSwitchGlobalsRenderLayer*") ) scriptJob -kill (int(match("[0-9]+", $j))) -force;
+  }
+
+  // switch layouts when the render layer changes
+  scriptJob -event "renderLayerManagerChange" "eval(\"liquidSwitchGlobalsRenderLayer\")" -protected;
+  scriptJob -event "renderLayerChange" "eval(\"liquidLargeFieldUpdater;liquidAE_LifStringOverrideDisplayAll\")" -protected;
+  scriptJob -event "renderLayerManagerChange" "eval(\"liquidLargeFieldUpdater;liquidAE_LifStringOverrideDisplayAll\")" -protected;
+}
+/**
+ * Initializes the Liquid User Interface.
+ */
+global proc liquidStartup()
+{
+  // BT: the module manager takes care of sourcing so we dont want to be sourcing this lot twice
+  // MM: We need to add code that checks the environment to see if we are at RSP.
+  // We can't just break Liquid for everyone but ourselves -- particularly not if we really have
+  // the intention to commit our stuff back more regularly than in the past. :)
+  // Besides, there are leftovers in the mel/ folder, so we don't want to blindfoldely source
+  // everything in there anyway.
+  liquidLoadScripts();
+  liquidMayaVersionOverwrite();
+  //liquidRegisterSlLib();
+  liquidCreateMenus();
+  liquidCreateScriptNode();
+  liquidCreateScriptJobs();
+  registerLiquidRenderer();
+
+  eval "liquidAETemplateOverwrite";
+  evalDeferred -lp "liquidAETemplateOverwrite";
+}    

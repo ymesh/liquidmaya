@@ -1,0 +1,735 @@
+//--------------------------------------------------------------------
+// liquidConvertShadingNetworkToRSL.mel
+//
+// Original code by Jonathan Feldstein (C.O.R.E. Digital Pictures)
+//                  Rob Pieke (C.O.R.E. Digital Pictures)
+//
+//--------------------------------------------------------------------
+
+//source "liquidWriteRSL_materials.mel";
+//source "liquidWriteRSL_textures.mel";
+//source "liquidWriteRSL_utilities.mel";
+eval("source \"" + `liquidGetHome` + "/mel/liquidWriteRSL_materials.mel\"");
+eval("source \"" + `liquidGetHome` + "/mel/liquidWriteRSL_textures.mel\"");
+eval("source \"" + `liquidGetHome` + "/mel/liquidWriteRSL_utilities.mel\"");
+
+
+//--------------------------------------------------------------------
+// Check to see if we know how to convert this node to RSL.
+//--------------------------------------------------------------------
+
+proc int nodeIsConvertible ( string $node )
+{
+    // Array of convertible types. Add to this as more types are
+    // supported.
+    //
+    string $convertibleNodeTypes[] =
+    {
+        // Materials.
+        //
+        "blinn",
+        "layeredShader",
+        "lambert",
+        "phong",
+
+        // Textures.
+        //
+        "checker",
+        "cloth",
+        "file",
+        "fractal",
+        "snow",
+        "solidFractal",
+        "grid",
+
+        // Utilities.
+        //
+        "condition",
+        "multiplyDivide",
+        "place2dTexture",
+        "reverse",
+        "samplerInfo",
+        "blendColors",
+        "gammaCorrect",
+        "hsvToRgb",
+        "luminance",
+        "rgbToHsv",
+        "clamp"
+    };
+
+    // Get the type for the node parameter and iterate through the
+    // list to see if it's in there.
+    //
+    string $nodeType = `nodeType $node`;
+    for( $convertibleNodeType in $convertibleNodeTypes )
+    {
+        if( $convertibleNodeType == $nodeType )
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+//--------------------------------------------------------------------
+// Validate that a given plug exists.
+//--------------------------------------------------------------------
+
+proc int ensurePlugExists ( string $plug )
+{
+    string $components[];
+    tokenize $plug "." $components;
+    string $node = $components[ 0 ];
+    string $attribute = $components[ 1 ];
+    $attribute = `substitute "\\[.*" $attribute ""`;
+
+    if( !`attributeExists $attribute $node` )
+    {
+        error( "Attribute '" + $attribute + "' is not part " +
+               "of the '" + `nodeType $node` + "' node." );
+        return false;
+    }
+    return true;
+}
+
+//--------------------------------------------------------------------
+// Check to see if a plug (node and attribute) is connected to a node
+// that we're able to convert to RSL and, if so, what the type of
+// connection is. Preference is given to outgoing connections.
+//
+// 2 = outgoing (and possible incoming) connection
+// 1 = incoming connection
+// 0 = no connection
+//--------------------------------------------------------------------
+
+global proc int convertibleConnection ( string $plug )
+{
+    // Check to see if the plug even exists!
+    //
+    if( `ensurePlugExists( $plug )` == false )
+    {
+        return 0;
+    }
+
+    string $connections[];
+
+    // Check to see if the plug is connected as an output
+    // to any node(s) we can convert.
+    //
+    $connections = `listConnections -source off
+                                    -destination on
+                                    $plug`;
+
+    if( size( $connections ) != 0 )
+    {
+        for( $connection in $connections )
+        {
+            if( `nodeIsConvertible $connection` )
+            {
+                return 2;
+            }
+        }
+    }
+
+    // Check to see if the plug is connected as an input from any
+    // node(s) we can convert.
+    //
+    $connections = `listConnections -source on
+                                    -destination off
+                                    $plug`;
+    if( size( $connections ) != 0 )
+    {
+        for( $connection in $connections )
+        {
+            if( `nodeIsConvertible $connection` )
+            {
+                return 1;
+            }
+        }
+    }
+
+    // Otherwise, return "no convertible connection".
+    //
+    return 0;
+}
+
+//--------------------------------------------------------------------
+// Perform the necessary setup to allow a variable to be used in the
+// current block (function) of RSL code.
+//
+// If the associated Maya plug is connected to a node we can convert,
+// then the variable is added to the block's header as an input/output
+// parameter.
+//
+// If the plug is not connected, or is connected to a node we can not
+// convert, then the variable is added to the block's body, and the
+// current Maya value is pulled in.
+//--------------------------------------------------------------------
+
+global proc addRSLVariable ( string $rslType, string $rslName, string $mayaName, string $mayaNode )
+{
+    global string $rslShaderHeader;
+    global string $rslShaderBody;
+
+    // If the user specified that the type was an array of floats
+    // (eg "float2"), extract the size and set the type to float.
+    //
+    int $rslTypeSize = 1;
+    if( match( "float[0-9]+$", $rslType ) != "" )
+    {
+        $rslTypeSize = `match "[0-9]+$" $rslType`;
+        $rslType = "float";
+    }
+
+    // Create the plug's name, and check for convertible connections.
+    //
+    string $plug = ( $mayaNode + "." + $mayaName );
+    int $connected = `convertibleConnection $plug`;
+
+    // If there are no convertible connections, then we have to
+    // write out the variable into the shader's body.
+    //
+    if( $connected == 0 )
+    {
+        // Write out the description of the variable.
+        //
+        $rslShaderBody += ( " " + $rslType + " " + $rslName );
+        if( $rslTypeSize != 1 )
+        {
+            $rslShaderBody += ( "[" + $rslTypeSize + "] = " );
+        }
+        else
+        {
+            $rslShaderBody += ( " = " + $rslType + " " );
+        }
+
+        // Write out the value of the variable.
+        //
+        switch( $rslType )
+        {
+        case "color" :
+        case "point" :
+        case "normal" :
+        case "vector" :
+        {
+            float $val[] = `getAttr $plug`;
+            $rslShaderBody += ( "( " + $val[ 0 ] + ", " );
+            $rslShaderBody += ( $val[ 1 ] + ", " );
+            $rslShaderBody += ( $val[ 2 ] + " )" );
+        }
+        break;
+
+        case "string" :
+        {
+            string $val = `getAttr $plug`;
+            $rslShaderBody += ( "\"" + $val + "\"" );
+        }
+        break;
+
+        case "float" :
+        {
+            if( $rslTypeSize == 1 )
+            {
+                float $val = `getAttr $plug`;
+                $rslShaderBody += $val;
+            }
+            else
+            {
+                $rslShaderBody += "{ ";
+                float $val[] = `getAttr $plug`;
+                int $i = 0;
+                for( ; $i < $rslTypeSize; $i += 1 )
+                {
+                    if( $i != 0 )
+                    {
+                        $rslShaderBody += ", ";
+                    }
+                    $rslShaderBody += $val[ $i ];
+                }
+                $rslShaderBody += " }";
+            }
+        }
+        break;
+        }
+        $rslShaderBody += ";\n";
+    }
+
+    // Otherwise, we have a convertible connection, so we'll be
+    // adding the variable to the block's header.
+    //
+    else
+    {
+        $rslShaderHeader += " ";
+
+        // Note if it's connected as an output.
+        //
+        if( $connected == 2 )
+        {
+            $rslShaderHeader += "output ";
+        }
+
+        // Write out the description.
+        //
+        $rslShaderHeader += ( $rslType + " " + $rslName );
+        if( $rslTypeSize != 1 )
+        {
+            $rslShaderHeader += "[]";
+        }
+        $rslShaderHeader += ";\n";
+    }
+}
+
+//--------------------------------------------------------------------
+// Add a segment of code to the current RSL block (function).
+//--------------------------------------------------------------------
+
+global proc addToRSL ( string $code )
+{
+    global string $rslShaderBody;
+    $rslShaderBody += ( " " + $code + "\n" );
+}
+
+//--------------------------------------------------------------------
+// End the current block (function) of RSL code.
+//--------------------------------------------------------------------
+
+global proc endRSL ()
+{
+    global string $rslShaderHeader;
+    global string $rslShaderBody;
+
+    global int $RSLfileId;
+
+    // "Close" the header and body.
+    //
+    $rslShaderHeader += ")\n";
+    $rslShaderBody += "}\n";
+
+    // Output the RSL code.
+    //
+    fprint $RSLfileId ( $rslShaderHeader + $rslShaderBody + "\n" );
+}
+
+//--------------------------------------------------------------------
+// Begin a new block (function) of RSL code.
+//--------------------------------------------------------------------
+
+global proc beginRSL ( string $name )
+{
+    global string $rslShaderHeader;
+    global string $rslShaderBody;
+
+    // "Open" the header and body.
+    //
+    $rslShaderHeader = ( "void " + $name + " (\n" );
+    $rslShaderBody = "{\n";
+}
+
+//--------------------------------------------------------------------
+// Generate a list of upstream nodes that we can convert to RSL, and
+// note the number of incoming connections for each.
+//--------------------------------------------------------------------
+
+proc int getUpstreamConvertibleNodes ( string $currentNode, string $nodes[], int $numConnections[] )
+{
+    // If the current node has already been visited
+    for( $node in $nodes )
+    {
+        if( $node == $currentNode )
+        {
+            return 1;
+        }
+    }
+
+    // If the node is not supported
+    if( !nodeIsConvertible( $currentNode ) )
+    {
+        return 0;
+    }
+
+    int $index = size( $nodes );
+
+    // Append the current node to the list of nodes
+    $nodes[ $index ] = $currentNode;
+
+    // Initialize the number of input connections to 0 for the newly found node
+    $numConnections[ $index ] = 0;
+
+    // Get the list of supported connections from the current node
+    string $validConnections[] =
+        eval( "validConnections_" + `nodeType $currentNode` );
+
+    // Get the list of up stream nodes along supported connections
+    string $upstreamNodes[];
+    for( $validConnection in $validConnections )
+    {
+        string $plug = ( $currentNode + "." + $validConnection );
+
+        if( `convertibleConnection $plug` != 0 )
+        {
+            $upstreamNodes =
+                stringArrayCatenate( $upstreamNodes,
+                                     `listConnections -source on
+                                                      -destination off
+                                                      $plug` );
+        }
+    }
+
+    // Remove duplicate nodes from the list
+    $upstreamNodes = stringArrayRemoveDuplicates( $upstreamNodes );
+
+    for( $node in $upstreamNodes )
+    {
+        $numConnections[ $index ] +=
+            getUpstreamConvertibleNodes( $node,
+                                         $nodes,
+                                         $numConnections );
+    }
+    return 1;
+}
+
+//--------------------------------------------------------------------
+// Adds all of the valid input nodes for the given plug to the input
+// variable list.
+//--------------------------------------------------------------------
+
+proc addNodeInputVariable( string $plug, string $inputVars[] )
+{
+    string $inputPlugs[] = `listConnections -plugs true $plug`;
+    string $varName;
+    string $inputNode;
+    int $inputIndex = size( $inputVars );
+
+    for( $inputPlug in $inputPlugs )
+    {
+        string $buffer[];
+        tokenize $inputPlug "." $buffer;
+
+        $inputNode = $buffer[ 0 ];
+
+        if( nodeIsConvertible( $inputNode ) )
+        {
+            // Ensure that the connected plug is being exported
+            // (ie supported by the converter).
+            //
+            string $inputAttribute = $buffer[ 1 ];
+            int $notConnected = true;
+            string $validConnections[] =
+                eval( "validConnections_" + `nodeType $inputNode` );
+            for( $connection in $validConnections )
+            {
+                if( $connection == $inputAttribute )
+                {
+                    $notConnected = false;
+                    break;
+                }
+            }
+            if( $notConnected == true )
+            {
+                continue;
+            }
+
+            string $varName =
+                substituteAllString( $inputPlug, ".", "_");
+            $inputVars[ $inputIndex ] = $varName;
+            $inputIndex += 1;
+        }
+    }
+}
+
+//--------------------------------------------------------------------
+// Adds all of the valid output nodes for the given plug to the output
+// variable list.  Also adds the variables to the shader method
+// variable list.
+//--------------------------------------------------------------------
+proc addNodeOutputVariable( string $node, string $validConnection,
+                            string $plug, string $outputVars[],
+                            string $shaderData[] )
+{
+    string $type = `getAttr -type $plug`;
+    string $varName = $node + "_" + $validConnection;
+    int $outputIndex = size( $outputVars );
+
+    if( match( "float[0-9]*$", $type ) != "" )
+    {
+        $typeSize = `match "[0-9]*$" $type`;
+        if( $typeSize == "" )
+        {
+            $shaderData[0] = $shaderData[0] + " float "
+                + $varName + ";\n";
+        }
+        else if( $typeSize == "3" )
+        {
+            $shaderData[0] = $shaderData[0] + " vector "
+                + $varName + ";\n";
+        }
+        else
+        {
+            $shaderData[0] = $shaderData[0] + " float "
+                + $varName + "[" + $typeSize + "];\n";
+        }
+
+        $outputVars[ $outputIndex ] = $varName;
+    }
+}
+
+//--------------------------------------------------------------------
+// Given a convertible node and a set of valid connections for that
+// node, this function returns a string consisting of the input and
+// output variables for the this node.
+//--------------------------------------------------------------------
+proc string getNodeVariables( string $node, string $validConnections[], string $shaderData[] )
+{
+    string $vars[];
+    string $varString = "";
+    string $inputVars[];
+    string $outputVars[];
+    int $connectionType = 0;
+
+    for( $validConnection in $validConnections )
+    {
+        string $plug = ( $node + "." + $validConnection );
+        $connectionType = `convertibleConnection $plug`;
+
+        // If the connection is neither an input or output connection
+        if( $connectionType != 1 && $connectionType != 2 )
+        {
+            continue;
+        }
+
+        // Get input variable
+        if( $connectionType == 1 )
+        {
+            addNodeInputVariable( $plug, $inputVars );
+        }
+        // Get output variable
+        else if( $connectionType == 2 )
+        {
+            addNodeOutputVariable( $node, $validConnection, $plug,
+                                   $outputVars, $shaderData );
+        }
+    }
+
+    // Creates the variable string from the variable list
+    $vars = stringArrayCatenate( $inputVars, $outputVars );
+    $numVars = size( $vars );
+    int $index = 0;
+    for( ; $index < $numVars; $index += 1 )
+    {
+        if( $index == $numVars - 1 )
+        {
+            $varString += $vars[ $index ];
+        }
+        else
+        {
+            $varString += $vars[ $index ] + ", ";
+        }
+    }
+
+    return $varString;
+}
+
+//--------------------------------------------------------------------
+// Given a convertible node and its valid connections, iterates over
+// all of the convertible nodes downstream of it and decrements their
+// number of connections.
+//--------------------------------------------------------------------
+
+proc decrementDownstreamConnections( string $node, string $nodes[], int $numConnections[], string $validConnections[] )
+{
+    string $downstreamNodes[];
+
+    // Get the list of down stream nodes along supported connections
+    for( $validConnection in $validConnections )
+    {
+        string $plug = ( $node + "." + $validConnection );
+        $downstreamNodes =  stringArrayCatenate( $downstreamNodes,
+                                                 `listConnections -source off
+                                                 -destination on
+                                                 $plug` );
+    }
+
+    // Remove duplicate nodes from the list
+    $downstreamNodes = stringArrayRemoveDuplicates( $downstreamNodes );
+
+    // For each down stream node, decrement the number of connections
+    int $index = 0;
+    int $numNodes = size( $nodes );
+    for( $downstreamNode in $downstreamNodes )
+    {
+        $index = 0;
+        for( ; $index < $numNodes; $index += 1 )
+        {
+            if( `strcmp $downstreamNode $nodes[ $index ]` == 0 )
+            {
+                $numConnections[ $index ] -= 1;
+                break;
+            }
+        }
+    }
+
+    clear $downstreamNodes;
+}
+
+//--------------------------------------------------------------------
+// traverse the graph outputing functions for nodes that have received
+// all of their respective inputs.
+//--------------------------------------------------------------------
+proc traverseGraphAndOutputNodeFunctions( string $nodes[], int $numConnections[], string $shaderData[] )
+{
+    int $index = 0;
+    int $numNodes = size( $nodes );
+    for( ; $index < $numNodes; $index += 1 )
+    {
+        // if the current node has all of its required inputs, then
+        // write out the information for the current node and decrement
+        // the number of inputs for all nodes awaiting the completion of
+        // the current node
+        if( $numConnections[ $index ] == 0 )
+        {
+            string $currentNode = $nodes[ $index ];
+
+            // write out the current node's function
+            eval( "writeRSL_" + `nodeType $currentNode` + " " + $currentNode );
+
+            // Get the list of supported connections from the current node
+            string $validConnections[] =
+                eval( "validConnections_" + `nodeType $currentNode` );
+
+            decrementDownstreamConnections( $currentNode,
+                                            $nodes,
+                                            $numConnections,
+                                            $validConnections );
+
+            string $vars = getNodeVariables( $currentNode,
+                                             $validConnections,
+                                             $shaderData );
+
+            // Add the current node method to the shader body
+            $shaderData[1] = $shaderData[1] + " " + $currentNode
+                + "(" + $vars + ");\n";
+
+            // We are done with the current node
+            $numConnections[ $index ] = -1;
+
+            // Start back at the beginning
+            $index = -1;
+        }
+    }
+}
+
+//--------------------------------------------------------------------
+// Outputs the shader method.
+//--------------------------------------------------------------------
+
+proc outputShaderMethod( string $shaderData[] )
+{
+    global int $RSLfileId;
+
+    fprint $RSLfileId ( "surface " + $shaderData[2] + "()\n{\n" );
+    fprint $RSLfileId ( $shaderData[0] );
+    fprint $RSLfileId ( "\n");
+    fprint $RSLfileId ( $shaderData[1] );
+    fprint $RSLfileId ( "}\n" );
+}
+
+//--------------------------------------------------------------------
+// Convert a network of shading nodes to RSL.
+//--------------------------------------------------------------------
+
+proc convertShadingNetworkToRSL ( string $startingNode, string $assingToNode )
+{
+    string $nodes[];
+    int $numConnections[];
+
+    string $shaderData[];
+    $shaderData[0] = "";  // shader method variables
+    $shaderData[1] = "";  // shader method body
+    $shaderData[2] = $startingNode; // shader name
+
+    // Get the supported nodes and their respective number of connections
+    getUpstreamConvertibleNodes( $startingNode,
+                                 $nodes,
+                                 $numConnections );
+
+    global int $RSLfileId;
+    // Work out where to put it & make sure the directory exists
+    string $shaderdir = `workspace -q -rd` + `getAttr "liquidGlobals.shaderDirectory"` + "/";
+    $shaderdir = toNativePath( $shaderdir);
+    sysFile -md $shaderdir;
+    // create the file
+    string $shaderFileName = ( $shaderdir + $startingNode );
+    $RSLfileId =`fopen ( $shaderFileName + ".sl" ) "w"`;
+
+    // Traverse the graph outputing functions for nodes that have received all
+    // of their respective inputs
+    traverseGraphAndOutputNodeFunctions( $nodes,
+                                         $numConnections,
+                                         $shaderData );
+
+    // Output the shader method
+    outputShaderMethod( $shaderData );
+
+    fclose $RSLfileId;
+
+  // Compile the shader with the current renderer's shader compiler
+  string $shaderComp = `getAttr "liquidGlobals.shaderComp"`;
+  string $shaderdirpath = $shaderdir;
+  if ( !gmatch( $shaderdir, "/*") || !gmatch( $shaderdir, "?:*") )
+    $shaderdirpath = ( workspace( "-q", "-rd" ) + $shaderdir );
+  ltrace ( "cd " + $shaderdirpath );
+  ltrace ( $shaderComp + " " + $startingNode  + ".sl" );
+  system ( "cd " + $shaderdirpath  );
+  system ( $shaderComp + " " + $startingNode + ".sl"  );
+
+  string $shaderExt = `getAttr "liquidGlobals.shaderExt"`;
+
+  string $SLShaderNode = getSLShaderNodeFor( $assingToNode );
+
+  if ( $SLShaderNode == "" ) {
+    string $shader = `liquidNewShaderNode ( $shaderFileName + "." + $shaderExt )`;
+    liquidAssignShaderNode_old( $assingToNode, $shader );
+  } else {
+    setAttr -type "string" ($SLShaderNode+".rmanShaderLong")  ($shaderFileName+"."+$shaderExt);
+    liquidShaderNodes_initParams( $SLShaderNode );
+  }
+}
+
+//--------------------------------------------------------------------
+// Main function called from Liquid
+//--------------------------------------------------------------------
+
+global proc liquidConvertShadingNetworkToRSL ()
+{
+  if ( !`liquidGlobalsExists` ) {
+    liquidCreateGlobals;
+  }
+
+  // convert shape selections to shaders attached to shapes
+    string $sel[] = `ls -selection -dag -shapes`;
+    for( $node in $sel )
+    {
+      string $sgNodes[] = `listConnections -destination on ( $node + ".instObjGroups" )`;
+    string $shaders[] = `listConnections ( $sgNodes[0] + ".surfaceShader" )`;
+    string $startingNode = $shaders[0];
+
+        convertShadingNetworkToRSL $startingNode $node;
+    }
+
+    // ShadingGroup selections get converted to shaders attached to the group
+    string $sel[] = `ls -selection -type "shadingEngine"`;
+    for( $node in $sel )
+    {
+    string $shaders[] = `listConnections ( $node + ".surfaceShader" )`;
+    string $startingNode = $shaders[0];
+
+        convertShadingNetworkToRSL $startingNode $node;
+    }
+
+    // Shading Node selections get converted to shaders attached to the material
+    string $sel[] = `ls -selection -mat`;
+    for( $node in $sel )
+    {
+        convertShadingNetworkToRSL $node $node;
+    }
+}

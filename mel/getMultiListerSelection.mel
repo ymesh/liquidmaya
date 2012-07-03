@@ -1,0 +1,48 @@
+                  global proc string[] getMultiListerSelection()
+                  {
+                    string $targets[];
+                    
+                    // Get the MultiLister panel.  There _should_ be only one
+                    // of these.
+                    string $scriptPanels[] = `getPanel -scriptType "multiListerPanel"`;
+
+                    // Just in case...  
+                    if ( size( $scriptPanels ) > 1 )
+                    {
+                      warning ( "More than one active multiListerPanel!" );
+                    }
+
+                    string $nameRoot = $scriptPanels[0];
+
+                    // Get the control for the panel.
+                    // Append the Panel name to get the "topLayout"
+                    string $control = `scriptedPanel -q -control $nameRoot`;
+                    
+                    // If no control is present, MultiLister is not open
+                    if ( "" != $control )
+                    {
+                      string $topLayout = $control + "|" + $nameRoot;
+
+                      // And finally, the active MultiLister  
+                      $theLister = `findActiveLister $topLayout $nameRoot`; 
+
+                      if ( `listerEditor -exists $theLister` )
+                      {
+                        // Code unabashedly copy and paste from 'buildMultiListerEditMenu.mel'
+                        
+                        int $inSelectMode = `listerEditor -q -inSelectMode $theLister`;
+                    
+                        if($inSelectMode == 0) 
+                        {
+                          // get highlight list
+                          $targets = `listerEditor -q -highlight $theLister`;
+                        }
+                        else
+                        {
+                          $targets = `ls -sl`;      
+                        }
+                      }
+                    }
+
+                    return $targets;
+                  }

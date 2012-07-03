@@ -1,0 +1,88 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+
+//
+//  Creation Date:  June 30, 2000
+//
+//
+//  Description:
+//      Liquids DelayedReadArchive Scripts.
+
+
+// create the liquid menu interface
+global proc liquidDelayedReadArchive ()
+{
+  string $nodes[] = `ls -dag -s -sl`;
+  string $currentNode;
+  for ( $currentNode in $nodes ) 
+	{
+    string $currentNodeParent[] = `listRelatives -p $currentNode`;
+    if ( !`attributeQuery -node $currentNodeParent[0] -ex "liqRIBDelayedReadArchive"` ) 
+      addAttr -ln "liqRIBDelayedReadArchive" -dt "string" $currentNodeParent[0];
+    
+    if ( !`attributeQuery -node $currentNodeParent[0] -ex "ribDelayedArchiveBBox"` ) 
+      addAttr -ln "ribDelayedArchiveBBox" -at message $currentNodeParent[0];
+    
+    string $bboxC[] = `polyCube -w 1 -h 1 -d 1 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -tx 1 -ch 1`;
+    string $bbox = `rename $bboxC[0] ( $currentNode + "delayedBBOX" )`;
+    setAttr ( $bbox + ".tx" ) ( `getAttr ( $currentNodeParent[0] +".boundingBoxCenterX" )` );
+    setAttr ( $bbox + ".ty" ) ( `getAttr ( $currentNodeParent[0] +".boundingBoxCenterY" )` );
+    setAttr ( $bbox + ".tz" ) ( `getAttr ( $currentNodeParent[0] +".boundingBoxCenterZ" )` );
+    setAttr ( $bbox + ".sx" ) ( `getAttr ( $currentNodeParent[0] +".boundingBoxSizeX" )` );
+    setAttr ( $bbox + ".sy" ) ( `getAttr ( $currentNodeParent[0] +".boundingBoxSizeY" )` );
+    setAttr ( $bbox + ".sz" ) ( `getAttr ( $currentNodeParent[0] +".boundingBoxSizeZ" )` );
+    setAttr ( $bbox + ".overrideEnabled" ) 1;
+    setAttr ( $bbox + ".overrideDisplayType" ) 1;
+    setAttr ( $bbox + ".primaryVisibility" ) 0;
+    setAttr ( $bbox + ".castsShadows" ) 0;
+    setAttr ( $bbox + ".motionBlur" ) 0;
+    if ( !`attributeQuery -node $bbox -ex "ribDelayedArchiveBBoxIn"` ) 
+      addAttr -ln "ribDelayedArchiveBBoxIn" -at message $bbox;
+    
+    connectAttr ( $currentNodeParent[0] + ".ribDelayedArchiveBBox" ) ( $bbox + ".ribDelayedArchiveBBoxIn" );
+    parent $bbox $currentNodeParent[0];
+  }
+}
+
+global proc liquidDeleteDelayedReadArchive ()
+{
+  string $nodes[] = `ls -dag -s -sl`;
+  string $currentNode;
+  for ( $currentNode in $nodes ) 
+	{
+    string $currentNodeParent[] = `listRelatives -p $currentNode`;
+    if ( `attributeQuery -node $currentNodeParent[0] -ex "liqRIBDelayedReadArchive"` ) 
+      deleteAttr ( $currentNode + ".liqRIBDelayedReadArchive" );
+    
+    if ( `attributeQuery -node $currentNodeParent[0] -ex "ribDelayedArchiveBBox"` ) 
+		{
+      string $connected[] = `listConnections ( $currentNodeParent[0] + ".ribDelayedArchiveBBox" )`;
+      string $curCon;
+      for ( $curCon in $connected ) delete $curCon;
+      
+      deleteAttr ( $currentNodeParent[0] + ".ribDelayedArchiveBBox" );
+    }
+  }
+}

@@ -1,0 +1,11 @@
+#!/bin/sh
+ff=`ls *.png | egrep -o "[A-Za-z0-9_]+"`
+no=png
+for i in $ff
+do
+	if [ $i != $no ]
+		then
+			echo $i.xpm
+			convert -type TrueColor $i.png $i.xpm
+	fi
+done

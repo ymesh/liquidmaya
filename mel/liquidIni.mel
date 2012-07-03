@@ -1,0 +1,344 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:
+//
+//  Procedure Name:
+//
+//
+//  Description:
+//
+
+proc int liquidINIRead( string $ini_file, string $keys[], string $values[] ) {
+
+  int $i=0, $num_lines = 0;
+
+  string $fileName = toNativePath( liquidGetUserHomeDir() + "/" + $ini_file + ".ini" );
+
+  if ( `filetest -f $fileName` ) {
+    $fileId = `fopen ( $fileName ) "r"`;
+    while ( !`feof $fileId` ) {
+      int $j, $num;
+      string $buf[], $line = `fgetline $fileId`;
+
+      $num = tokenize( $line, $buf );
+      if ( $num > 1 ) {
+
+        $keys[$i] = $buf[0]; // first token
+        $values[$i] = $buf[1];
+        for ( $j = 2 ; $j < $num ; $j++ ) {
+          $values[$i] = $values[$i] + ( " " + $buf[ $j ] ); // allow value to have spaces
+        }
+        ++$num_lines;
+      }
+      $i++;
+    }
+    fclose $fileId;
+
+  }
+  return $num_lines;
+}
+
+
+
+proc int liquidINIWrite( string $ini_file, string $keys[], string $values[] ) {
+
+  int $fileId, $i = 0;
+  string $liquidDirectory = liquidGetUserHomeDir();
+  string $fileName = toNativePath( $liquidDirectory + "/" + $ini_file + ".ini" );
+
+  liquidCreateUserHomeDir();	// create if it still not exists
+
+
+  $fileId = `fopen ( $fileName ) "w"`;
+
+  if ( $fileId ) {
+    for( $i = 0 ; $i < size( $keys ) ; $i++ ) {
+      fprint $fileId ( $keys[$i] + " " + $values[$i] + "\n" );
+    }
+    fclose $fileId;
+  }
+  return $i;
+}
+
+global proc string liquidINIGetValue( string $keys[], string $values[], string $key ) {
+  string $Value = "";
+  int $i;
+
+  for( $i = 0 ; $i < size( $keys ) ; $i++ )
+    if ( $keys[$i] == $key ) {
+      $Value = $values[$i];
+      break;
+    }
+
+  return $Value;
+}
+
+global proc liquidINISetValue( string $keys[], string $values[], string $key, string $value ) {
+
+  int $i, $found = false;
+
+  for( $i = 0 ; $i < size( $keys ) ; $i++ )
+    if ( $keys[$i] == $key ) {
+      $values[$i] = $value;
+      $found = true;
+      break;
+    }
+  if ( !$found ) {
+    $keys[$i] = $key;
+    $values[$i] = $value;
+  }
+}
+
+
+global proc int liquidINIGetSectionsList( string $ini_file, string $list[] ) {
+  int	$num = 0;
+
+  string $fileName = toNativePath( liquidGetUserHomeDir() + "/" + $ini_file + ".ini" );
+
+  if ( `filetest -f $fileName` ) {
+    $fileId = `fopen ( $fileName ) "r"`;
+    while ( !`feof $fileId` ) {
+
+      string $label, $line = strip ( `fgetline $fileId` );
+
+      if ( gmatch( $line, "[[]*[]]"  ) ) {
+        $label = match ( "[^[]+", $line );
+        $label = match ( "[^]]+", $label );
+        $list[ $num++ ] = $label;
+      }
+    }
+    fclose $fileId;
+  }
+  return $num;
+}
+
+global proc int liquidINIGetSection( string $ini_file, string $section, string $keys[], string $vals[] ) {
+int $num = 0;
+string $fileName = toNativePath( liquidGetUserHomeDir() + "/" + $ini_file + ".ini" );
+
+  if ( `filetest -f $fileName` ) {
+    int	$found = false;
+    int	$connect = false;
+    string	$line;
+    $fileId = `fopen ( $fileName ) "r"`;
+    while ( !`feof $fileId` ) {
+      string 	$label;
+
+      $line = strip ( `fgetline $fileId` );
+
+      //if ( gmatch( $line, "*[>]" ) ){
+      //	$connect = true;
+      //	$line = substituteAllString( $line, ">", "\n" );
+        // print (">> " + $line + "\n");
+      //	continue;
+
+      //} else if ( $connect )  {
+      //	$connect = false;
+        // print (">> " + $line + "\n");
+
+      //}
+
+
+      if ( !$found ) {
+        if ( gmatch( $line, "[[]"+ $section + "[]]"  ) ) {
+          $label = match ( "[^[]+", $line );
+          $label = match ( "[^]]+", $label );
+          if (  $label == $section )
+            $found = true;
+        }
+      } else {
+        if ( gmatch( $line, "[[]*[]]"  ) ) {
+          // print (">> found another section " + $line + "\n");
+          break;	// found another section
+        }
+        string 	$buf[];
+        int $n = tokenize( $line, "=", $buf );
+        if ( $n == 2 ) {
+          $keys[ $num ] = strip( $buf[0] );
+          $vals[ $num ] = strip( $buf[1] );
+          $num++;
+        }
+      }
+    }
+    fclose $fileId;
+  }
+  return $num;
+}
+
+global proc liquidINISetSection( string $ini_file, string $section, string $keys[], string $vals[], int $remove ) {
+
+int	$k, $i = 0;
+int	$found = false, $finished = false;
+string 	$fileName = toNativePath( liquidGetUserHomeDir() + "/" + $ini_file + ".ini" );
+string	$label, $lines[];
+int	$fileId;
+
+  if ( `filetest -f $fileName` ) {
+
+    $fileId = `fopen ( $fileName ) "r"`;
+
+    while ( !`feof $fileId` ) {
+      string $l = strip ( `fgetline $fileId` ); // first read whole .ini file
+      if ( $l != "" )
+        $lines[ $i++ ] = $l;
+    }
+
+    fclose $fileId;
+  }
+
+  $fileId = `fopen ( $fileName ) "w"`;
+
+  if ( $fileId ) {
+    for( $i = 0 ; $i < size( $lines ) ; $i++ ) {
+
+      if ( !$found ) {
+        if ( gmatch( $lines[$i], "[[]"+ $section + "[]]"  ) ) {
+          $label = match ( "[^[]+", $lines[$i] );
+          $label = match ( "[^]]+", $label );
+          if (  $label == $section )
+            $found = true;
+          continue;
+        }
+
+
+      } else {
+        if ( gmatch( $lines[$i], "[[]*[]]"  ) )  // found another section
+          $found = false;
+        else
+          continue; // skip lines for mathed section
+      }
+
+      fprint $fileId ($lines[$i] + "\n" );
+
+    }
+
+    if ( !$remove ) {	// then it is new section, write it at the end
+
+      fprint $fileId ("[" + $section + "]\n" );
+      for( $k = 0 ; $k < size( $keys ) ; $k++ ) {
+
+        //string $multistring[];
+        //int $n = tokenize( $vals[ $k ], "\n", $multistring );
+
+        fprint $fileId ( $keys[ $k ] + " = " + $vals[ $k ] + "\n");
+
+        // if ( $n > 2 ) {
+        //	int $i;
+        //	for ( $i = 0; $i < ($n - 1) ; $i++ ) {
+        //		fprint $fileId ( $multistring[ $i ] + ">\n" );
+
+        //	}
+        //	fprint $fileId ( $multistring[ $n ] + "\n" );
+        // } else
+        //	fprint $fileId ( $vals[ $k ] + "\n" );
+      }
+
+    }
+    fclose $fileId;
+  }
+}
+
+
+
+global proc string liquidINIGet( string $ini_file, string $key ) {
+  string $keys[], $values[];
+  string $Value = ( liquidINIRead( $ini_file, $keys, $values ) )? liquidINIGetValue(  $keys, $values, $key ) : "";
+  return $Value;
+}
+
+global proc int liquidINIGetInt( string $ini_file, string $key ) {
+  string $Value = liquidINIGet( $ini_file, $key );
+  int  $ret = ( $Value != "" )? $Value : 0 ;
+  return $ret;
+}
+
+global proc float liquidINIGetFloat( string $ini_file, string $key ) {
+  string $Value = liquidINIGet( $ini_file, $key );
+  float  $ret = ( $Value != "" )? $Value : 0 ;
+  return $ret;
+}
+
+global proc int liquidINIGetColor( string $ini_file, string $key, float $color[] ) {
+  string $value = liquidINIGet( $ini_file, $key );
+  string $cmp[3];
+  int $ret = false;
+  int $num = tokenize( $value, $cmp );
+
+  if ( $num == 3 ) {
+    $color[0] = $cmp[0];
+    $color[1] = $cmp[1];
+    $color[2] = $cmp[2];
+    $ret = true;
+  }
+  return $ret;
+}
+
+
+global proc liquidINISet( string $ini_file, string $key, string $SetValue )
+{
+  string $keys[], $values[];
+
+  liquidINIRead( $ini_file, $keys, $values );
+  liquidINISetValue( $keys, $values, $key, $SetValue );
+  liquidINIWrite( $ini_file, $keys, $values );
+}
+
+
+global proc liqSettingsChangeText( string $ini_file, string $ini_key, string $field  ) {
+  string $value = `textFieldGrp -q -text $field`;
+  liquidINISet( $ini_file, $ini_key, $value );
+}
+
+global proc liqSettingsChangeBool( string $ini_file, string $ini_key, string $field  ) {
+  int $value = `checkBoxGrp -q -v1 $field`;
+  liquidINISet( $ini_file, $ini_key, $value );
+}
+
+global proc liqSettingsChangeInt( string $ini_file, string $ini_key, string $field  ) {
+  int $value = `intFieldGrp -q -v1 $field`;
+  liquidINISet( $ini_file, $ini_key, $value );
+}
+
+global proc liqSettingsChangeFloat( string $ini_file, string $ini_key, string $field  ) {
+  float $value = `floatFieldGrp -q -v1 $field`;
+  liquidINISet( $ini_file, $ini_key, $value );
+}
+
+global proc liqSettingsChangeSlider( string $ini_file, string $ini_key, string $field  ) {
+  float $value = `floatSliderGrp -q -v $field`;
+  liquidINISet( $ini_file, $ini_key, $value );
+}
+
+global proc liqSettingsChangeMenu( string $ini_file, string $ini_key, string $field  ) {
+  string $value = `optionMenuGrp -q -value $field`;
+  liquidINISet( $ini_file, $ini_key, $value );
+}
+
+global proc liqSettingsChangeColor( string $ini_file, string $ini_key, string $field  ) {
+  float $rgb[3] = `colorSliderGrp -q -rgb $field`;
+  string $value = $rgb[0] + " " + $rgb[1] + " " + $rgb[2];
+  liquidINISet( $ini_file, $ini_key, $value );
+}

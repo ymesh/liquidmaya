@@ -1,0 +1,119 @@
+
+proc int getCurveVertexNum ( string $shapeNode ) {
+  int $ustyle = `getAttr ($shapeNode + ".form")`;
+  int $nu;
+
+  switch($ustyle){
+  case 0: // open
+    $n = `getAttr ($shapeNode + ".spans")` +
+      `getAttr ($shapeNode + ".degree")`;
+    break;
+  case 1:
+  case 2: // periodic or closed
+    $n = `getAttr ($shapeNode + ".spans")`;
+    break;
+  }
+  return $n;
+}
+
+proc int getNURBSVertexNum ( string $shapeNode ) {
+  int $ustyle = `getAttr ($shapeNode + ".formU")`;
+  int $vstyle = `getAttr ($shapeNode + ".formV")`;
+
+  int $nu,$nv;
+
+  switch($ustyle){
+  case 0: // open
+    $nu = `getAttr ($shapeNode + ".spansU")` +
+      `getAttr ($shapeNode + ".degreeU")`;
+    break;
+  case 1:
+  case 2: // periodic or closed
+    $nu = `getAttr ($shapeNode + ".spansU")`;
+    break;
+  }
+
+  switch($vstyle){
+  case 0: // open
+    $nv = `getAttr ($shapeNode + ".spansV")` +
+      `getAttr ($shapeNode + ".degreeV")`;
+    break;
+  case 1:
+  case 2: // periodic or closed
+    $nv = `getAttr ($shapeNode + ".spansV")`;
+    break;
+  }
+
+  return ($nu * $nv);
+}
+
+proc int getMeshVertexNum ( string $shapeNode ) {
+  return `getAttr -s ($shapeNode + ".vrts")`;
+}
+
+proc createVectorPrimvarArray(string $shapeNode, string $varName, int $num) {
+
+  addAttr -ln $varName -k true -m -at "double3" $shapeNode;
+  addAttr -ln "x" -at "double" -k true -p $varName $shapeNode;
+  addAttr -ln "y" -at "double" -k true -p $varName $shapeNode;
+  addAttr -ln "z" -at "double" -k true -p $varName $shapeNode;
+  int $i;
+  for($i=0; $i<$num; $i++){
+    setAttr ($shapeNode + "." + $varName + "[" + $i + "].x") 0;
+    setAttr ($shapeNode + "." + $varName + "[" + $i + "].y") 0;
+    setAttr ($shapeNode + "." + $varName + "[" + $i + "].z") 0;
+  }
+}
+
+proc createFloatPrimvarArray(string $shapeNode, string $varName, int $num) {
+  addAttr -ln $varName -k true -m -at "double" $shapeNode;
+  int $i;
+  for($i=0; $i<$num; $i++){
+    setAttr ($shapeNode + "." + $varName + "[" + $i + "]") 0;
+  }
+}
+
+global proc makeVertexPrimVar(string $shapeNode, string $name, string $type){
+  string $prefix = "";
+  int $isVec = 0;
+
+  if( $type == "float"){
+    $prefix = "rmanF";
+    $isVec = 0;
+  } else if ( $type == "color") {
+    $prefix = "rmanC";
+    $isVec = 1;
+  } else if ( $type == "vector") {
+    $prefix = "rmanV";
+    $isVec = 1;
+  } else if ( $type == "normal") {
+    $prefix = "rmanN";
+    $isVec = 1;
+  } else if ( $type == "point") {
+    $prefix = "rmanP";
+    $isVec = 1;
+  }
+
+  string $nodeType = `nodeType $shapeNode`;
+  int $num = 0;
+
+  if ($nodeType == "mesh") {
+    $num = getMeshVertexNum($shapeNode);
+  } else if ($nodeType == "nurbsSurface") {
+    $num = getNURBSVertexNum($shapeNode);
+  } else if ($nodeType == "nurbsCurve") {
+    $num = getCurveVertexNum($shapeNode);
+  }
+
+  if ($num != 0) {
+    if ($isVec == 1) {
+      createVectorPrimvarArray($shapeNode,$prefix + $name,$num);
+    } else {
+      createFloatPrimvarArray($shapeNode,$prefix + $name,$num);
+    }
+  }
+
+  string $attrType = ( $isVec == 1 )? "multiVector":"multiFloat";
+  string $nodeType = nodeType( $shapeNode );
+  makePaintable -attrType $attrType $nodeType ($prefix + $name);
+}

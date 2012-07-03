@@ -1,0 +1,403 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:    July 8, 2003
+//
+//  Procedure Name:
+//      liquidSlParseSdr
+//
+//  Description:
+//      Procedure called by liquidSlSetShader() to parse
+//      a Pixie .sdr shader file.  All parsed information
+//      is stored in the following global variables later
+//      used by the various liquidSl* routines:
+//
+//          global string $gLiquidSlShaderName;
+//          global string $gLiquidSlShaderType;
+//          global int    $gLiquidSlNumParams;
+//          global string $gLiquidSlParamNames[];
+//          global string $gLiquidSlParamDetails[];
+//          global string $gLiquidSlParamTypes[];
+//          global string $gLiquidSlParamDefaults[];
+//          global int    $gLiquidSlParamArraySizes[];
+//
+//
+
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// Local helper procedures
+//
+
+proc liquidSl_setShaderName( string $token )
+{
+  global string $gLiquidSlShaderName;
+
+  if ( $token == "" ) {
+    $gLiquidSlShaderName = "unknown";
+  } else {
+    $gLiquidSlShaderName = basenameEx( $token );
+  }
+}
+
+
+proc string liquidSl_getShaderType( int $fid )
+{
+    string $type = "";
+
+    // The first word on the first non-empty
+    // line is the shader type.
+
+    string $tokens[];
+    string $tokensquote[];
+    string $line = `fgetline $fid`;
+    while ( ! `feof $fid` )
+    {
+        clear( $tokens );
+        tokenize $line "\"" $tokensquote;
+        tokenize $line $tokens;
+        $type = $tokens[0];
+        if ( $type != "" ) {
+          liquidSl_setShaderName( $tokensquote[1] );
+          break;
+        }
+        $line = `fgetline $fid`;
+    }
+
+    return $type;
+}
+
+proc string liquidSl_getParamName( string $line )
+{
+    string $strip = `substitute "^[^\"]*\"" $line ""`;
+    if ( $strip == $line ) return "";
+
+    string $name = `substitute "\".*$" $strip ""`;
+    if ( $name == $strip ) return "";
+
+    return $name;
+}
+
+proc string liquidSl_getParamDetail( string $line )
+{
+    string $prefix = "\"[^\"]* *";
+    string $suffix = " *[floatpinvecorlsgmx]+";
+
+    if      ( `match ($prefix+"uniform"+$suffix) $line` != "" ) return "uniform";
+    else if ( `match ($prefix+"varying"+$suffix) $line` != "" ) return "varying";
+
+    return "";
+}
+
+proc int liquidSl_isOutputParam( string $line )
+{
+  if ( gmatch( $line, "*output parameter*") ) return 1;
+
+  return 0;
+}
+
+proc string liquidSl_getParamType( string $line )
+{
+    string $prefix = "\"[^\"]*[uniformvaryg]+ *";
+
+    if      ( `match ($prefix+"string") $line` != "" ) return "string";
+    else if ( `match ($prefix+"float")  $line` != "" ) return "float";
+    else if ( `match ($prefix+"color")  $line` != "" ) return "color";
+    else if ( `match ($prefix+"point")  $line` != "" ) return "point";
+    else if ( `match ($prefix+"vector") $line` != "" ) return "vector";
+    else if ( `match ($prefix+"normal") $line` != "" ) return "normal";
+    else if ( `match ($prefix+"matrix") $line` != "" ) return "matrix";
+
+    return "";
+}
+
+proc int liquidSl_getParamArraySize( string $line )
+{
+    string $strip = `substitute "^.*[a-z]\\[" $line ""`;
+    if ( $strip == $line ) return 0;
+
+    string $sizeStr = `substitute "\\].*$" $strip ""`;
+    if ( $sizeStr == $strip ) return 0;
+
+    int $sizeInt = $sizeStr;
+    return $sizeInt;
+}
+
+proc string liquidSl_getParamDefaultF( int $fid )
+{
+    string $default = "0.0";
+    string $line = strip( `fgetline $fid` );
+
+    // Strip everything ahead of the default
+    string $strip = `substitute "^.*Default value: *" $line ""`;
+    if ( $strip != $line )
+        $default = $strip;
+
+    return $default;
+}
+
+proc string liquidSl_getParamDefaultS( int $fid )
+{
+    string $default = "";
+    string $line = strip( `fgetline $fid` );
+
+     // Strip everything ahead of the default
+    // (leaving the double-quotes around it)
+    string $strip = `substitute "^.*Default value: *" $line ""`;
+    if ( $strip != $line )
+        $default = $strip;
+
+    return $default;
+}
+
+proc string liquidSl_getParamDefaultM( int $fid )
+{
+    // Matrices don't seem to be supported
+    // by aqsltell, so this should never
+    // get called.  But if/when it does, this
+    // just assumes output will be the same as
+    // prman's sloinfo.
+
+    string $default = ( "<<0, 0, 0, 0; " +
+                        "0, 0, 0, 0;" +
+                        "0, 0, 0, 0;" +
+                        "0, 0, 0, 0>>" );
+
+    string $line = `fgetline $fid`;
+
+    // Matrix defaults span multiple lines
+    $line = `strip $line` + `fgetline $fid`;
+    $line = `strip $line` + `fgetline $fid`;
+    $line = `strip $line` + `fgetline $fid`;
+
+    // Strip everything ahead of the default
+    string $strip1 = `substitute "^.*[Dd]efault value:.*\\[" $line ""`;
+    if ( $strip1 == $line ) return $default;
+
+    // Strip the trailing "]" plus anything after it
+    string $strip2 = `substitute "\\].*$" $strip1 ""`;
+    if ( $strip2 == $strip1 ) return $default;
+
+    string $t[16];
+    tokenize $strip2 $t;
+    $default = ( "<<"+$t[0 ]+", "+$t[1 ]+", "+$t[2 ]+", "+$t[3 ]+"; "+
+                      $t[4 ]+", "+$t[5 ]+", "+$t[6 ]+", "+$t[7 ]+"; "+
+                      $t[8 ]+", "+$t[9 ]+", "+$t[10]+", "+$t[11]+"; "+
+                      $t[12]+", "+$t[13]+", "+$t[14]+", "+$t[15]+">>" );
+
+    return $default;
+}
+
+proc string liquidSl_getParamDefaultV( int $fid )
+{
+    string $default = "<<0, 0, 0>>";
+    string $line = `fgetline $fid`;
+
+    // Strip everything ahead of the default
+    string $strip1 = `substitute "^.*[Dd]efault value:.*\\[" $line ""`;
+    if ( $strip1 == $line ) return $default;
+
+    // Strip the trailing "]" plus anything after it
+    string $strip2 = `substitute "\\].*$" $strip1 ""`;
+    if ( $strip2 == $strip1 ) return $default;
+
+    $default = "<<" + $strip2 + ">>";
+
+    return $default;
+}
+
+proc string liquidSl_getParamDefault( int $fid, string $paramType )
+{
+    string $default = "";
+
+    switch ( $paramType )
+    {
+    case "string":
+        $default = liquidSl_getParamDefaultS( $fid );
+        break;
+    case "float":
+        $default = liquidSl_getParamDefaultF( $fid );
+        break;
+    case "matrix":
+        $default = liquidSl_getParamDefaultM( $fid );
+        break;
+    case "color":
+    case "point":
+    case "vector":
+    case "normal":
+        $default = liquidSl_getParamDefaultV( $fid );
+        break;
+    default:
+        // This should never be reached
+        error( "unknown parameter type \"" + $paramType + "\"" );
+    }
+
+    return $default;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// Primary global procedure for parsing a Pixie .sdr shader file
+//
+
+global proc liquidSlParseSdr( string $sdrFile )
+{
+    if ( ! `filetest -r $sdrFile` )
+    {
+        error( "shader does not exist: " + $sdrFile );
+        return;
+    }
+
+
+    //
+    // Initialize the global variables
+    // used to store all the shader info
+    //
+
+    global string $gLiquidSlShaderFile;
+    global string $gLiquidSlShaderName;
+    global string $gLiquidSlShaderType;
+    global int    $gLiquidSlNumParams;
+    global string $gLiquidSlParamNames[];
+    global string $gLiquidSlParamDetails[];
+    global int    $gLiquidSlParamIsOutput[];
+    global string $gLiquidSlParamTypes[];
+    global string $gLiquidSlParamDefaults[];
+    global int    $gLiquidSlParamArraySizes[];
+
+    $gLiquidSlShaderFile = $sdrFile;
+    $gLiquidSlShaderName = "";
+    $gLiquidSlShaderType = "";
+    $gLiquidSlNumParams = -1;
+    clear( $gLiquidSlParamNames );
+    clear( $gLiquidSlParamDetails );
+    clear( $gLiquidSlParamTypes );
+    clear( $gLiquidSlParamDefaults );
+    clear( $gLiquidSlParamArraySizes );
+
+
+    // Build and run the aqsltell command
+    string $slInfo = `getAttr liquidGlobals.shaderInfo`;
+    if ( $slInfo == "" ) error ("Liquid : Please load a renderer Preset or fill the field in RenderGlobals>Renderer>ShaderInfo !");
+    string $cmd = $slInfo + " \"" + $sdrFile + "\"";
+    int $fid = `popen $cmd "r"`;
+
+
+    // Get the shader type - also sets the shader name
+    string $shaderType = liquidSl_getShaderType( $fid );
+    if ( $shaderType != "surface"       &&
+         $shaderType != "displacement"  &&
+         $shaderType != "volume"        &&
+         $shaderType != "light"            )
+    {
+        pclose $fid;
+        error( "unknown shader type \"" + $shaderType +
+               "\": " + $sdrFile );
+        return;
+    }
+
+    // Store the shader type
+    $gLiquidSlShaderType = $shaderType;
+
+
+    //
+    // Now for each parameter...
+    //
+
+    string $line = `fgetline $fid`;
+    int $paramNum = 0;
+
+    while ( ! `feof $fid` )
+    {
+        // Skip empty lines
+        if ( `substitute "^[ \t\r\n]*$" $line ""` == "" )
+        {
+            $line = `fgetline $fid`;
+            continue;
+        }
+
+        string $paramName = liquidSl_getParamName( $line );
+        if ( $paramName == "" )
+        {
+            pclose $fid;
+            error( "parameter #" + $paramNum +
+                   ": cannot parse parameter name" );
+            return;
+        }
+
+        string $paramDetail = liquidSl_getParamDetail( $line );
+        if ( $paramDetail == "" )
+        {
+            pclose $fid;
+            error( "parameter " + $paramNum +
+                   ": cannot parse parameter detail > " + $line );
+            return;
+        }
+
+        int $isOutputParam = liquidSl_isOutputParam( $line );
+
+        string $paramType = liquidSl_getParamType( $line );
+        if ( $paramType == "" )
+        {
+            pclose $fid;
+            error( "parameter " + $paramNum +
+                   ": cannot parse parameter type" );
+            return;
+        }
+
+        int $paramArraySize = liquidSl_getParamArraySize( $line );
+
+        string $paramDefault = liquidSl_getParamDefault( $fid, $paramType );
+
+        if ( $paramArraySize > 0 )
+        {
+            int $i = 1;
+            for ( ; $i < $paramArraySize; $i++ )
+            {
+                string $this = liquidSl_getParamDefault( $fid, $paramType );
+                $paramDefault += ", " + $this;
+            }
+            $paramDefault = "{" + $paramDefault + "}";
+        }
+
+
+        // Store the results for this parameter
+        $gLiquidSlParamNames[ $paramNum ] = $paramName;
+        $gLiquidSlParamDetails[ $paramNum ] = $paramDetail;
+        $gLiquidSlParamTypes[ $paramNum ] = $paramType;
+        $gLiquidSlParamIsOutput[ $paramNum ] = $isOutputParam;
+        $gLiquidSlParamDefaults[ $paramNum ] = $paramDefault;
+        $gLiquidSlParamArraySizes[ $paramNum ] = $paramArraySize;
+
+        $line = `fgetline $fid`;
+        $paramNum += 1;
+    }
+
+    // Store the total number of shader parameters
+    $gLiquidSlNumParams = $paramNum;
+
+    pclose $fid;
+}

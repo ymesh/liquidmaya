@@ -1,0 +1,208 @@
+// Copyright (C) 1997-2006 Autodesk, Inc., and/or its licensors.
+// All rights reserved.
+//
+// The coded instructions, statements, computer programs, and/or related
+// material (collectively the "Data") in these files contain unpublished
+// information proprietary to Autodesk, Inc. ("Autodesk") and/or its licensors,
+// which is protected by U.S. and Canadian federal copyright law and by
+// international treaties.
+//
+// The Data is provided for use exclusively by You. You have the right to use,
+// modify, and incorporate this Data into other products for purposes authorized 
+// by the Autodesk software license agreement, without fee.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. AUTODESK
+// DOES NOT MAKE AND HEREBY DISCLAIMS ANY EXPRESS OR IMPLIED WARRANTIES
+// INCLUDING, BUT NOT LIMITED TO, THE WARRANTIES OF NON-INFRINGEMENT,
+// MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, OR ARISING FROM A COURSE 
+// OF DEALING, USAGE, OR TRADE PRACTICE. IN NO EVENT WILL AUTODESK AND/OR ITS
+// LICENSORS BE LIABLE FOR ANY LOST REVENUES, DATA, OR PROFITS, OR SPECIAL,
+// DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES, EVEN IF AUTODESK AND/OR ITS
+// LICENSORS HAS BEEN ADVISED OF THE POSSIBILITY OR PROBABILITY OF SUCH DAMAGES.
+
+//
+//
+//
+//
+//
+//  Alias Script File
+//  MODIFY THIS AT YOUR OWN RISK
+//
+//  Creation Date:  August 10/2000
+//
+
+//////////////////////////////////////////////////////////////////////
+//
+//  Procedure Name: 
+//		connectNodeToNodeOverride
+//
+//  Description:
+//		This procedure is provided as a hook for customers to allow
+//		you to redefine the behaviour of drag and drop. 
+//		
+//  Input Arguments:
+//		$srcNode - the name of the source node (the dragged node)
+//		$dstNode - the name of the destination node (the dropped-on node)
+//
+//  Return Value:
+//		Return 1 if you want Maya continue and perform the operation 
+// 		that would normally result from this connection.
+//		Return 0 if you have chosen to implement a different behaviour
+//		for this connection and don't want the normal operation to 
+//		be performed as well.
+//
+global proc int connectNodeToNodeOverride(
+	string $srcNode,
+	string $dstNode)
+{
+//	print(
+//		"connectNodeToNodeOverride(" 
+//		+ $srcNode
+//		+ ", " 
+//		+ $dstNode
+//		+ ") called\n");
+
+	// By default the return value of this procedure is 1, so that Maya
+	// will perform the normal operation for a connection between these
+	// two nodes.
+	//
+	int $rDoNormalOperation = 1;
+
+	// 
+	// If you wish to change the behaviour of drag and drop of a node onto
+	// another node in Maya, you should implement the behaviour you wish 
+	// here. 
+	//
+	// Typically this procedure would get called when a node is dragged onto a
+	// node in the multilister, hypershade or hypergraph (when not in DAG
+	// view).
+	//
+
+	// mentalrayTexture to mentalray shaders
+	// This case is better to be handled in mel,
+	// because "tex" attr in mental ray shader node is of "message" type.
+	// Maya does not have any information that this "tex" attr is any different from other message type attrs.
+	if( `nodeType($srcNode)` == "mentalrayTexture" )
+	{
+		// mentalray shaders and its tex arg.
+		//	mib_bump_map.tex
+		//	mib_passthrough_bump_map.tex
+		//	mib_lookup_spherical.tex
+		//	mib_lookup_cube1.tex
+		//	mib_lookup_cube6.tex_mx
+		//	mib_lookup_cube6.tex_px
+		//	mib_lookup_cube6.tex_my
+		//	mib_lookup_cube6.tex_py
+		//	mib_lookup_cube6.tex_mz
+		//	mib_lookup_cube6.tex_pz
+		//	mib_lookup_background.tex
+		//	mib_lookup_cylindrical.tex
+		//	mib_texture_lookup.tex
+		//	mib_texture_filter_lookup.tex
+		//	mib_lightmap_write.texture
+		//	mib_lightmap_write.coord
+		//	mib_lightmap_write.input		
+		
+		string $dstNodeType = `nodeType($dstNode)`;
+		if( $dstNodeType == "mib_bump_map" ||
+		    $dstNodeType == "mib_passthrough_bump_map" ||
+		    $dstNodeType == "mib_lookup_spherical" ||
+		    $dstNodeType == "mib_lookup_cube1" ||
+		    $dstNodeType == "mib_lookup_background" ||
+		    $dstNodeType == "mib_lookup_cylindrical" ||
+		    $dstNodeType == "mib_texture_lookup" ||
+		    $dstNodeType == "mib_texture_filter_lookup" 
+		    )
+		{
+			connectAttr -f ($srcNode + ".message" )  ($dstNode + ".tex");
+			$rDoNormalOperation = 0;
+		}
+		else if( $dstNodeType == "mib_lightmap_write" )
+		{
+			// mib_lightmap_write has 3 tex attr. 
+			// the default connection will use "texture"
+			connectAttr -f ($srcNode + ".message" )  ($dstNode + ".texture");
+			$rDoNormalOperation = 0;
+		}
+		else if( $dstNodeType == "mib_lookup_cube6" )
+		{
+			// mib_lookup_cube6 has 6 tex attr.
+			// the default connection will use "tex_mx"
+			connectAttr -f ($srcNode + ".message" )  ($dstNode + ".tex_mx");
+			$rDoNormalOperation = 0;
+		}			
+	}
+	
+	// light profile to light shader
+	// This case is also better to be handled in mel, for the same reason as above.
+	if( `nodeType($srcNode)` == "mentalrayLightProfile" )
+	{
+		// there are only 2 shaders that support light profile
+		string $dstNodeType = `nodeType($dstNode)`;
+		if( $dstNodeType == "mib_light_photometric" )
+		{
+			connectAttr -f ($srcNode + ".message" )  ($dstNode + ".profile");
+			$rDoNormalOperation = 0;
+		}
+		else if( $dstNodeType == "pointLight" )
+		{
+			connectAttr -f ($srcNode + ".message" )  ($dstNode + ".miLightProfile");
+			$rDoNormalOperation = 0;
+		}
+		
+	}
+	
+	// Additions for liquid
+	// if ( nodeType($srcNode) == "liquidCoShader" ) {
+	// Changed for a less restrictive test :
+	if ( (nodeType($srcNode) == "liquidCoShader")
+		 || (nodeType($srcNode) == "liquidSurface")
+		 || (nodeType($srcNode) == "liquidDisplacement")
+		 || (nodeType($srcNode) == "liquidVolume")
+		 || (nodeType($srcNode) == "liquidLight") ) {		
+		// print ("Override connect coshader "+$srcNode+" to "+$dstNode+"\n");
+		if ( (nodeType($dstNode) == "liquidSurface")
+			|| (nodeType($dstNode) == "liquidDisplacement")
+			|| (nodeType($dstNode) == "liquidVolume")
+			|| (nodeType($dstNode) == "liquidLight")
+			|| (nodeType($dstNode) == "liquidCoShader") ) {
+			// Get the source node CoShader methods
+			if ( $srcNode != $dstNode ) {
+				string	$methods[]		= `getAttr ($srcNode+".rmanMethods")`;
+				if ( size($methods) ) { 
+					string	$srcAttr		= "message";
+					string	$dstAttr		= "";
+					// Try to find a suitable destination attribute on $dstNode
+					string	$rmanParams[]	= `getAttr ($dstNode+".rmanParams")`;
+					string	$rmanAccept[]	= `getAttr ($dstNode+".rmanAccept")`;			
+					int		$np				= size($rmanParams);
+					string	$accepts[];
+					for ($i = 0; $i < $np; $i++) {
+						$accepts				= stringToStringArray($rmanAccept[$i], " ");
+						for ($a in $accepts) {
+							for ($m in $methods) {
+								if ( gmatch($m, $a) ) {
+									$dstAttr		= liquidShaderNodesFirstAvailableAttr ( $dstNode, $rmanParams[$i] );
+									// print ("Found suitable attr: "+$dstAttr);
+									if ($dstAttr != "") {
+										evalEcho("connectAttr -f "+($srcNode+"."+$srcAttr)+" "+($dstNode+"."+$dstAttr));
+										return 0;
+									}
+								}
+							}
+						}
+					}
+					warning ("Found no suitable parameter on "+$dstNode+" to connect "+$srcNode+" to");				
+				} else {
+					warning ("CoShader "+$srcNode+" does not seem to define any useable method");			
+				}
+			} else {
+				warning ("Cannot connect a shading node to itself");
+			}
+			
+			$rDoNormalOperation = 0;				
+		}
+	}
+	
+	
+	return $rDoNormalOperation;
+}

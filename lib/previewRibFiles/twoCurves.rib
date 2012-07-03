@@ -1,0 +1,18 @@
+##RenderMan RIB
+version 3.03999996185
+TransformBegin
+  Scale 0.5 0.5 0.5
+  AttributeBegin
+    Attribute "dice" "hair" [0]
+    Basis "b-spline" 1 "b-spline" 1
+    Declare "cubic" ""
+    Declare "nonperiodic" ""
+    Curves "cubic" [9] "nonperiodic" "P" [-0.244696 -0.961552 0
+           -0.244696 -0.961552 0 -0.244696 -0.961552 0 -0.299839 -0.437696 0 -0.672052 -0.0516963 0
+           -0.768552 0.547981 0 -0.754766 0.98223 0 -0.754766 0.98223 0 -0.754766 0.98223 0]"uniform float constantwidth" [0.5]
+    Curves "cubic" [14] "nonperiodic" "P" [0.161982 -0.975337 0 0.161982 -0.975337 0
+            0.161982 -0.975337 0 0.320517 -0.706516 0 0.451481 -0.465267 0 0.334303 -0.368767 0
+            0.251589 -0.0792677 0 0.513517 0.0930534 0 0.499731 0.37566 0 0.368767 0.56866 0
+            0.465267 0.796123 0 0.616909 0.996016 0 0.616909 0.996016 0 0.616909 0.996016 0]"uniform float constantwidth" [0.5]
+  AttributeEnd
+TransformEnd

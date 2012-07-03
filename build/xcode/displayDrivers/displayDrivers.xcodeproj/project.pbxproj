@@ -1,0 +1,242 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4745025A12F74551003B929F /* liqMayaDisplayDriver3Delight.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4745025912F74551003B929F /* liqMayaDisplayDriver3Delight.cpp */; };
+		4745025C12F74593003B929F /* liqMayaDisplayDriver.h in Headers */ = {isa = PBXBuildFile; fileRef = 4745025B12F74593003B929F /* liqMayaDisplayDriver.h */; };
+		4745029112F75192003B929F /* liqBucket.h in Headers */ = {isa = PBXBuildFile; fileRef = 4745029012F75192003B929F /* liqBucket.h */; };
+		4745029312F751E7003B929F /* ndspy.h in Headers */ = {isa = PBXBuildFile; fileRef = 4745029212F751E7003B929F /* ndspy.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		4745025412F744F4003B929F /* liqmaya.dpy */ = {isa = PBXFileReference; comments = "3Delight display driver"; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = liqmaya.dpy; sourceTree = BUILT_PRODUCTS_DIR; };
+		4745025912F74551003B929F /* liqMayaDisplayDriver3Delight.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = liqMayaDisplayDriver3Delight.cpp; path = ../../../src/displayDrivers/liqMayaDisplayDriver3Delight.cpp; sourceTree = SOURCE_ROOT; };
+		4745025B12F74593003B929F /* liqMayaDisplayDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = liqMayaDisplayDriver.h; path = ../../../src/displayDrivers/liqMayaDisplayDriver.h; sourceTree = SOURCE_ROOT; };
+		4745029012F75192003B929F /* liqBucket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = liqBucket.h; path = ../../../include/liqBucket.h; sourceTree = SOURCE_ROOT; };
+		4745029212F751E7003B929F /* ndspy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ndspy.h; path = "/Applications/Graphics/3Delight-9.0.83/include/ndspy.h"; sourceTree = "<absolute>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4745025212F744F4003B929F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4745024412F744BA003B929F = {
+			isa = PBXGroup;
+			children = (
+				4745024F12F744D6003B929F /* sources */,
+				4745024E12F744CC003B929F /* headers */,
+				4745025512F744F4003B929F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4745024E12F744CC003B929F /* headers */ = {
+			isa = PBXGroup;
+			children = (
+				4745029212F751E7003B929F /* ndspy.h */,
+				4745029012F75192003B929F /* liqBucket.h */,
+				4745025B12F74593003B929F /* liqMayaDisplayDriver.h */,
+			);
+			name = headers;
+			sourceTree = "<group>";
+		};
+		4745024F12F744D6003B929F /* sources */ = {
+			isa = PBXGroup;
+			children = (
+				4745025912F74551003B929F /* liqMayaDisplayDriver3Delight.cpp */,
+			);
+			name = sources;
+			sourceTree = "<group>";
+		};
+		4745025512F744F4003B929F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4745025412F744F4003B929F /* liqmaya.dpy */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		4745025012F744F4003B929F /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4745025C12F74593003B929F /* liqMayaDisplayDriver.h in Headers */,
+				4745029112F75192003B929F /* liqBucket.h in Headers */,
+				4745029312F751E7003B929F /* ndspy.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		4745025312F744F4003B929F /* delight */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4745025812F744F4003B929F /* Build configuration list for PBXNativeTarget "delight" */;
+			buildPhases = (
+				4745025012F744F4003B929F /* Headers */,
+				4745025112F744F4003B929F /* Sources */,
+				4745025212F744F4003B929F /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = delight;
+			productName = delight;
+			productReference = 4745025412F744F4003B929F /* liqmaya.dpy */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4745024612F744BA003B929F /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 4745024912F744BA003B929F /* Build configuration list for PBXProject "displayDrivers" */;
+			compatibilityVersion = "Xcode 2.4";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 4745024412F744BA003B929F;
+			productRefGroup = 4745025512F744F4003B929F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4745025312F744F4003B929F /* delight */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4745025112F744F4003B929F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4745025A12F74551003B929F /* liqMayaDisplayDriver3Delight.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		4745024712F744BA003B929F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+			};
+			name = Debug;
+		};
+		4745024812F744BA003B929F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEPLOYMENT_LOCATION = YES;
+				DEPLOYMENT_POSTPROCESSING = YES;
+				DSTROOT = "$(LIQUIDHOME)/displayDrivers/";
+				LIQUIDHOME = "~/tools/maya/liquidmaya";
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.6.sdk";
+			};
+			name = Release;
+		};
+		4745025612F744F4003B929F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				EXECUTABLE_PREFIX = lib;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/lib;
+				PREBINDING = NO;
+				PRODUCT_NAME = delight;
+			};
+			name = Debug;
+		};
+		4745025712F744F4003B929F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				ARCHS = "$(ONLY_ACTIVE_ARCH_PRE_XCODE_3_1)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DELIGHT = "/Applications/Graphics/3Delight-9.0.83";
+				DEPLOYMENT_LOCATION = YES;
+				DEPLOYMENT_POSTPROCESSING = YES;
+				DSTROOT = "$(LIQUIDHOME)/displayDrivers/";
+				DYLIB_COMPATIBILITY_VERSION = "";
+				DYLIB_CURRENT_VERSION = "";
+				EXECUTABLE_EXTENSION = dpy;
+				EXECUTABLE_PREFIX = "";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
+				GCC_MODEL_TUNING = "";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					_BOOL,
+					REQUIRE_IOSTREAM,
+					OSMac_,
+					MACOSX,
+					DELIGHT,
+				);
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
+				GENERATE_MASTER_OBJECT_FILE = NO;
+				HEADER_SEARCH_PATHS = "$(DELIGHT)/include";
+				INSTALL_PATH = /3Delight;
+				LIBRARY_SEARCH_PATHS = "$(DELIGHT)/lib";
+				ONLY_ACTIVE_ARCH_PRE_XCODE_3_1 = "$(NATIVE_ARCH_64)";
+				OTHER_LDFLAGS = "-l3delight";
+				PREBINDING = NO;
+				PRODUCT_NAME = liqmaya;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.6.sdk";
+				USER_HEADER_SEARCH_PATHS = "$(LIQUIDHOME)/include";
+				VALID_ARCHS = "i386 x86_64";
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4745024912F744BA003B929F /* Build configuration list for PBXProject "displayDrivers" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4745024712F744BA003B929F /* Debug */,
+				4745024812F744BA003B929F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4745025812F744F4003B929F /* Build configuration list for PBXNativeTarget "delight" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4745025612F744F4003B929F /* Debug */,
+				4745025712F744F4003B929F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4745024612F744BA003B929F /* Project object */;
+}

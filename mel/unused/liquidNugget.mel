@@ -1,0 +1,85 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the 
+// "License"); you may not use this file except in compliance with the License. You may 
+// obtain a copy of the License at http://www.mozilla.org/MPL/ 
+// 
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT 
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific 
+// language governing rights and limitations under the License. 
+//
+// The Original Code is the Liquid Rendering Toolkit. 
+// 
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by 
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved. 
+// 
+// Contributor(s): Berj Bannayan. 
+//
+// 
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+
+//
+//  Creation Date:  June 20, 2000
+//
+//
+//  Description:
+//      liquid Nuggest
+//
+//  Input Arguments:
+//
+//  Returns:
+//
+
+global proc liquidAssignNugget( string $node, string $nugget )
+{	
+	if ( !`attributeQuery -node $node -ex "liquidNugget"`) {
+		addAttr -ln "liquidNugget" -at message $node;
+	}
+	if ( !`attributeQuery -node $nugget -ex "liquidNuggetConnections"`) {
+		addAttr -ln "liquidNuggetConnections" -at message $nugget;
+	}
+
+	connectAttr -f ( $nugget + ".liquidNuggetConnections" ) ( $node + ".liquidNugget" );
+}
+
+global proc liquidRemoveNugget( string $node )
+{
+	if ( `attributeQuery -node $node -ex "liquidNugget"`) {
+		deleteAttr ( $node + ".liquidNugget" );
+	}
+}
+
+global proc liquidRemoveNuggetSelected()
+{
+	string $selected[] = `ls -sl`;
+	string $current;
+	for ( $current in $selected )
+	{
+		liquidRemoveNugget( $current );
+	}
+}
+
+/* assign a nugget to selected objects, the first object you pick should be the nugget! */
+global proc liquidAssignNuggetSelected()
+{
+	string $selected[] = `ls -sl`;
+	string $nugget = $selected[0];
+	string $nuggetType = `nodeType $nugget`;
+	if ( $nuggetType == "transform" )
+	{
+		int $count = 1;
+		for ( $count = 1; $count < size( $selected ); $count = $count + 1 )
+		{
+			liquidAssignNugget( $selected[ $count ], $nugget );
+		}
+	} else
+	{
+		print "Nugget needs to be a transform!\n";
+	}
+
+}

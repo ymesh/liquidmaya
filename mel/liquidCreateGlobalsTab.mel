@@ -1,0 +1,287 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Philippe Leprince.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:  December 7th, 2005
+//
+//
+//  Description:
+//      Creates the Liquid Tab in the Unified Render Globals Window.
+//
+//  Input Arguments:
+//
+//  Returns:
+//
+
+// We rely on this (for rendererTabName,addRendererTabsToGlobalsWindow), source it
+
+source "unifiedRenderGlobalsWindow.mel";
+
+
+global proc string liquidGetCurrentRenderLayerName()
+{	
+	/*string	$layerNames[]	= `listConnections renderLayerManager`;
+	int		$currentLayerId = `getAttr renderLayerManager.currentRenderLayer`;
+	
+	for ($i in $layerNames) {
+		if( `getAttr ($i+".identification")` == $currentLayerId) {
+			return $i;
+		}
+	}
+	return "";
+	*/
+	
+	string $layerName = `editRenderLayerGlobals -q -currentRenderLayer`;
+	string $layerNameResult = `substituteAllString $layerName " " ""`;
+	
+	// Work round maya changing it's mind about which layout we attach to
+	// depending on the number of render layers.  Lie about the name of the layer
+	// when we have more than one and it's the master
+	if ( ( 0 == `getAttr ( $layerName + ".identification" )`) && 
+       ( size( `getAttr renderLayerManager.renderLayerId` ) > 1) ) 
+		$layerNameResult = "masterLayer";
+	
+	return $layerNameResult;
+}
+
+global proc liquidSwitchGlobalsRenderLayer()
+{
+  string $prefix = `liquidGetCurrentRenderLayerName`;
+  string $unifiedRendererTabName = rendererTabName( "liquid", "Liquid" );
+  string $ourUberLayout = ( $prefix + "liquidUberLayout" );
+  
+  // print( ">> liquidSwitchGlobalsRenderLayer: RenderLayerName = " + $prefix + " TabName = " + $unifiedRendererTabName  + "\n" );
+  
+  if ( `layout -q -ex $unifiedRendererTabName` ) 
+  {
+  	// print( ">> liquidSwitchGlobalsRenderLayer: " + $unifiedRendererTabName + " exists\n");
+  	// print( ">> liquidSwitchGlobalsRenderLayer: $ourUberLayout = " + $ourUberLayout + "\n");
+  	
+  	// only if maya created our tab yet
+  	  
+	  string $otherLayerTabLayouts[] = `formLayout -query -childArray $unifiedRendererTabName`;
+	  if ( size( $otherLayerTabLayouts ) )
+	  {
+	    
+	    string $prevParent = `setParent -q`;
+	   
+  	  setParent $unifiedRendererTabName;
+  	  
+  	  // Unmanage all the other uberLayouts
+  	  for ( $i = 0 ; $i < size( $otherLayerTabLayouts ) ; $i++ )
+  	    columnLayout -edit -manage false $otherLayerTabLayouts[$i];
+  	  
+  	  if ( `layout -q -ex $ourUberLayout`) 
+  	  {
+  		  // Except us, if we exist, if not, we'll be created soon
+  		  columnLayout -edit -manage true $ourUberLayout;
+  	  }
+  	  else
+  	    liquidCreateGlobalsTab;
+  	  setParent $prevParent;
+  	  
+    }
+    else
+    {
+      warning( "liquidSwitchGlobalsRenderLayer: size( $otherLayerTabLayouts ) == 0 !!!");
+      // evalDeferred -lp "liquidCreateGlobalsTab";
+    }
+  }
+  else
+  {
+    warning( "liquidSwitchGlobalsRenderLayer: " + $unifiedRendererTabName + " not exists");
+    // evalDeferred -lp "liquidCreateGlobalsTab";
+  }
+}
+
+global proc liquidCreateMayaGlobalsTabContent( string $prefix )
+{
+  string $theTabLayout = ( $prefix + "liquidUnifiedRenderGlobalsMainTabLayout" );
+  
+  if ( `tabLayout -q -ex $theTabLayout` ) 
+  {
+    string $selected[] = `tabLayout -q -tabLabel $theTabLayout`;
+    
+    int $tab = `tabLayout -q -selectTabIndex $theTabLayout` - 1;
+
+    if ( $selected[ $tab ] != "" ) 
+    {
+      string $layout = `tabLayout -q -selectTab $theTabLayout`;
+      
+      if ( !size( `layout -q -ca $layout` ) ) 
+        eval( "liquidGlobals" + $selected[ $tab ] + "Tab_buildIt( \""+$prefix+"\" );" );
+    }
+  }
+  
+}
+
+global proc liquidCreateMayaGlobalsTab( string $prefix, string $name )
+{
+  // sanity check : we need valid globals
+  if ( !liquidGlobalsExists() ) liquidCreateGlobals();
+
+  string $theTabLayout = ( $prefix + "liquidUnifiedRenderGlobalsMainTabLayout" );
+
+  setParent $theTabLayout;
+  evalEcho( "liquidGlobals" + $name + "Tab( \"" + $prefix + "\");");
+  string $newlayout = ( $prefix + "liquidGlobals" + $name + "Set" );
+  if ( `layout -q -ex $newlayout` ) tabLayout -e -tabLabel $newlayout $name $theTabLayout;
+}
+
+global proc liquidCreateGlobalsTab()
+{
+  string $currentParent = `setParent -q`;
+   
+  // print( ">> liquidCreateGlobalsTab ...\n" );
+   
+  // make sure the maya globals are correctly initialized.
+  if ( !`layout -q -ex commonTabColumn` ) 
+  {
+    setCurrentRenderer mayaSoftware;
+    addRendererTabsToGlobalsWindow mayaSoftware;
+    addMasterLayerTabsToGlobalsWindow;				// This one creates the common tab
+    setCurrentRenderer liquid;
+  }
+
+  if ( !liquidGlobalsExists() ) liquidCreateGlobals();
+    
+  // Call the maya proc to ensure we setparent correctly
+  //	This means we can leverage the update proc to create the tabs for
+  //	New layers.  We should use a scriptJob, but the layer is not yet
+  //	set on all oses.
+  string $unifiedRendererTabName = rendererTabName( "liquid", "Liquid" );
+  setParent $unifiedRendererTabName;
+
+  // find out if we are going to display the masterLayer's globals or regular globals
+  string $prefix = `liquidGetCurrentRenderLayerName`;
+  
+  // push the correct templates to create widgets
+  setUITemplate -pushTemplate renderGlobalsTemplate;
+  setUITemplate -pushTemplate attributeEditorTemplate;
+
+  // Something to wrap everything in, so we can quickly switch it
+  string $ourUberLayout = ( $prefix + "liquidUberLayout" );
+  
+  // bail if already created
+  if ( `layout -q -ex $ourUberLayout` ) return;
+  
+  columnLayout -adjustableColumn true $ourUberLayout;
+  
+  // add the presets
+  menuBarLayout ( $prefix + "_liquidGlobalsMenuBar" );
+    menu -label "Presets" -helpMenu true -p ( $prefix + "_liquidGlobalsMenuBar" ) liquidGlobalsPresetMenu;
+      menuItem -label "Save..." -c liquidSavePreset -p liquidGlobalsPresetMenu liquidGlobalsPresetMenuSave;
+      menuItem -label "Save as Default" -enable false -p liquidGlobalsPresetMenu ;
+      menuItem -label "Reset to Default" -enable false -p liquidGlobalsPresetMenu ;
+      menuItem -divider true -p liquidGlobalsPresetMenu ;
+      liquidAddPresets();
+  
+  // create the main tab layout
+  if ( `about -win` == true ) 
+    columnLayout -adjustableColumn false ( $prefix + "liquidTabColumn" );
+  else
+    columnLayout -adjustableColumn true ( $prefix + "liquidTabColumn" );
+  
+  separator -style "none" -h 10;
+
+  // build the content of the globals
+  string $theTabLayout = ( $prefix + "liquidUnifiedRenderGlobalsMainTabLayout" );
+  
+  string $cmd;
+  if ( `about -win` == true ) 
+    $cmd = ( "evalDeferred -lp \"tabLayout -e -w ( `window -q -w unifiedRenderGlobalsWindow`-12 ) -h (`window -q -h unifiedRenderGlobalsWindow`-200) " + $theTabLayout + "\";");
+  else
+    $cmd = ( "tabLayout -e -w ( `window -q -w unifiedRenderGlobalsWindow` ) -h ( `window -q -h unifiedRenderGlobalsWindow`-170 ) " + $theTabLayout + ";");
+  
+  tabLayout -scrollable true -minChildWidth 200
+            -cc $cmd
+            -sc $cmd
+            -dcc $cmd
+            $theTabLayout;
+
+  if ( `layout -q -ex liquidTabLayout` ) layout -e -vis false liquidTabLayout;
+
+  liquidCreateMayaGlobalsTab( $prefix, "Frame" );
+  liquidCreateMayaGlobalsTab( $prefix, "File" );
+  liquidCreateMayaGlobalsTab( $prefix, "Image" );
+  liquidCreateMayaGlobalsTab( $prefix, "Displays" );
+  liquidCreateMayaGlobalsTab( $prefix, "Rays" );
+  liquidCreateMayaGlobalsTab( $prefix, "Options" );
+  liquidCreateMayaGlobalsTab( $prefix, "Job" );
+  liquidCreateMayaGlobalsTab( $prefix, "Renderer" );
+  liquidCreateMayaGlobalsTab( $prefix, "Fluid" );
+
+  // set up the tab so that it may resize and auto-build.
+  if ( `layout -q -ex liquidTabLayout` ) tabLayout -e -cc $cmd -sc $cmd -dcc $cmd liquidTabLayout;
+      
+  tabLayout -e -psc ("liquidCreateMayaGlobalsTabContent( \"" + $prefix + "\" );") $theTabLayout;
+	
+  if ( `layout -q -ex liquidTabLayout` ) layout -e -vis true liquidTabLayout;
+  
+  evalEcho $cmd;
+  evalDeferred -lp $cmd;
+
+  setUITemplate -popTemplate;
+  setUITemplate -popTemplate;
+  
+  // exit the layouts
+  setParent $unifiedRendererTabName;
+ 
+  string $otherLayerTabLayouts[] = `formLayout -query -childArray $unifiedRendererTabName`;
+
+  // Unmanage all the other uberLayouts
+  for ( $i = 0 ; $i < size( $otherLayerTabLayouts ) ; $i++ )
+    columnLayout -edit -manage false $otherLayerTabLayouts[$i];
+
+  // Except us
+  columnLayout -edit -manage true $ourUberLayout;
+  
+  setParent $currentParent;
+}
+
+
+global proc liquidUpdateMayaGlobals()
+{
+  print( ">> liquidUpdateMayaGlobals ... \n" );
+  
+  if ( `layout -q -ex liquidCommonTab` ) layout -e -m false -vis false liquidCommonTab;
+ 
+  string $prefix = `liquidGetCurrentRenderLayerName`;
+  string $theTabLayout = ( $prefix + "liquidUnifiedRenderGlobalsMainTabLayout" );
+  if ( !`layout -q -ex $theTabLayout`) 
+  {
+  	// Will be called when switching layers
+  	// Note we'd like to use a scriptJob, but in the scriptjob, the new layer isn't set yet
+  	// it is here
+  	liquidCreateGlobalsTab;
+  }
+  
+  float $resx = `getAttr liquidGlobals.xResolution`;
+  float $resy = `getAttr liquidGlobals.yResolution`;
+  setAttr defaultResolution.width $resx;
+  setAttr defaultResolution.height $resy;
+  setAttr defaultResolution.deviceAspectRatio ($resx/$resy);
+}
+
+

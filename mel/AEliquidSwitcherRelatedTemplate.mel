@@ -1,0 +1,254 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): baptiste sansierra
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:
+//
+//  Procedure Name:
+//
+//
+//  Description: Attribute Editor Template for the Switcher nodes
+//
+
+
+
+global proc AEliquidSwitcherRelatedDefaultShaderNew ( string $shaderAttr, string $type )
+{
+	$type = plugAttr($type);
+	setUITemplate -pst attributeEditorTemplate;
+	attrNavigationControlGrp
+		-label ("default" + $type)
+		-at $shaderAttr
+		surfaceShaderControl;
+	setUITemplate -ppt;
+}
+
+global proc AEliquidSwitcherRelatedDefaultShaderReplace ( string $shaderAttr, string $type )
+{
+	attrNavigationControlGrp -edit
+		-at $shaderAttr
+		surfaceShaderControl;
+}
+
+
+
+global proc AEliquidSwitcherRelatedConditionListNew(string $msg, string $type)
+{
+	global string $gAttributeEditorWindowName;
+	string $parent = `setParent -q`;
+  	string $window;
+	if($parent == "NONE")
+	{
+		if (`window -q -ex $gAttributeEditorWindowName`)
+		{
+			$window = $gAttributeEditorWindowName;
+		}
+		else
+		{
+			$window = "MayaWindow";
+		}
+	}
+	else
+	{
+		string	$tokens[];
+		int $nt = tokenize($parent, "|", $tokens);
+		$window = $tokens[0];
+	}
+	string $col = `columnLayout ("col_"+$window)`;
+	AEliquidSwitcherRelatedConditionListReplace($msg, $type);
+}
+
+
+global proc AEliquidSwitcherRelatedConditionListReplace(string $msg, string $type)
+{
+	string $node = plugNode($msg);
+	$type = plugAttr($type);
+	// store the current parent to restore it later
+	global string $gAttributeEditorWindowName;
+	string $parent = `setParent -q`;
+  	string $window;
+	if($parent == "NONE")
+	{
+		if (`window -q -ex $gAttributeEditorWindowName`)
+		{
+			$window = $gAttributeEditorWindowName;
+		}
+		else
+		{
+			$window = "MayaWindow";
+		}
+	}
+	else
+	{
+		string	$tokens[];
+		int $nt = tokenize($parent, "|", $tokens);
+		$window = $tokens[0];
+	}
+	string $columnLayoutName = "col_" + $window;
+	string $buttonName = "but_" + $window;
+	if( !`layout -q -ex $columnLayoutName` )
+	{
+		$columnLayoutName = `columnLayout $columnLayoutName`;
+	}
+	string $children[] = `layout -q -ca $columnLayoutName`;
+	for($child in $children)
+	{
+		deleteUI $child;
+	}
+	setParent $columnLayoutName;
+	string $formLayout = `formLayout`;
+	setParent $formLayout;
+	string $but = `button -label "Add Condition" -ann "Add condition" -w 135 -h 25`;
+	button -e -c ("AEliquidSwitcherRelatedAddConditionCallback "+$node) $but;
+	string $sep = `separator`;
+	formLayout -e 	-af $but "top" 10
+					-af $but "left" 10
+					-ac $sep "top" 10 $but
+					-af $sep "left" 10
+					-af $sep "right" 10
+					$formLayout;
+	$lastUp = $sep;
+	// display switch array
+	int $indices[] = `getAttr -mi ($node+".switchShader")`;
+	for( $i=0; $i<size($indices); $i++ )
+	{
+		int $index = $indices[$i];
+		setParent $formLayout;
+		string $condiFrameLayout = `frameLayout -cll 0 -cl 0 -l "" -bv 0`;
+		string $condiFormLayout = `formLayout`;
+		string $b = `button -l "X" -w 24 -h 100 -c ("AEliquidSwitcherRelatedRemoveConditionCallback " + $node + " " + $index + " " + $condiFrameLayout)`;
+		string $ua = `attrControlGrp	-label ("userAttribute["+$index+"]")
+										-attribute ($node+".switchShader["+$index+"].userAttribute")
+										-annotation ""
+										-cc ("AEliquidSwitcherRelatedChangeUserAttributeCallback " + $node + " " + $index)`;
+		string $uca = `attrControlGrp	-label ("customUserAttribute["+$index+"]")
+										-attribute ($node+".switchShader["+$index+"].customUserAttribute")
+										-annotation ""`;
+		string $c = `attrControlGrp	-label ("condition["+$index+"]")
+									-attribute ($node+".switchShader["+$index+"].condition")
+									-annotation ""`; 
+		string $uv = `attrControlGrp	-label ("userValue["+$index+"]")
+										-attribute ($node+".switchShader["+$index+"].userValue")
+										-annotation ""`; 
+		string $s = `attrNavigationControlGrp	-label ("shader["+$index+"]")
+												-at ($node+".switchShader["+$index+"].shader")`;
+		formLayout -e
+					-af $b "top" 0
+					-af $b "left" 0
+					-af $ua "top" 0
+					-ac $ua "left" 0 $b
+					-ac $uca "top" 0 $ua
+					-ac $uca "left" 0 $b
+					-ac $c "top" 0 $uca
+					-ac $c "left" 0 $b
+					-ac $uv "top" 0 $c
+					-ac $uv "left" 0 $b
+					-ac $s "top" 0 $uv
+					-ac $s "left" 0 $b
+					$condiFormLayout;
+		setParent $formLayout;
+		$sep = `separator`;
+		formLayout -e 	
+					-ac $condiFrameLayout "top" 0 $lastUp
+					-af $condiFrameLayout "left" 0
+					-af $condiFrameLayout "right" 0
+					-ac $sep "top" 10 $condiFrameLayout
+					$formLayout;
+
+		$lastUp = $sep;
+	}
+	setParent $parent;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+/////							Callbacks
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
+
+
+global proc AEliquidSwitcherRelatedChangeUserAttributeCallback(string $node, int $index)
+{
+	string $userAttributeName = `getAttr -asString ($node + ".switchShader["+$index+"].userAttribute")`;
+	if( $userAttributeName == "custom" )
+	{
+		setAttr -l 0 ($node + ".switchShader["+$index+"].customUserAttribute");
+	}
+	else
+	{
+		setAttr -l 1 ($node + ".switchShader["+$index+"].customUserAttribute");
+	}
+}
+
+
+
+global proc AEliquidSwitcherRelatedRemoveConditionCallback(string $node, int $index, string $frameLayout)
+{
+	if( `layout -q -ex $frameLayout` )
+	{
+		string $ca[] = `layout -q -ca $frameLayout`;
+		for($c in $ca)
+		{
+			deleteUI $c;
+		}
+		deleteUI $frameLayout;
+	}
+	removeMultiInstance -b 1 ($node+".switchShader[" + $index + "]");
+	updateAE($node);
+}
+
+
+global proc AEliquidSwitcherRelatedAddConditionCallback(string $node)
+{
+	int $indices[] = `getAttr -mi ($node+".switchShader")`;
+	int $i;
+	int $j;
+	if( !size($indices) )
+	{
+		getAttr ($node+".switchShader[0].userAttribute");
+		setAttr -l 1 ($node+".switchShader[0].customUserAttribute");
+		return;
+	}
+	for($i=0; $i<$indices[size($indices)-1]; $i++)
+	{
+		int $exists = 0;
+		for($j=0; $j<size($indices); $j++)
+		{
+			if( $i == $indices[$j] )
+			{
+				$exists = 1;
+			}
+		}
+		if( !$exists )
+		{
+			getAttr ($node+".switchShader[" + $i + "].userAttribute");
+			setAttr -l 1 ($node+".switchShader[" + $i + "].customUserAttribute");
+			return;
+		}
+	}
+	getAttr ($node+".switchShader[" + ($indices[size($indices)-1]+1) + "].userAttribute");
+	setAttr -l 1 ($node+".switchShader[" + ($indices[size($indices)-1]+1) + "].customUserAttribute");
+}
+

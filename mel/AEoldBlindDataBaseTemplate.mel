@@ -1,0 +1,122 @@
+// AEtemplate for liquid shaders
+// version 0.1
+// 20th of May 2005, lunchTime
+// philippe.leprince@framestore-cfc.com
+
+
+
+global proc AEoBDupdateLiqShaderParams( string $attr )
+{
+	global string $AEliqShaderParams[];
+	string $nodeName = match("[A-Za-z0-9_]+", $attr);
+	string $userDefinedAttr[] = `listAttr -ud $nodeName`;
+	string $nonShaderParams[] = { "rmanShader", "rmanShaderLong", "liquidShaderManager",
+											"color", "red", "green", "blue", "opacity", "redO", "greenO", "blueO",
+											"displacementBound", "shadowCamera", "deepShadows", "pixelSamples", "volumeInterpretation",
+											"assignedObjects", "typeId", "caching", "nodeState" };
+	string $tmp[] = stringArrayRemove( $nonShaderParams, $userDefinedAttr );
+
+	clear $AEliqShaderParams;
+	for ( $i=0; $i<size( $tmp ); $i++ ) {
+		if ( $i > 0 && $tmp[$i] == ($tmp[$i-1]+"a")  ) {
+			$tmp[$i] = "";
+			if ( $tmp[$i+1] ==  ($tmp[$i-1]+"b") ) $tmp[$i+1] = "";
+			if ( $tmp[$i+2] ==  ($tmp[$i-1]+"c") ) $tmp[$i+2] = "";
+		}
+		if ( $tmp[$i] != "" ) $AEliqShaderParams[size( $AEliqShaderParams )] = $tmp[$i];
+	}
+}
+
+global proc AEoBDliqRmanShaderFieldReplace( string $attr )
+{
+	string $nodeName = match("[A-Za-z0-9_]+", $attr);
+	if ( $nodeName == "liquidGlobals" ) return;
+
+	global string $AEliqShaderParams[];
+	AEoBDupdateLiqShaderParams( $attr );
+
+	string $aeP = `setParent -q`;
+	string $aePcontrols[];
+	if (`layout -q -ex $aeP`) $aePcontrols = `layout -q -ca $aeP`;
+	if ( size( $aePcontrols ) ) {
+		if ( catchQuiet(`deleteUI $aePcontrols`) ) {
+			for ( $c in $aePcontrols ) {
+				if ( `control -q -ex $c` ) deleteUI $c;
+			}
+		}
+	}
+
+
+	setUITemplate -pst attributeEditorTemplate;
+
+		for ( $i = 0; $i < size( $AEliqShaderParams ); $i++ ) {
+
+			string $fullAttr = ($nodeName+"."+$AEliqShaderParams[$i]);
+
+      if ( !gmatch( $AEliqShaderParams[$i], "*.*") && `attributeQuery -node $nodeName -multi $AEliqShaderParams[$i]` ) {
+
+        int $size = `getAttr -size $fullAttr`;
+        for ( $j=0; $j<$size; $j++ ) {
+          attrControlGrp -a ($fullAttr+"["+$j+"]") -hideMapButton true ;
+        }
+
+      } else {
+        if ( !gmatch( $AEliqShaderParams[$i], "*.*") ) attrControlGrp -a $fullAttr -hideMapButton true ;
+      }
+		}
+
+		setParent ..;
+	setUITemplate -ppt;
+
+}
+
+global proc AEoBDliqRmanShaderFieldNew( string $attr )
+{
+	AEoBDliqRmanShaderFieldReplace $attr;
+}
+
+
+
+
+global proc AEoldBlindDataBaseTemplate ( string $nodeName )
+{
+
+	AEoBDupdateLiqShaderParams( $nodeName );
+
+	editorTemplate -beginScrollLayout;
+
+		editorTemplate -beginLayout "Liquid" -collapse 0;
+			editorTemplate -addDynamicControl "rmanShader";
+			editorTemplate -addDynamicControl "rmanShaderLong";
+			editorTemplate -addDynamicControl "liquidShaderManager";
+		editorTemplate -endLayout;
+
+		editorTemplate -beginLayout "Geometry Params" -collapse 1;
+			editorTemplate -addDynamicControl "color";
+			editorTemplate -addDynamicControl "opacity";
+			editorTemplate -addDynamicControl "displacementBound";
+			editorTemplate -addDynamicControl "shadowCamera";
+			editorTemplate -addDynamicControl "deepShadows";
+			editorTemplate -addDynamicControl "pixelSamples";
+			editorTemplate -addDynamicControl "volumeInterpretation";
+		editorTemplate -endLayout;
+
+		editorTemplate -beginLayout "Shader Params" -collapse 1;
+			editorTemplate -ccu "AEoBDliqRmanShaderFieldNew" "AEoBDliqRmanShaderFieldReplace" "assignedObjects";
+		editorTemplate -endLayout;
+
+		eval(	"for ( $p in $AEliqShaderParams ) {"+
+					"editorTemplate -suppress $p;"+
+				"}");
+
+		editorTemplate -beginLayout "Extra Attributes" -collapse 1;
+			editorTemplate -addControl typeId;
+			editorTemplate -addControl caching;
+			editorTemplate -addControl nodeState;
+		editorTemplate -endLayout;
+
+	editorTemplate -endScrollLayout;
+}
+
+
+

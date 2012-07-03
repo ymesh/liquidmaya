@@ -1,0 +1,142 @@
+// Copyright (C) 1997-2006 Autodesk, Inc., and/or its licensors.
+// All rights reserved.
+//
+// The coded instructions, statements, computer programs, and/or related
+// material (collectively the "Data") in these files contain unpublished
+// information proprietary to Autodesk, Inc. ("Autodesk") and/or its licensors,
+// which is protected by U.S. and Canadian federal copyright law and by
+// international treaties.
+//
+// The Data is provided for use exclusively by You. You have the right to use,
+// modify, and incorporate this Data into other products for purposes authorized 
+// by the Autodesk software license agreement, without fee.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. AUTODESK
+// DOES NOT MAKE AND HEREBY DISCLAIMS ANY EXPRESS OR IMPLIED WARRANTIES
+// INCLUDING, BUT NOT LIMITED TO, THE WARRANTIES OF NON-INFRINGEMENT,
+// MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, OR ARISING FROM A COURSE 
+// OF DEALING, USAGE, OR TRADE PRACTICE. IN NO EVENT WILL AUTODESK AND/OR ITS
+// LICENSORS BE LIABLE FOR ANY LOST REVENUES, DATA, OR PROFITS, OR SPECIAL,
+// DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES, EVEN IF AUTODESK AND/OR ITS
+// LICENSORS HAS BEEN ADVISED OF THE POSSIBILITY OR PROBABILITY OF SUCH DAMAGES.
+
+//
+//
+//
+//
+//
+//  Alias Script File
+//  MODIFY THIS AT YOUR OWN RISK
+//
+//  Creation Date:  August 10/2000
+//
+
+//////////////////////////////////////////////////////////////////////
+//
+//  Procedure Name: 
+//		connectNodeToAttrOverride
+//
+//  Description:
+//		This procedure is provided as a hook for customers to allow
+//		you to redefine the behaviour of drag and drop. 
+//		
+//  Input Arguments:
+//		$srcNode - the name of the source (the dragged node)
+//		$dstNodeAndAttr - the name of the destination (the dropped-on attr)
+//
+//  Return Value:
+//		Return 1 if you want Maya continue and perform the operation 
+// 		that would normally result from this connection.
+//		Return 0 if you have chosen to implement a different behaviour
+//		for this connection and don't want the normal operation to 
+//		be performed as well.
+//
+global proc int connectNodeToAttrOverride(
+	string $srcNode, // ie) checker2
+	string $dstNodeAndAttr) // ie) lambert1.normalCamera
+{
+//	print(
+//		"connectNodeToAttrOverride(" 
+//		+ $srcNode
+//		+ ", " 
+//		+ $dstNodeAndAttr
+//		+ ") called\n");
+
+	// By default the return value of this procedure is 1, so that Maya
+	// will perform the normal operation for a connection between these
+	// two nodes.
+	//
+	int $rDoNormalOperation = 1;
+
+	// 
+	// If you wish to change the behaviour of drag and drop of a node
+	// onto an attribute in Maya, you should implement the behaviour you 
+	// wish here. 
+	//
+	// Typically this procedure would get called when a node is dragged onto an
+	// attribute in the attribute editor in Maya or when a node is dragged onto
+	// an object in the 3d view.
+	//
+	// This is one likely procedure that you would want to implement to
+	// change Maya's drag and drop behaviour. For example, if you were a game
+	// developer and you wanted to allow an artist to drag and drop a texture
+	// onto an object in the 3d view with meaningful consequences, you would
+	// implement this method to recognize that action and assign shading
+	// groups/create shading networks/etc as appropriate.
+	//
+
+	// connect mental ray shader to mental ray render globlas "contour store" and "contour contrast"
+	if( $dstNodeAndAttr == "miDefaultOptions.contourStore" ||
+		$dstNodeAndAttr == "miDefaultOptions.contourContrast" )
+	{
+		connectAttr -f ($srcNode + ".message" )  $dstNodeAndAttr;
+		return 0;
+	}
+	
+	// Additions for liquid
+	// if ( nodeType($srcNode) == "liquidCoShader" ) {
+	// Changed for a less restrictive test :
+	if ( (nodeType($srcNode) == "liquidCoShader")
+		 || (nodeType($srcNode) == "liquidSurface")
+		 || (nodeType($srcNode) == "liquidDisplacement")
+		 || (nodeType($srcNode) == "liquidVolume")
+		 || (nodeType($srcNode) == "liquidLight") ) {	
+		string	$srcAttr		= "message";
+		string	$dstNode		= match("^[^\.]+", $dstNodeAndAttr);
+		string	$dstAttr		= match("[\.].+$", $dstNodeAndAttr);
+		$dstAttr				= substring($dstAttr, 2, size($dstAttr));
+		// print ("Override connect coshader "+$srcNode+" to "+$dstNode+"."+$dstAttr+"\n");
+		if ( (nodeType($dstNode) == "liquidSurface")
+			|| (nodeType($dstNode) == "liquidDisplacement")
+			|| (nodeType($dstNode) == "liquidVolume")
+			|| (nodeType($dstNode) == "liquidLight")
+			|| (nodeType($dstNode) == "liquidCoShader") ) {
+			if ($srcNode != $dstNode) {
+				string $baseDstAttr		= match("[^\.\[]+", $dstAttr);
+				string $accepts[]		= liquidShaderNodesAttrAccept( $dstNode, $baseDstAttr );
+				if ( size($accepts) ) {
+					string $methods[]		= `getAttr ($srcNode+".rmanMethods")`;
+					if ( size($methods) ) { 		
+						for ($a in $accepts) {
+							for ($m in $methods) {
+								if ( gmatch($m, $a) ) {
+									connectAttr -f ($srcNode+"."+$srcAttr) ($dstNode+"."+$dstAttr);
+									return 0;
+								}
+							}
+						}
+						warning ("CoShader "+$srcNode+" defines none of the methods that "+($dstNode+"."+$dstAttr)+" expects: "+stringArrayToString($accepts, " "));
+					} else {
+						warning ("CoShader "+$srcNode+" does not seem to define any useable method");			
+					}
+				} else {
+					warning (($dstNode+"."+$dstAttr)+" is not connectable");
+				}
+			} else {
+				warning ("Cannot connect a shading node to itself");
+			}
+			$rDoNormalOperation = 0;
+		}
+	}
+
+	return $rDoNormalOperation;
+}

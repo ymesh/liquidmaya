@@ -1,0 +1,392 @@
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  liquidSLManager.mel
+//
+//  version 1.0
+//  Creation Date:  1.Mar.2004
+//
+//  Description:
+//
+
+global string $RenderersList[];
+
+global string $curRendererName;
+global string $curShaderExt;
+global string $curShaderComp;
+global string $curShaderCompInclude;
+
+global string $refreshCmdDst;
+global string $srcBrowser[];
+global string $dstBrowser[];
+global string $slInclude;
+global string $cmdLine;
+
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquiduidSLManagerStoreSourceDir( string $curDirText )
+{
+  string $liquidCFD = `textFieldGrp -q -tx $curDirText`;
+  optionVar -sv "liqSLManagerSourceDir" $liquidCFD;
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidSLManagerStoreDesinationDir( string $curDirText )
+{
+  string $liquidCFD = `textFieldGrp -q -tx $curDirText`;
+  optionVar -sv "liqSLManagerDestinationDir" $liquidCFD;
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidSLManagerEditCommand ( string $widget, string $curDirText )
+{	global string $defTextViewerName;
+  string $textViewerName = liquidINIGet( "liquid", "textviewer" );
+  if ( $textViewerName == "" )
+    $textViewerName = $defTextViewerName;
+  string $liquidCFD = `textFieldGrp -q -tx $curDirText`;
+  //string $currentlySelected[] = `ls -sl`;
+  string $selected, $selectedFiles[] = `textScrollList -q -si $widget`;
+
+  for ( $selected in $selectedFiles ) {
+    string $path = ( $liquidCFD + "/" + $selected );
+    if ( `filetest -f $path`) {
+      string $OS = `about -os`;
+      if ( $OS == "nt")
+        system ( "shell " + $textViewerName + " " + $path );
+      else
+        system ( $textViewerName + " " + $path + " &");
+    }
+  }
+  //select $currentlySelected;
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidSLManagerSetRenderer( int $curRenderer ) {
+global string $RenderersList[];
+global string $curRendererName;
+global string $curShaderExt;
+global string $curShaderComp;
+global string $curShaderCompInclude;
+
+global string $refreshCmdDst;
+global string $srcBrowser[];
+global string $dstBrowser[];
+global string $slInclude;
+global string $cmdLine;
+  string $dstFileDescText = $dstBrowser[5];
+
+  optionVar -sv liqSLmanagerCurRenderer $curRenderer;
+  $curRendererName = $RenderersList[$curRenderer * 3];
+  $curShaderExt = $RenderersList[$curRenderer * 3 + 1];
+  $curShaderComp =  $RenderersList[$curRenderer * 3 + 2];
+  //$curShaderCompInclude = "%BMRTHOME%shaders";
+
+  textFieldGrp -e -tx $curShaderComp $cmdLine;
+  textFieldGrp -e -tx ( "*." + $curShaderExt ) $dstFileDescText;
+  //textFieldGrp -e -tx $curShaderCompInclude $slInclude;
+
+  eval( $refreshCmdDst );
+  print $curRendererName; print "\n";
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidSLManagerCompile() {
+  global string $curRendererName;
+  global string $curShaderExt;
+  global string $curShaderComp;
+  global string $curShaderCompInclude;
+
+  global string $refreshCmdDst;
+  global string $srcBrowser[];
+  global string $dstBrowser[];
+  global string $slInclude;
+  global string $cmdLine;
+
+  string $srcFileList = $srcBrowser[2];
+  string $srcCurDirText = $srcBrowser[4];
+  string $dstCurDirText = $dstBrowser[4];
+
+  string $srcDir = `textFieldGrp -q -tx $srcCurDirText`;
+  string $dstDir = `textFieldGrp -q -tx $dstCurDirText`;
+  string $include = `textFieldGrp -q -tx  $slInclude`;
+
+  string $selected, $selectedFiles[] = `textScrollList -q -si $srcFileList`;
+
+  string $OS = `about -os`;
+  chdir ( $srcDir );
+
+  for ( $selected in $selectedFiles ) {
+    string $out;
+    string $srcPath = ( $srcDir + "/" + $selected );
+    if ( `filetest -f $srcPath`) {
+      // system ( $textViewerName + " " + $path ); // + " &");
+      string $cmd = `textFieldGrp -q -tx $cmdLine`;
+      $cmd += ( " -I\""  + $include + "\" ");
+      $cmd += tolower( $selected );
+
+      print $cmd; print "\n";
+      $out = system ( $cmd );
+      print $out; print "\n";
+
+      string $shaderName = basename( tolower($srcPath), ".sl");
+      string $srcName =  $srcDir + "/" + $shaderName + "." + 	$curShaderExt;
+      string $dstName =  $dstDir + "/" + $shaderName + "." + 	$curShaderExt;
+
+      if ( `filetest -f $srcName`) {
+        print $selected; print " compiled to : "; print $srcName; print "\n";
+        if ( $srcDir != $dstDir ) {
+          if ( `filetest -f $dstName` )
+            sysFile -delete $dstName;
+          if ( !`sysFile -rename $dstName $srcName` )
+            warning ( "rename error " + $srcName + " to " + $dstName );
+        }
+      } else {
+        warning ( $srcName + " not found");
+      }
+
+    }
+  }
+
+  eval( $refreshCmdDst );
+}
+
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidSLManagerDelete() {
+  global string $refreshCmdDst;
+  global string $dstBrowser[];
+  string $dstFileList = $dstBrowser[2];
+  string $dstCurDirText = $dstBrowser[4];
+  string $dstDir = `textFieldGrp -q -tx $dstCurDirText`;
+  string $selected, $selectedFiles[] = `textScrollList -q -si $dstFileList`;
+
+  for ( $selected in $selectedFiles ) {
+    string $dstName =  $dstDir + "/" + $selected;
+    if ( `filetest -f $dstName` )
+      sysFile -delete $dstName;
+    else
+      warning ( "delete error " + $dstName );
+  }
+  eval( $refreshCmdDst );
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidSLManager() {
+  global string $curRendererName;
+  global string $curShaderExt;
+  global string $curShaderComp;
+  global string $curShaderCompInclude;
+  global string $refreshCmdDst;
+  global string $srcBrowser[];
+  global string $dstBrowser[];
+  global string $slInclude;
+  global string $cmdLine;
+  global string $RenderersList[];
+  string $RenderersList[8] = {
+   "3Delight","sdl","shaderdl"
+  ,"Air","slb","shaded"
+  ,"Aqsis","slx","aqsl"
+  ,"BMRT","slc","slc"
+  ,"Entropy","sle","sle"
+  ,"Pixie","sdr","sdrc"
+  ,"PRman","slo","shader"
+  ,"RenderDotC","dll","shaderdc"
+  };
+
+  string $wnd = "liqSLmanagerWnd";
+
+  if ( `window -exists $wnd` )
+    deleteUI -window $wnd;
+  if ( !`window -exists $wnd` ) {
+    window  -mb true -rtf false -title "liquid Shader Manager v1.0" $wnd;
+
+    int $i, $curRenderer = 6;
+  if ( !`optionVar -exists liqSLmanagerCurRenderer` )
+    optionVar -sv liqSLmanagerCurRenderer $curRenderer;
+  else
+    $curRenderer = `optionVar -q liqSLmanagerCurRenderer`;
+    $curRendererName = $RenderersList[$curRenderer * 3];
+    $curShaderExt = $RenderersList[$curRenderer * 3 + 1];
+    $curShaderComp =  $RenderersList[$curRenderer * 3 + 2];
+    $curShaderCompInclude = "%BMRTHOME%shaders";
+
+    string $renderMenu = `menu -label "Settings" -tearOff false `;
+    radioMenuItemCollection;
+    for ( $i = 0  ; $i < size($RenderersList)/3 ; $i++ ) {
+      menuItem -label $RenderersList[$i * 3] -radioButton ( $i == $curRenderer ) -c ("liqSLmanagerSetRenderer " + $i );
+    }
+
+    setParent $wnd;
+
+    int $ckw1 = 12, $cw1 = 80, $cw2 = 60;
+    string $srcForm, $srcFileListPane, $srcFileListPane, $srcDirList, $srcCurDirText, $srcFileDescText;
+    string $dstForm, $dstFileListPane, $dstFileListPane, $dstDirList, $dstCurDirText, $dstFileDescText;
+
+    string $form = `formLayout -numberOfDivisions 100`;
+      string $srcDir = liquidInitCFD();
+      if ( `optionVar -ex "liqSLmanagerSrcDir"` ) {
+        string $dir =`optionVar -q "liqSLmanagerSrcDir"`;
+        if ( `file -q -ex $dir` )
+          $srcDir = $dir;
+      }
+      optionVar -sv "liqSLmanagerSrcDir" $srcDir;
+
+      $slInclude = `textFieldGrp -cw 1 $cw1 -adj 2 -tx $curShaderCompInclude -l "Include" `;
+      $srcBrowser = `liquidFileBrowserIn "*.sl" "liqSLmanagerEditCMD" "Source Dir"  $srcDir  "liqSLmanagerStoreSrcDir"`;
+      $srcForm = $srcBrowser[0];
+      $srcFileListPane = $srcBrowser[1];
+      $srcFileList = $srcBrowser[2];
+      $srcDirList = $srcBrowser[3];
+      $srcCurDirText = $srcBrowser[4];
+      $srcFileDescText = $srcBrowser[5];
+
+      string $centerColumn = `columnLayout -cat left 0 -adj true `;
+        text -l "";
+        text -l "";
+        text -l "";
+        text -l "";
+        string $swapBtn = `button -label "<=>" -ann "Swap source and destination"`;
+        string $src2dstBtn = `button -label ">>>" -ann "Set destination same as source"`;
+        string $dst2srcBtn = `button -label "<<<" -ann "Set source same as destination"`;
+      setParent ..;
+
+      string $dstDir = liquidInitCFD();
+      if ( `optionVar -ex "liqSLmanagerDstDir"` ) {
+      string $dir =`optionVar -q "liqSLmanagerDstDir"`;
+        if ( `file -q -ex $dir` )
+          $dstDir = $dir;
+      }
+      optionVar -sv "liqSLmanagerDstDir" $dstDir;
+
+      $cmdLine = `textFieldGrp -cw 1 $cw1 -adj 2 -tx $curShaderComp -l "Command" `;
+      $dstBrowser = `liquidFileBrowserIn ( "*." + $curShaderExt ) "" "Target Dir" $dstDir  "liqSLmanagerStoreDstDir"`;
+      $dstForm = $dstBrowser[0];
+      $dstFileListPane = $dstBrowser[1];
+      $dstFileList = $dstBrowser[2];
+      $dstDirList = $dstBrowser[3];
+      $dstCurDirText = $dstBrowser[4];
+      $dstFileDescText = $dstBrowser[5];
+
+      popupMenu -p $dstFileList;
+        menuItem -label "Delete" -command "liqSLmanagerDelete";
+
+    string $delWindowCmd = ( "deleteUI -window " + $wnd );
+    string $compileCmd = "liqSLmanagerCompile";
+    string $refreshCmdSrc = ("liqSLmanagerRefreshPanel " + $srcDirList + " " + $srcCurDirText + " " + $srcFileList + " " + $srcFileDescText );
+    $refreshCmdDst = ("liqSLmanagerRefreshPanel " + $dstDirList + " " + $dstCurDirText + " " + $dstFileList + " " + $dstFileDescText );
+    string $refreshCmd = $refreshCmdSrc + ";" + $refreshCmdDst;
+    string $storeSrcCmd = "liqSLmanagerStoreSrcDir " + $srcCurDirText;
+    string $storeDstCmd = "liqSLmanagerStoreDstDir " + $dstCurDirText;
+    string $storeCmd = $storeSrcCmd + ";" + $storeDstCmd;
+    string $compileBtn = `button -label "Compile" -command $compileCmd` ;
+    string $refreshBtn = `button -label "Refresh" -command $refreshCmd` ;
+    string $closeBtn = `button -label "Close" -command $delWindowCmd` ;
+
+    button -e -c ("swapSrcDstDir " + $srcCurDirText + " " + $dstCurDirText + ";" + $storeCmd + ";" + $refreshCmd ) $swapBtn;
+    button -e -c ("setSrc2Dst " + $srcCurDirText + " " + $dstCurDirText + ";" + $storeCmd + ";" + $refreshCmd ) $src2dstBtn;
+    button -e -c ("setDst2Src " + $srcCurDirText + " " + $dstCurDirText + ";" + $storeCmd + ";" + $refreshCmd ) $dst2srcBtn;
+
+    formLayout -edit
+
+    -attachForm $slInclude "top" 2
+    -attachForm $centerColumn "top" 2
+    -attachForm $cmdLine "top" 2
+    -attachForm $cmdLine "right" 2
+    -attachForm $slInclude "left" 2
+    -attachForm $srcForm "left" 2
+    -attachControl $srcForm "top" 2 $slInclude
+    -attachControl $dstForm "top" 2 $cmdLine
+    -attachControl $srcForm "bottom" 2 $closeBtn
+    -attachControl $centerColumn "bottom" 2 $closeBtn
+    -attachControl $dstForm "bottom" 2 $closeBtn
+    -attachControl $slInclude "right" 2  $centerColumn
+    -attachControl $srcForm "right" 2  $centerColumn
+    -attachControl $cmdLine "left" 2  $centerColumn
+    -attachControl $dstForm "left" 2  $centerColumn
+    -attachForm $dstForm "right" 2
+    -attachPosition $centerColumn "left" 2 45
+    -attachPosition $centerColumn "right" 2 55
+    -attachForm $compileBtn "bottom" 2
+    -attachForm $refreshBtn "bottom" 2
+    -attachForm $compileBtn "left" 2
+    -attachForm $closeBtn "bottom" 2
+    -attachForm $closeBtn "right" 2
+    -attachControl $refreshBtn "left" 2  $compileBtn
+    -attachControl $refreshBtn "right" 2  $closeBtn
+    -attachPosition $compileBtn "right" 2 33
+    -attachPosition $closeBtn "left" 2 66
+    $form;
+
+    window  -edit -rtf true $wnd;
+    showWindow $wnd;  //	 show the new window
+  }
+}
+
+//===========================================================================================
+//
+//===========================================================================================
+global proc liquidSLManagerRefreshPanel( string $dirWidget, string $curDirText, string $fileWidget, string $fileMatch ) {
+  liquidUpdateDirList $dirWidget $curDirText;
+  liquidUpdateFileList $fileWidget $fileMatch $curDirText;
+}
+
+// Moritz: do these three below need to be global procs really???
+
+//===========================================================================================
+//
+//===========================================================================================
+global proc swapSrcDstDir( string $srcCurDirText, string $dstCurDirText ) {
+  string 	$src = `textFieldGrp -q -tx $srcCurDirText`;
+  string 	$dst = `textFieldGrp -q -tx $dstCurDirText`;
+
+  textFieldGrp -e -tx $dst $srcCurDirText;
+  textFieldGrp -e -tx $src $dstCurDirText;
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc setSrc2Dst( string $srcCurDirText, string $dstCurDirText ) {
+  string 	$src = `textFieldGrp -q -tx $srcCurDirText`;
+  string 	$dst = `textFieldGrp -q -tx $dstCurDirText`;
+
+  textFieldGrp -e -tx $src $dstCurDirText;
+}
+//===========================================================================================
+//
+//===========================================================================================
+global proc setDst2Src( string $srcCurDirText, string $dstCurDirText ) {
+  string 	$src = `textFieldGrp -q -tx $srcCurDirText`;
+  string 	$dst = `textFieldGrp -q -tx $dstCurDirText`;
+
+  textFieldGrp -e -tx $dst $srcCurDirText;
+}
+
+// liqSLmanager();

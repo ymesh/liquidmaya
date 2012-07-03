@@ -1,0 +1,47 @@
+global proc liquidRibBoxEditorUpdateMenu( string $msg )
+{
+  int $en = (`editRenderLayerGlobals -q -crl` == "defaultRenderLayer")? 0 : 1;
+  menuItem -e -c ("editRenderLayerAdjustment "+$msg) -en $en liquidRibboxEditorOverrideMenuItem;
+}
+
+global proc liquidRibBoxEditorNew( string $nodeName, string $msg )
+{
+  setUITemplate -pst attributeEditorTemplate;
+  scrollField -wordWrap false -font smallFixedWidthFont -h 250 liquidRibboxEditorCtl;
+  popupMenu liquidRibboxEditorOverrideMenu;
+  menuItem -l "Create Layer Override" liquidRibboxEditorOverrideMenuItem;
+  setUITemplate -ppt;
+
+  liquidRibBoxEditorReplace( $nodeName, $msg );
+}
+
+global proc liquidRibBoxEditorReplace( string $nodeName, string $msg )
+{
+  scrollField -e
+              -tx (`getAttr $msg`)
+              -cc ("{string $s = `scrollField -q -tx liquidRibboxEditorCtl`;setAttr -type \"string\" "+$msg+" $s;}")
+              -ec ("{string $s = `scrollField -q -tx liquidRibboxEditorCtl`;setAttr -type \"string\" "+$msg+" $s;}")
+              liquidRibboxEditorCtl;
+
+  popupMenu -e -pmc ("liquidRibBoxEditorUpdateMenu "+$msg) liquidRibboxEditorOverrideMenu;
+}
+
+
+
+
+global proc AEliquidRibBoxTemplate( string $nodeName )
+{
+  AEswatchDisplay $nodeName;
+
+  editorTemplate -beginScrollLayout;
+
+    editorTemplate -suppress "rmanShader";
+    editorTemplate -suppress "rmanShaderLong";
+
+    editorTemplate -ccu ("liquidRibBoxEditorNew "+$nodeName)  ("liquidRibBoxEditorReplace "+$nodeName) "ribbox";
+
+    editorTemplate -addExtraControls;
+
+  editorTemplate -endScrollLayout;
+}
+

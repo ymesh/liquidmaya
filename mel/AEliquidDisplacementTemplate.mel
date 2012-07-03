@@ -1,0 +1,59 @@
+
+global proc AEliquidDisplacementTemplate( string $nodeName )
+{
+  layout -e -vis false "AEcontrolFormLayout";
+
+  editorTemplate -callCustom "liquidPreviewSwatchNew" "liquidPreviewSwatchReplace" "message";
+
+  editorTemplate -beginScrollLayout;
+
+    editorTemplate -ccu "liquidShaderPickerNew" "liquidShaderPickerReplace" "rmanShaderLong";
+
+    editorTemplate -beginLayout "Preview";
+      editorTemplate -addControl "previewPrimitive";
+      editorTemplate -ccu "liquidShaderNodesCustomPrimitiveNew \"Custom Primitive\" "
+                          "liquidShaderNodesCustomPrimitiveReplace \"Custom Primitive\" "
+                          "previewCustomPrimitive";
+      editorTemplate -addControl "previewObjectSize";
+      editorTemplate -addControl "previewPixelSamples";
+      editorTemplate -addControl "previewShadingRate";
+      editorTemplate -addControl "previewBackplane";
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "RIB";
+      editorTemplate -addControl "displacementBound";
+      editorTemplate -label "Disp. Bound Space" -addControl "displacementBoundSpace";
+      editorTemplate -addControl "shaderSpace";
+      editorTemplate -addControl "outputInShadow";
+      editorTemplate -ccu ("liquidLargeFieldNew "+$nodeName+" \"RIB Box\"") ("liquidLargeFieldReplace "+$nodeName+" \"RIB Box\"") "liqRIBBox";
+    editorTemplate -endLayout;
+
+    editorTemplate -beginLayout "Parameters" -collapse 0;
+
+      editorTemplate -ccu "liquidShaderNodesParamsNew" "liquidShaderNodesParamsReplace" "rmanShaderLong";
+
+    editorTemplate -endLayout;
+
+    editorTemplate -suppress rmanShader;
+    editorTemplate -suppress rmanShaderLong;
+    editorTemplate -suppress rmanShaderLif;
+    editorTemplate -suppress rmanParams;
+    editorTemplate -suppress rmanMethods;
+    editorTemplate -suppress rmanDetails;
+    editorTemplate -suppress rmanTypes;
+    editorTemplate -suppress rmanIsOutput;
+    editorTemplate -suppress rmanAccept;
+    editorTemplate -suppress rmanDefaults;
+    editorTemplate -suppress rmanArraySizes;
+    editorTemplate -suppress rmanLifCmds;
+	editorTemplate -suppress rmanLifCtrls;
+	editorTemplate -suppress nodeState;
+	editorTemplate -suppress caching;
+
+    editorTemplate -addExtraControls;
+
+  editorTemplate -endScrollLayout;
+
+  layout -e -vis true "AEcontrolFormLayout";
+}
+

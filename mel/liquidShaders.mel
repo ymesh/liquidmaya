@@ -1,0 +1,626 @@
+//
+//
+// The contents of this file are subject to the Mozilla Public License Version 1.1 (the
+// "License"); you may not use this file except in compliance with the License. You may
+// obtain a copy of the License at http://www.mozilla.org/MPL/
+//
+// Software distributed under the License is distributed on an "AS IS" basis, WITHOUT
+// WARRANTY OF ANY KIND, either express or implied. See the License for the specific
+// language governing rights and limitations under the License.
+//
+// The Original Code is the Liquid Rendering Toolkit.
+//
+// The Initial Developer of the Original Code is Colin Doncaster. Portions created by
+// Colin Doncaster are Copyright (C) 2002. All Rights Reserved.
+//
+// Contributor(s): Berj Bannayan.
+//
+//
+// The RenderMan (R) Interface Procedures and Protocol are:
+// Copyright 1988, 1989, Pixar
+// All Rights Reserved
+//
+//
+// RenderMan (R) is a registered trademark of Pixar
+//
+//  Creation Date:  June 20, 2000
+//
+//
+//  Description:
+//      Liquids Surface Shader Interface.
+//
+//  Input Arguments:
+//
+//  Returns:
+//
+
+global string $liquidShadersLastDirectory = "";
+
+/**
+ *  compatible with liquid 1.8+
+ */
+global proc string[] liquidGetShaderList(string $type)
+{
+  string $out_shaderlist[];
+  if($type == "all") {
+    string $types[] = {"Surface","Light","Disp","Volume","RibBox","Shader"};
+    for($shader_type in $types) {
+      $out_shaderlist = stringArrayCatenate($out_shaderlist, `ls -type ("liquid"+$shader_type)`);
+    }
+  } else {
+    $out_shaderlist = `ls -type ("liquid"+$type)`;
+  }
+  return $out_shaderlist;
+}
+
+/**
+ *  compatible with liquid 1.8+
+ */
+
+global proc string liquidGetShaderNodeType( string $node )
+{
+  string $returnValue;
+  string $nodeType, $typeId, $type;
+  $nodeType = nodeType( $node );
+  if ( objExists( ( $node + ".typeId" ) ) )
+  {
+	  $typeId = `getAttr ( $node + ".typeId" ) `;
+  }
+  $type = `substring $node 1 10`;
+  if( ( $type == "liquidSurf" ) || ( $typeId == 303126790 ) || ( $nodeType == "liquidSurface" ) ) {
+    $returnValue = "Surface";
+  }
+  if( ( $type == "liquidDisp" ) || ( $typeId == 303126791 ) || ( $nodeType == "liquidDisplacement" ) ) {
+    $returnValue = "Disp";
+  }
+  if( ( $type == "liquidLigh" ) || ( $typeId == 303126792 ) || ( $nodeType == "liquidLight" ) ) {
+    $returnValue = "Light";
+  }
+  if( ( $type == "liquidVolu" ) || ( $typeId == 303126793 ) || ( $nodeType == "liquidVolume" ) ) {
+    $returnValue = "Volume";
+  }
+  if( ( $type == "liquidCoSh" ) || ( $typeId == 303126796) || ( $nodeType == "liquidCoShader" ) ) {
+    $returnValue = "Shader";
+  }  
+  if( ( $type == "liquidRibb" ) || ( $typeId == 303126794 ) || ( $nodeType == "liquidRibBox" ) ) {
+    $returnValue = "Ribbox";
+  }
+  if( ( $type == "liquidCont" ) || ( $typeId == 303126795 ) ) {
+    $returnValue = "Container";
+  }
+  if( $nodeType == "liquidSurfaceSwitcher" ) {
+    $returnValue = "SurfaceSwitch";
+  }
+  if( $nodeType == "liquidDisplacementSwitcher" ) {
+    $returnValue = "DispSwitch";
+  }
+  return $returnValue;
+}
+
+ // Find it a bit messed up to return fill type name, but for displacement where it's Disp
+ // and why not return it in lowercase anyway ?
+global proc string liquidGetShaderNodeExpectedType( string $node )
+{
+	string $shaderNodeLiquidType = liquidGetShaderNodeType( $node );
+	return (($shaderNodeLiquidType == "Disp") ? "displacement" : tolower($shaderNodeLiquidType));
+}
+
+/**
+ *  compatible with liquid 1.8+
+ */
+global proc liquidAssignShaderNode_old( string $node, string $shaderNode )
+{
+  string $type = `liquidGetShaderNodeType $shaderNode`;
+
+  if ( !`attributeQuery -node $node -ex ( "liquid" + $type + "ShaderNode" )`) {
+    addAttr -ln ( "liquid" + $type + "ShaderNode" ) -at message $node;
+  }
+  if ( !`attributeQuery -node $shaderNode -ex "assignedObjects"`) {
+    addAttr -m -ln "assignedObjects" -at message $shaderNode;
+  }
+  int $ch = `constructionHistory -q -tgl`;
+  if ( !$ch ) constructionHistory -tgl on;
+  connectAttr -f ( $shaderNode + ".assignedObjects" ) ( $node + ".liquid" + $type + "ShaderNode" );
+
+  //extra for ribbox
+  if($type == "Ribbox") {
+    string $transform = liquidGetTransform( $node );
+    liquidCreateRIBBoxAttribute();
+
+    if( objExists( ($transform+".liqRIBBox") ) ) {
+      string $connection = `connectionInfo -sfd ($transform+".liqRIBBox")`;
+      if ( size( $connection ) ) disconnectAttr $connection ($transform+".liqRIBBox");
+    }
+    connectAttr -f ( $shaderNode + ".ribbox" ) ( $transform + ".liqRIBBox" );
+  }
+  constructionHistory -tgl $ch;
+}
+
+
+
+global proc int liquidIsShadingGroup( string $node ) 
+{
+	if ( objExists($node) )
+		if (( nodeType($node) == "shadingEngine" ) || ( nodeType($node) == "materialFacade" ))
+			return true;
+	return false;
+}
+
+global proc string[] liquidShadersGetShapes( string $node )
+{
+	string $shapes[];
+	if ( objectType( $node ) == "transform" )
+		$shapes = `listRelatives -pa -s $node`;
+	else { // if it's not a transform but it has a transform as a parent it should be a shape
+		if ( objExists( fs(`listRelatives -pa -p $node`) ) )
+			if ( objectType( fs(`listRelatives -pa -p $node`) ) == "transform" )
+				$shapes[0] = $node;
+	}
+	return $shapes;
+}
+
+// liquidGetShadingGroup will return the shading groups attached to a node.
+// this works a few ways : 
+// 	1. 	if you pass it a transform it will give back the shading groups for
+// 		all shapes and components under the transform
+// 	2. 	if you pass it a shape under a transform it will return all shading
+// 		groups assigned to the shapes components ( usually only one )
+// 	3. 	if you pass it any type of shading node it will look upstream for the first shading group
+// 	
+// if nothing is found it will return a null array {}
+//
+global proc string[] liquidGetShadingGroup( string $node )
+{
+	// if we've been passed a shading group then pass it right back again
+	if( liquidIsShadingGroup($node) )
+		return {$node};
+		
+    string $allSG[];
+	// first assume that the passed object is a transform or a shape
+	string $shapes[] = liquidShadersGetShapes( $node ), $s;
+	// collect the shading groups attached to all shapes
+	for ($s in $shapes) {
+		if ( attributeExists( "instObjGroups", $s ) ) {
+			string $currAllSG[] = `listConnections ($s+".instObjGroups")`, $currSG;
+			for ( $currSG in $currAllSG )
+				if ( liquidIsShadingGroup( $currSG ) )
+					$allSG[size($allSG)] = $currSG;
+		}
+	}
+	if ( size( $allSG ) == 0 ) {
+		// if nothing was found then assume that the node is a shading node
+		string $upStreamNodes[] = (`listHistory -future true $node`), $currNode;
+		for ($currNode in $upStreamNodes)
+			if( liquidIsShadingGroup($currNode) )
+	            $allSG[size($allSG)] = $currNode;
+	}
+	return $allSG;
+}
+
+
+/**
+ *  compatible with liquid 1.8+
+ */
+/*global proc liquidAssignShaderNode( string $node, string $shaderNode )
+{
+  float $version = liquidGetVersion();
+  string $newNodeName;
+
+  if ( $version < 1.8 ) $newNodeName = liquidAssignShaderNode_old( $node, $shaderNode );
+  else {
+    string $nodeType = nodeType( $shaderNode );
+    if ( $nodeType == "liquidLight" ) {
+      if ( !`attributeQuery -node $node -ex ( "liquidLightShaderNode" )`) {
+        addAttr -ln ( "liquidLightShaderNode" ) -at message $node;
+      }
+      int $ch = `constructionHistory -q -tgl`;
+      if ( !$ch ) constructionHistory -tgl on;
+      connectAttr -f ( $shaderNode + ".assignedObjects" ) ( $node + ".liquidLightShaderNode" );
+      constructionHistory -tgl $ch;
+    } else {
+	
+      hyperShade -assign $shaderNode $node;
+    
+	}
+  }
+}
+*/
+
+/**
+ *  compatible with liquid 1.8+
+ *	BT: made some changes to more gracefully handle assigning displacements and volumes
+ */
+global proc liquidAssignShaderNode( string $node, string $shaderNode )
+{
+  float $version = liquidGetVersion();
+  string $newNodeName;
+
+  if ( $version < 1.8 ) $newNodeName = liquidAssignShaderNode_old( $node, $shaderNode );
+  else {
+    string $nodeType = nodeType( $shaderNode );
+    
+	switch( $nodeType ) {
+		case "liquidLight":
+			if ( !`attributeQuery -node $node -ex ( "liquidLightShaderNode" )`) {
+				addAttr -ln ( "liquidLightShaderNode" ) -at message $node;
+			}
+			int $ch = `constructionHistory -q -tgl`;
+    		if ( !$ch ) constructionHistory -tgl on;
+    		connectAttr -f ( $shaderNode + ".assignedObjects" ) ( $node + ".liquidLightShaderNode" );
+    		constructionHistory -tgl $ch;
+			break;
+			
+		case "liquidDisplacement":
+			string $shadingGroupsA[] = liquidGetShadingGroup($node);
+			//if the obj already has a shading group assigned to it, attach the displacement shader to that shadingGroup
+			if( size($shadingGroupsA) ) {
+				for( $shadingGroup in $shadingGroupsA )
+				{
+					if($shadingGroup != "initialShadingGroup") {
+						connectAttr -f ($shaderNode+".displacement") ($shadingGroup+".displacementShader");
+					} else { hyperShade -assign $shaderNode $node; }
+				}
+			} else { hyperShade -assign $shaderNode $node; }
+			break;
+			
+		case "liquidVolume":
+			string $shadingGroupsA[] = liquidGetShadingGroup($node);
+			//if the obj already has a shading group assigned to it, attach the volume shader to that shadingGroup
+			if( size($shadingGroupsA) ) {
+				for( $shadingGroup in $shadingGroupsA )
+				{
+					if($shadingGroup != "initialShadingGroup") {
+						connectAttr -f ($shaderNode+".outColor") ($shadingGroup+".volumeShader");
+					} else { hyperShade -assign $shaderNode $node; }
+				}
+			} else { hyperShade -assign $shaderNode $node; }
+			break;
+		
+		case "liquidRibBox":
+			string $transform = liquidGetTransform( $node );
+			if ( !`attributeQuery -node $transform -ex "liqRIBBox"` ) {
+    			addAttr -ln "liqRIBBox" -dt "string" $transform; 
+			}
+			connectAttr -f ($shaderNode+".ribbox") ($transform+".liqRIBBox");
+			break;
+
+		default:
+			hyperShade -assign $shaderNode $node;
+			break;
+	}
+  }
+}
+
+
+/**
+ *  compatible with liquid 1.8+
+ */
+proc string liquidNewRibboxNode_old( string $nodename )
+{
+  if($nodename == "")
+  {
+    $nodename = "ribbox";
+  }
+  string $shadername = $nodename;
+  string $shaderType = "ribbox";
+  string $newNodeName = "" ;
+  $newNodeName = $shadername;
+  if ( `objExists( $newNodeName )` )
+  {
+    string $testNodeName = $newNodeName;
+    for( $i = 1;; $i++ )
+    {
+      string $cNum = $i;
+      $testNodeName = ( $newNodeName + $cNum );
+      string $testList[] = `ls $testNodeName`;
+      if ( !`objExists( $testNodeName )` ) break;
+    }
+    $newNodeName = $testNodeName;
+  }
+  createNode "oldBlindDataBase" -n $newNodeName;
+  setAttr ( $newNodeName + ".typeId" ) 303126794;
+  addAttr -ln "rmanShaderLong" -dt "string" $newNodeName;
+  addAttr -ln "rmanShader" -dt "string" $newNodeName;
+  addAttr -ln "liquidShaderManager" -at message $newNodeName;
+  setAttr ( $newNodeName + ".rmanShader" ) -type "string" $newNodeName;
+  setAttr ( $newNodeName + ".rmanShaderLong" ) -type "string" $shaderType;
+  addAttr -ln "ribbox" -dt "string" $newNodeName;
+
+  string $returnValue = $newNodeName;
+
+  if ( !`attributeExists "liquidRibboxShaders" "liquidGlobals"`)
+  {
+    addAttr -ln "liquidRibboxShaders" -at message liquidGlobals;
+  }
+      connectAttr -f "liquidGlobals.liquidRibboxShaders" ( $newNodeName + ".liquidShaderManager" );
+  evalDeferred("liquidFluidUpdateList");
+  return $returnValue;
+}
+
+/**
+ *  compatible with liquid 1.8+
+ */
+global proc string liquidNewRibboxNode( string $nodename )
+{
+  string $newRibbox;
+  float $version = liquidGetVersion();
+  if ( $version < 1.8 ) $newRibbox = liquidNewRibboxNode_old( $nodename );
+  else {
+    $newRibbox = `shadingNode -asUtility liquidRibBox`;
+  }
+  return $newRibbox;
+}
+
+/**
+ *  compatible with liquid 1.8+
+ */
+proc string liquidNewShaderNode_old( string $filename )
+{
+  // Get the shortest usable project path.
+  int $i;
+  string $returnValue = "";
+
+  string $shortName = basenameEx( $filename );
+  string $longName = $filename;
+
+  // parse the shader
+  liquidSlInfoReset();
+  liquidSlSetShader( $filename );
+
+  // get the correct name for the shader
+  // get the correct shader type - possibilities are surface, light, displacement and volume
+  string $shaderType = liquidSlShaderType();
+
+  // work out the new shader nodes name an
+  string $newNodeName = "" ;
+  $newNodeName = $shortName;
+  if ( `objExists( $newNodeName )` ) {
+    string $testNodeName = $newNodeName;
+    for( $i = 1;; $i++ ) {
+      string $cNum = $i;
+      $testNodeName = ( $newNodeName + $cNum );
+      string $testList[] = `ls $testNodeName`;
+      if ( !`objExists( $testNodeName )` ) break;
+    }
+    $newNodeName = $testNodeName;
+  }
+
+  createNode "oldBlindDataBase" -n $newNodeName;
+  if ( $shaderType == "surface" ) {
+    setAttr ( $newNodeName + ".typeId" ) 303126790;
+  } else if ( $shaderType == "displacement" ) {
+    setAttr ( $newNodeName + ".typeId" ) 303126791;
+  } else if ( $shaderType == "light" ) {
+    setAttr ( $newNodeName + ".typeId" ) 303126792;
+  } else if ( $shaderType == "volume" ) {
+    setAttr ( $newNodeName + ".typeId" ) 303126793;
+  } else if ( $shaderType == "shader" ) {
+    setAttr ( $newNodeName + ".typeId" ) 303126796;    
+  } else {
+    delete $newNodeName;
+    error "Unrecognized Shader Type";
+  }
+
+  addAttr -ln "rmanShaderLong" -dt "string" $newNodeName;
+  addAttr -ln "rmanShader" -dt "string" $newNodeName;
+  addAttr -ln "liquidShaderManager" -at message $newNodeName;
+  setAttr ( $newNodeName + ".rmanShader" ) -type "string" $shortName;
+  setAttr ( $newNodeName + ".rmanShaderLong" ) -type "string" $filename;
+
+  liquidAttachParams $newNodeName;
+
+  $returnValue = $newNodeName;
+
+  // attach the new shader node to liquid globals so liquid can keep track of it.
+  if ( !`liquidGlobalsExists` ) {
+    liquidCreateGlobals;
+  }
+  if ( $shaderType == "surface" ) {
+    if ( !`attributeQuery -node "liquidGlobals" -ex "liquidSurfaceShaders"`) {
+      addAttr -ln "liquidSurfaceShaders" -at message liquidGlobals;
+    }
+    connectAttr -f "liquidGlobals.liquidSurfaceShaders" ( $newNodeName + ".liquidShaderManager" );
+  }
+  if ( $shaderType == "displacement" ) {
+    if ( !`attributeQuery -node "liquidGlobals" -ex "liquidDisplacementShaders"`) {
+      addAttr -ln "liquidDisplacementShaders" -at message liquidGlobals;
+    }
+    connectAttr -f "liquidGlobals.liquidDisplacementShaders" ( $newNodeName + ".liquidShaderManager" );
+  }
+  if ( $shaderType == "light" ) {
+    if ( !`attributeQuery -node "liquidGlobals" -ex "liquidLightShaders"`) {
+      addAttr -ln "liquidLightShaders" -at message liquidGlobals;
+    }
+    connectAttr -f "liquidGlobals.liquidLightShaders" ( $newNodeName + ".liquidShaderManager" );
+  }
+  if ( $shaderType == "volume" ) {
+    if ( !`attributeQuery -node "liquidGlobals" -ex "liquidVolumeShaders"`) {
+      addAttr -ln "liquidVolumeShaders" -at message liquidGlobals;
+    }
+    connectAttr -f "liquidGlobals.liquidVolumeShaders" ( $newNodeName + ".liquidShaderManager" );
+  }
+  return $returnValue;
+}
+
+/**
+ *  compatible with liquid 1.8+
+ */
+global proc string liquidNewShaderNode( string $filename )
+{
+  float $version = liquidGetVersion();
+  string $newNodeName;
+
+  if ( $version < 1.8 ) $newNodeName = liquidNewShaderNode_old( $filename );
+  else {
+    //ltrace ("  * new method");
+    string $shortName = basenameEx( $filename );
+    string $longName = $filename;
+
+    // get the correct shader type - possibilities are surface, light, displacement and volume
+    if ( !`filetest -r $filename` ) error( "liquidNewShaderNode : shader is not readable > "+$filename);
+    //ltrace ("  * setting shader "+$filename);
+    liquidSlInfoReset();
+    liquidSlSetShader( $filename );
+    string $shaderType = liquidSlShaderType();
+    string $nodetype = ("liquid"+capitalizeString($shaderType));
+
+    string $nodeName = `shadingNode -asShader $nodetype -n $shortName`;
+    setAttr -type "string" ( $nodeName + ".rmanShaderLong" ) $filename;
+    setAttr -type "string" ( $nodeName + ".rmanShader" ) $shortName;
+    eval( "liquidShaderNodes_initParams " + $nodeName );
+    $newNodeName = $nodeName;
+  }
+  return $newNodeName;
+}
+
+/**
+ *  compatible with liquid 1.8+
+ */
+proc string liquidDuplicateShaderNode_old( string $nodename )
+{
+  string $shaderFileName = `getAttr ( $nodename + ".rmanShaderLong" )`;
+
+  string $nodeType = `liquidGetShaderNodeType $nodename`;
+  string $currentNodeName;
+  if($nodeType == "Ribbox")
+  {
+    $currentNodeName = `liquidNewRibboxNode $shaderFileName`;
+    setAttr -type "string" ($currentNodeName+".ribbox") (`getAttr ($nodename+".ribbox")`);
+  }
+  else
+  {
+    $currentNodeName = `liquidNewShaderNode $shaderFileName`;
+  }
+
+  string $newNodeName = ( $nodename + "Duplicate" );
+  if ( `objExists( $newNodeName )` ) {
+    string $testNodeName = $newNodeName;
+    for( $i = 1;; $i++ ) {
+      string $cNum = $i;
+      $testNodeName = ( $newNodeName + $cNum );
+      string $testList[] = `ls $testNodeName`;
+      if ( !`objExists( $testNodeName )` ) break;
+    }
+    $newNodeName = $testNodeName;
+  }
+
+  $currentNodeName = `rename $currentNodeName $newNodeName`;
+
+  if ( $nodeType == "Surface" ) {
+    if (`attributeQuery -n $currentNodeName -ex ( "color" ) `) {
+      float $redValue = `getAttr ( $nodename + ".red" )`;
+      float $blueValue = `getAttr ( $nodename + ".blue" )`;
+      float $greenValue = `getAttr ( $nodename + ".green" )`;
+      setAttr ( $currentNodeName + ".color" ) -type float3 $redValue $greenValue $blueValue;
+    }
+    if (`attributeQuery -n $currentNodeName -ex ( "opacity" ) `) {
+      float $redValue = `getAttr ( $nodename + ".redO" )`;
+      float $blueValue = `getAttr ( $nodename + ".blueO" )`;
+      float $greenValue = `getAttr ( $nodename + ".greenO" )`;
+      setAttr ( $currentNodeName + ".opacity" ) -type float3 $redValue $greenValue $blueValue;
+    }
+  }
+
+  if ( $nodeType == "Light" ) {
+    if (`attributeQuery -n $currentNodeName -ex ( "shadowCamera" ) `) {
+      string $shadowCamValue = `getAttr ( $nodename + ".shadowCamera" )`;
+      setAttr ( $currentNodeName + ".shadowCamera" ) -type "string" $shadowCamValue;
+    }
+    if (`attributeQuery -n $currentNodeName -ex ( "deepShadows" ) `) {
+      int $deepShadowsValue = `getAttr ( $nodename + ".deepShadows" )`;
+      setAttr ( $currentNodeName + ".deepShadows" ) $deepShadowsValue;
+    }
+    if (`attributeQuery -n $currentNodeName -ex ( "pixelSamples" ) `) {
+      int $pixelSamplesValue = `getAttr ( $nodename + ".pixelSamples" )`;
+      setAttr ( $currentNodeName + ".pixelSamples" ) $pixelSamplesValue;
+    }
+    if (`attributeQuery -n $currentNodeName -ex ( "volumeInterpretation" ) `) {
+      int $volumeInterpretation = `getAttr ( $nodename + ".volumeInterpretation" )`;
+      setAttr ( $currentNodeName + ".volumeInterpretation" ) $volumeInterpretation;
+    }
+  }
+
+  if ( $nodeType == "Disp" || $nodeType == "Surface" ) {
+    if (`attributeQuery -n $currentNodeName -ex ( "displacementBound" ) `) {
+      float $displaceValue = `getAttr ( $nodename + ".displacementBound" )`;
+      setAttr ( $currentNodeName + ".displacementBound" ) $displaceValue;
+    }
+  }
+
+  liquidAttachShaderParams( $currentNodeName, $shaderFileName );
+
+  return $currentNodeName;
+}
+
+/**
+ *  compatible with liquid 1.8+
+ */
+global proc string liquidDuplicateShaderNode( string $nodename )
+{
+  float $version = liquidGetVersion();
+  string $newNodeName;
+
+  if ( $version < 1.8 ) $newNodeName = liquidDuplicateShaderNode_old( $nodename );
+  else {
+    string $filename  = `getAttr ($nodename+".rmanShaderLong")`;
+    string $shortName = basenameEx( $filename );
+    string $longName  = $filename;
+    string $nodetype  = nodeType( $nodename );
+    switch( $nodetype ) {
+      case "liquidSurface":
+      case "liquidDisplacement":
+      case "liquidVolume":
+      case "liquidLight":
+        string $filename = `getAttr ($nodename+".rmanShaderLong")`;
+        $newNodeName = liquidNewShaderNode( $filename );
+        $newNodeName = `rename $newNodeName $nodename`;
+        if ( objExists( ($newNodeName+".color") ) ) {
+          float $redValue   = `getAttr ( $nodename + ".colorR" )`;
+          float $greenValue  = `getAttr ( $nodename + ".colorG" )`;
+          float $blueValue = `getAttr ( $nodename + ".colorB" )`;
+          setAttr ( $newNodeName + ".color" ) -type float3 $redValue $greenValue $blueValue;
+        }
+        if ( objExists( ($newNodeName+".opacity") ) ) {
+          float $redValue   = `getAttr ( $nodename + ".opacityR" )`;
+          float $greenValue  = `getAttr ( $nodename + ".opacityG" )`;
+          float $blueValue = `getAttr ( $nodename + ".opacityB" )`;
+          setAttr ( $newNodeName + ".opacity" ) -type float3 $redValue $greenValue $blueValue;
+        }
+        if ( objExists( ($newNodeName+".shadowCamera") ) )          setAttr ( $newNodeName + ".shadowCamera" ) -type "string" (`getAttr ( $nodename + ".shadowCamera" )`);
+        if ( objExists( ($newNodeName+".deepShadows") ) )           setAttr ( $newNodeName + ".deepShadows" ) (`getAttr ( $nodename + ".deepShadows" )`);
+        if ( objExists( ($newNodeName+".pixelSamples") ) )          setAttr ( $newNodeName + ".pixelSamples" ) (`getAttr ( $nodename + ".pixelSamples" )`);
+        if ( objExists( ($newNodeName+".volumeInterpretation") ) )  setAttr ( $newNodeName + ".volumeInterpretation" ) (`getAttr ( $nodename + ".volumeInterpretation" )`);
+        if ( objExists( ($newNodeName+".everyFrame") ) )            setAttr ( $newNodeName + ".everyFrame" ) (`getAttr ( $nodename + ".everyFrame" )`);
+        if ( objExists( ($newNodeName+".renderAtFrame") ) )         setAttr ( $newNodeName + ".renderAtFrame" ) (`getAttr ( $nodename + ".renderAtFrame" )`);
+        if ( objExists( ($newNodeName+".geometrySet") ) )           setAttr ( $newNodeName + ".geometrySet" ) -type "string" (`getAttr ( $nodename + ".geometrySet" )`);
+        if ( objExists( ($newNodeName+".nearClipPlane") ) )         setAttr ( $newNodeName + ".nearClipPlane" ) (`getAttr ( $nodename + ".nearClipPlane" )`);
+        if ( objExists( ($newNodeName+".farClipPlane") ) )          setAttr ( $newNodeName + ".farClipPlane" ) (`getAttr ( $nodename + ".farClipPlane" )`);
+        if ( objExists( ($newNodeName+".displacementBound") ) )     setAttr ( $newNodeName + ".displacementBound" ) (`getAttr ( $nodename + ".displacementBound" )`);
+        break;
+      case "liquidRibBox":
+        $newNodeName = `shadingNode -asUtility $nodetype -n $shortName`;
+        setAttr -type "string" ($newNodeName+".ribbox") (`getAttr ($nodename+".ribbox")`);
+      default:
+        break;
+    }
+  }
+
+  return $newNodeName;
+}
+
+global proc string getSLShaderNodeFor( string $nodeName )
+{
+  string $classification[] = getClassification( nodeType( $nodeName ) );
+  string $liquidType = match("/[surfacediplmntvou]+", $classification[0]);
+  $liquidType = capitalizeString( match("[a-z]+", $liquidType ) );
+  //ltrace ("SLShaderNodeAlreadyExists( "+$nodeName+") -> "+$liquidType);
+
+  if ( objExists( ($nodeName+".liquid"+$liquidType+"ShaderNode") ) ) {
+
+    string $connections[] = `listConnections -plugs true ($nodeName+".liquid"+$liquidType+"ShaderNode")`;
+    //ltrace ("SLShaderNodeAlreadyExists( "+$nodeName+") -> "+$nodeName+".liquid"+$liquidType+"ShaderNode is connected to "+$connections[0]);
+    return match("[A-Za-z0-9_]+", $connections[0]);
+  }
+
+  return "";
+}

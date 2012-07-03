@@ -1,0 +1,176 @@
+<?xml version="1.0"?>
+<renderscript>
+  <title>test_rmt</title>
+  <minservers>1</minservers>
+  <maxservers>1</maxservers>
+  <subtasks>
+  <task>
+  <title>test_remote.Frame.1</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0001.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0001.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.2</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0002.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0002.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.3</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0003.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0003.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.4</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0004.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0004.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.5</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0005.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0005.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.6</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0006.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0006.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.7</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0007.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0007.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.8</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0008.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0008.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.9</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0009.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0009.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.10</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0010.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0010.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.11</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0011.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0011.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.12</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0012.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0012.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.13</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0013.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0013.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.14</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0014.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0014.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.15</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0015.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0015.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.16</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0016.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0016.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.17</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0017.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0017.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.18</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0018.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0018.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.19</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0019.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0019.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.20</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0020.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0020.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.21</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0021.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0021.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.22</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0022.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0022.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.23</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0023.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0023.tif"</chaser>
+  </task>
+  <task>
+  <title>test_remote.Frame.24</title>
+  <commands>
+    <command remote="1" alfredservices="pixarRender pixarNRM" alfredtags="prman"> prman -Progress "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rib/TST/test_remote_perspShape.0024.rib"</command>
+  </commands>
+  <chaser>sho "//nimitz/EDIT/_PROJECTS/_Semki/Semki_Erema/3D_scenes/maya/rmanpix/TST/test_remote.perspShape.0024.tif"</chaser>
+  </task>
+  </subtasks>
+</renderscript>
