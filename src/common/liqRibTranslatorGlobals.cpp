@@ -240,7 +240,7 @@ void liqRibTranslator::liquidReadGlobals()
   
   liquidGetPlugValue( rGlobalNode, "renderCamera", liqglo_renderCamera, gStatus, true ); // get parsed result
   if ( gStatus == MS::kSuccess )
-    liquidMessage( "Render camera " + string( liqglo_renderCamera.asChar()), messageInfo );
+    liquidMessage( "Render camera " + liqglo_renderCamera, messageInfo );
   else
     liquidMessage( "Render camera not found", messageError );
     

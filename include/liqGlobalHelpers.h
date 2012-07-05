@@ -105,7 +105,7 @@ bool makeFullPath( const string& name, int mode );
 string sanitizeNodeName( const string& name );
 MString sanitizeNodeName( const MString& name );
 RtString& getLiquidRibName( const string& name );
-void liquidMessage( const string& msg, liquidVerbosityType type );
+void liquidMessage( MString msg, liquidVerbosityType type );
 MString parseLiquidRibRequest( MStringArray requestArray, MString attr );
 
 void initalizeShaderHandlerGenerator();

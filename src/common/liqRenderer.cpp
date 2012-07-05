@@ -240,7 +240,7 @@ void liqRenderer::setRenderer()
     }
     renderHome = getenv( envvar.asChar() );
     if ( renderHome == "" ) 
-      liquidMessage( "The " + string( envvar.asChar() ) + " environment variable (renderHome) is not defined !!", messageError );
+      liquidMessage( "The " + envvar + " environment variable (renderHome) is not defined !!", messageError );
   }
   /* cout <<"\nrenderName : "<<renderName<<endl;
   cout <<"  renderCommand   : "<<renderCommand<<endl;

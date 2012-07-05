@@ -178,7 +178,7 @@ liqRibParticleData::liqRibParticleData( MObject partobj )
     cachePlug.getValue( isCaching );
     status.clear();
     if ( !isCaching && ( exportTime == shutterOpen ) ) 
-      liquidMessage( string( fnNode.particleName().asChar() ) + " has Cache Data switched off! Exported motion blur information will likely be wrong.", messageWarning );
+      liquidMessage( fnNode.particleName() + " has Cache Data switched off! Exported motion blur information will likely be wrong.", messageWarning );
     
     // Shutter open
     //

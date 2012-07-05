@@ -243,7 +243,7 @@ liqRibLightData::liqRibLightData( const MDagPath & light )
 		liqGenericShader &lightShader = liqShaderFactory::instance().getShader(liquidShaderNodeDep);
 		if ( lightShader.hasErrors )
 		{
-			liquidMessage( "[liqRibLightData] Reading shader '" + string( assignedRManShader.asChar() ) + "' failed", messageError );
+			liquidMessage( "[liqRibLightData] Reading shader '" + assignedRManShader + "' failed", messageError );
 			rmanLight = false;
 		}
 		else
@@ -887,15 +887,13 @@ MString liqRibLightData::extraShadowName ( const MFnDependencyNode & lightShader
     else 
     {
       //error message here !!
-      string err = "could not evaluate shadow camera connected to " + string( lightShaderNode.name().asChar() );
-      liquidMessage( err, messageError );
+      liquidMessage( "could not evaluate shadow camera connected to " + lightShaderNode.name(), messageError );
     }
   } 
   else 
   {
     //error message here !!
-    string err = "Could not find a shadowCameras attribute on " + string( lightShaderNode.name().asChar() );
-    liquidMessage( err, messageError );
+    liquidMessage( "Could not find a shadowCameras attribute on " + lightShaderNode.name(), messageError );
   }
 
   //cout <<"liqRibLightData::extraShadowName : "<<shadowName.asChar()<<"  ( "<<liqglo_sceneName.asChar()<<" )"<<endl;

@@ -584,11 +584,11 @@ MString liqRibTranslator::verifyResourceDir( const char *resourceName, MString r
 
 #ifndef DIR_CREATION_WARNING
   #define DIR_CREATION_WARNING(type, path) \
-  liquidMessage( "Had trouble creating " + string( type ) + " directory, '" + path + "'. Defaulting to system temp directory!", messageWarning );
+  liquidMessage( "Had trouble creating " + MString( type ) + " directory, '" + path + "'. Defaulting to system temp directory!", messageWarning );
 #endif
 #ifndef DIR_MISSING_WARNING
   #define DIR_MISSING_WARNING(type, path) \
-  liquidMessage( string( type ) + " directory, '" + path + "', does not exist or is not accessible. Defaulting to system temp directory!", messageWarning );
+  liquidMessage( MString( type ) + " directory, '" + path + "', does not exist or is not accessible. Defaulting to system temp directory!", messageWarning );
 #endif  
 
   LIQ_ADD_SLASH_IF_NEEDED( resourceDir );
@@ -599,14 +599,14 @@ MString liqRibTranslator::verifyResourceDir( const char *resourceName, MString r
     {
       if ( !makeFullPath( tmp_path.asChar(), mkdirMode ) ) 
       {
-        DIR_CREATION_WARNING( resourceName, tmp_path.asChar() );
+        DIR_CREATION_WARNING( resourceName, tmp_path );
         resourceDir = m_systemTempDirectory;
         problem = true;
       }
     } 
     else 
     {
-      DIR_MISSING_WARNING( resourceName, tmp_path.asChar() );
+      DIR_MISSING_WARNING( resourceName, tmp_path );
       resourceDir = m_systemTempDirectory;
       problem = true;
     }
@@ -930,7 +930,7 @@ MStatus liqRibTranslator::setRenderLayer( const MArgList& args )
     cmd += "editRenderLayerGlobals( \"-currentRenderLayer\", \"" + liqglo_layer + "\");";
     if (  MGlobal::executeCommand( cmd, false, false ) == MS::kFailure ) 
     {
-      liquidMessage( "Could not switch to render layer '" + string( liqglo_layer.asChar() ) + "'! ABORTING.", messageError );
+      liquidMessage( "Could not switch to render layer '" + liqglo_layer + "'! ABORTING.", messageError );
       return MS::kFailure;
     }
   } 
@@ -977,7 +977,7 @@ MStatus liqRibTranslator::ribOutput( long scanTime, MString ribName, bool world_
     RiOption( "rib", "compression", ( RtPointer )comp, RI_NULL );
   }
 #endif // PRMAN || DELIGHT || GENERIC_RIBLIB
-  liquidMessage( "Beginning RIB output to " + string( ribName.asChar() ), messageInfo );
+  liquidMessage( "Beginning RIB output to " + ribName, messageInfo );
 #ifndef RENDER_PIPE
   RiBegin( const_cast< RtToken >( ribName.asChar() ) );
 #else
@@ -1007,7 +1007,7 @@ MStatus liqRibTranslator::ribOutput( long scanTime, MString ribName, bool world_
   {
     // reference the correct shadow/scene archive
     //
-    liquidMessage( "Writng archiveName " + string( archiveName.asChar() ), messageInfo ); 
+    liquidMessage( "Writng archiveName " + archiveName, messageInfo ); 
     RiArchiveRecord( RI_COMMENT, "Read Archive Data:\n" );
     RiReadArchive( const_cast< RtToken >( archiveName.asChar() ), NULL, RI_NULL );
   }
@@ -1036,7 +1036,7 @@ MStatus liqRibTranslator::ribOutput( long scanTime, MString ribName, bool world_
   }
   RiEnd();
   // output info when done with the rib - Alf
-  liquidMessage( "Finished RIB generation " + string( ribName.asChar()), messageInfo ); 
+  liquidMessage( "Finished RIB generation " + ribName, messageInfo ); 
   
 #ifdef RENDER_PIPE  
   fclose( liqglo_ribFP );
@@ -1858,9 +1858,8 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
           _chdir( liqglo_projectDir.asChar() );
           cmd += " \"" + renderScriptName + "\"" + " \"" + liqglo_projectDir + "\""; 
 #endif          
-          stringstream err;
-          err << ">> render (" << ( (!wait)? "no " : "" ) << "wait) "<< cmd.asChar() << endl << ends;
-          liquidMessage( err.str(), messageInfo );
+          MString err = ">> render (" + MString( ( !wait )? "no " : "" ) + "wait ) " + cmd;
+          liquidMessage( err, messageInfo );
           int returnCode = system( cmd.asChar() );
         }
         else
@@ -1882,7 +1881,7 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
       else 
       {
         // launch renders directly
-        liquidMessage( string(), messageInfo ); // emit a '\n'
+        // liquidMessage( "", messageInfo ); // emit a '\n'
         // int exitstat = 0; ???
         
         //
@@ -1891,7 +1890,7 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
         vector<structJob>::iterator iter = txtList.begin();
         while ( iter != txtList.end() ) 
         {
-          liquidMessage( "Making textures '" + string( iter->imageName.asChar() ) + "'", messageInfo );
+          liquidMessage( "Making textures '" + iter->imageName + "'", messageInfo );
           liqProcessLauncher::execute( iter->renderName, 
 #ifdef _WIN32
           (" -progress \"" + iter->ribFileName + "\""), 
@@ -1914,11 +1913,11 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
           {
             if ( iter->skip ) 
             {
-              liquidMessage( "    - skipping '" + string( iter->ribFileName.asChar() ) + "'", messageInfo );
+              liquidMessage( "    - skipping '" + iter->ribFileName + "'", messageInfo );
               ++iter;
               continue;
             }
-            liquidMessage( "    + '" + string( iter->ribFileName.asChar() ) + "'", messageInfo );
+            liquidMessage( "    + '" + iter->ribFileName + "'", messageInfo );
             
             if ( !liqProcessLauncher::execute( liquidRenderer.renderCommand, liquidRenderer.renderCmdFlags + " " +
 #ifdef _WIN32
@@ -1937,10 +1936,10 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
         cerr << "liquidBin = " << liquidBin << endl << flush; 
         
         if ( liqglo_currentJob.skip ) 
-          liquidMessage( "    - skipping '" + string( liqglo_currentJob.ribFileName.asChar() ) + "'", messageInfo );
+          liquidMessage( "    - skipping '" + liqglo_currentJob.ribFileName + "'", messageInfo );
         else 
         {
-          liquidMessage( "    + '" + string( liqglo_currentJob.ribFileName.asChar() ) + "'", messageInfo );
+          liquidMessage( "    + '" + liqglo_currentJob.ribFileName + "'", messageInfo );
           liqProcessLauncher::execute( liquidRenderer.renderCommand, liquidRenderer.renderCmdFlags + " " +
 #ifdef _WIN32
           "\"" + liqglo_currentJob.ribFileName + "\"", "\"" + liqglo_projectDir + "\"",
@@ -2528,14 +2527,14 @@ MStatus liqRibTranslator::buildJobs()
               camList.getDagPath( 0, cameraPath );
               if ( cameraPath.hasFn( MFn::kCamera ) )
               {
-                cerr << ">> cameraPath : "<< cameraPath.fullPathName().asChar() << endl;
+                cerr << ">> cameraPath : "<< cameraPath.fullPathName() << endl;
                 thisJob.hasShadowCam = true;
                 thisJob.shadowCamPath = cameraPath;
               }
               else
               {
                 // cerr << ">> Invalid camera name " << endl;
-                string err = "Invalid main shadow camera name " + string( camName.asChar() ) + " for light " + string( lightPath.fullPathName().asChar() );
+                MString err = "Invalid main shadow camera name " + camName + " for light " + lightPath.fullPathName();
                 liquidMessage( err, messageError );
               }
             }
@@ -3489,8 +3488,6 @@ MStatus liqRibTranslator::scanScene( float lframe, int sample )
       LIQ_CHECK_CANCEL_REQUEST;
       // scanScene: Get the camera/light info for this job at this frame
       MStatus status;
-			stringstream err;;
-
       if ( !iter->isShadow ) 
       {
         MDagPath path;
@@ -3556,32 +3553,27 @@ MStatus liqRibTranslator::scanScene( float lframe, int sample )
 				MObject camTransform = fnCamera.parent(0, &status);
 				if ( status != MS::kSuccess )
 				{
-					err << "Cannot find transform for camera " << fnCamera.name().asChar() << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "Cannot find transform for camera " + fnCamera.name(), messageError );
 					return MS::kFailure;
         }
 				MFnDagNode fnCamTransform(camTransform, &status);
 				if ( status != MS::kSuccess )
 				{
-					err << "Cannot init MFnDagNode for camera " << fnCamera.name().asChar();
-					err << "'s transform." << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "Cannot init MFnDagNode for camera " + fnCamera.name() + "'s transform.", messageError );
 					return MS::kFailure;
         } 
 				// get left one
 				cPlug = fnCamTransform.findPlug( MString( "leftCam" ), &status );
 				if ( status != MS::kSuccess )
         {
-					err << "Cannot find plug 'leftCam' on  " << fnCamera.name().asChar() << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "Cannot find plug 'leftCam' on  " + fnCamera.name(), messageError );
 					return MS::kFailure;
 				}
 				MPlugArray plugArray;
 				cPlug.connectedTo(plugArray, 1, 0, &status);
 				if ( plugArray.length() == 0 )
         {
-					err << "Nothing connected in " << fnCamTransform.name().asChar() << ".leftCam" << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "Nothing connected in " + fnCamTransform.name() + ".leftCam", messageError );
 					return MS::kFailure;          
         }
 				MPlug leftCamPlug = plugArray[0];
@@ -3589,16 +3581,14 @@ MStatus liqRibTranslator::scanScene( float lframe, int sample )
 				MFnTransform fnLeftTrCam ( leftCamTransformNode, &status );
 				if ( status != MS::kSuccess )
 				{
-					err << "cannot init MFnTransfrom for left camera '" << fnCamTransform.name().asChar() << "' ..." << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "cannot init MFnTransfrom for left camera '" + fnCamTransform.name() + "' ...", messageError );
 					return MS::kFailure;
 				}
 				MObject leftCamNode = fnLeftTrCam.child(0);
 				MFnCamera fnLeftCam( leftCamNode, &status );
 				if ( status != MS::kSuccess )
 				{
-					err << "cannot init MFnCamera for left camera '" << fnCamTransform.name().asChar() << "' ..." << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "cannot init MFnCamera for left camera '" + fnCamTransform.name() + "' ...", messageError );
 					return MS::kFailure;
         }
         
@@ -3606,15 +3596,13 @@ MStatus liqRibTranslator::scanScene( float lframe, int sample )
 				cPlug = fnCamTransform.findPlug( MString( "rightCam" ), &status );
 				if ( status != MS::kSuccess )
 				{
-					err << "Cannot find plug 'rightCam' on " << fnCamTransform.name().asChar() << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "Cannot find plug 'rightCam' on " + fnCamTransform.name(), messageError );
 					return MS::kFailure;
 				}
 				cPlug.connectedTo(plugArray, 1, 0, &status);
 				if ( plugArray.length() == 0 )
 				{
-					err << "Nothing connected in " << fnCamTransform.name().asChar() << ".rightCam" << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "Nothing connected in " + fnCamTransform.name() + ".rightCam", messageError );
 					return MS::kFailure; 
 				}
 	
@@ -3623,16 +3611,14 @@ MStatus liqRibTranslator::scanScene( float lframe, int sample )
 				MFnTransform fnRightTrCam ( rightCamTransformNode, &status );
 				if ( status != MS::kSuccess )
         {
-					err << "cannot init MFnTransfrom for right camera '" << rightCamPlug.name().asChar() << "' ..." << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "cannot init MFnTransfrom for right camera '" + rightCamPlug.name() + "' ...", messageError );
 					return MS::kFailure;
         } 
 				MObject rightCamNode = fnRightTrCam.child(0);
 				MFnCamera fnRightCam(rightCamNode, &status);
 				if ( status != MS::kSuccess )
         {
-					err << "cannot init MFnCamera for right camera '" << fnRightTrCam.name().asChar() << "' ..." << ends;
-					liquidMessage( err.str(), messageError );
+					liquidMessage( "cannot init MFnCamera for right camera '" + fnRightTrCam.name() + "' ...", messageError );
 					return MS::kFailure;
         }
         
@@ -4506,10 +4492,9 @@ MStatus liqRibTranslator::objectBlock()
     if ( status == MS::kSuccess ) shadowSetObj = tmp;
     else 
     {
-   		stringstream warn;   
-			warn << "Liquid : set " <<  liqglo_currentJob.shadowObjectSet.asChar();
-			warn << " in shadow " << liqglo_currentJob.name.asChar() << " does not exist !" << ends;;
-      liquidMessage( warn.str(), messageWarning );
+   		MString warn = "Liquid : set " + liqglo_currentJob.shadowObjectSet;
+			warn += " in shadow " + liqglo_currentJob.name + " does not exist !";
+      liquidMessage( warn, messageWarning );
     }
     status.clear();
   }

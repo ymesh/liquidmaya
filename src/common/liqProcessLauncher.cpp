@@ -76,9 +76,8 @@ bool liqProcessLauncher::execute( const MString &command, const MString &argumen
 
 bool liqProcessLauncher::execute( const MString &command, const MString &arguments, const MString &path, const bool wait )
 {
-  stringstream err;
-  err << "Render (" << ( (!wait)? "no " : "" ) << "wait) "<< command.asChar() << " "<< arguments.asChar()<<" "<< path.asChar() << endl << ends;
-  liquidMessage( err.str(), messageInfo );
+  MString err = "Render (" +  MString( (!wait)? "no " : "" ) + "wait) " + command + " " + arguments + " " + path;
+  liquidMessage( err, messageInfo );
     
   if ( !wait ) 
   {
@@ -93,8 +92,11 @@ bool liqProcessLauncher::execute( const MString &command, const MString &argumen
         
     int returnCode =  _spawnlp( _P_NOWAITO, command.asChar(), command.asChar(), arguments.asChar(), NULL );
     DWORD dw = GetLastError();
-    err << "err:Return value = " << returnCode << " GetLastError = " << dw << endl << ends;
-    liquidMessage( err.str(), messageInfo );
+    MString err = "err:Return value = ";
+    err += (int)returnCode;
+    err += " GetLastError = ";
+    err += (int)dw;
+    liquidMessage( err, messageInfo );
     // cout << "out:Return value = " << returnCode << " GetLastError = " << dw << endl << flush;
     return ( returnCode != -1 );
     

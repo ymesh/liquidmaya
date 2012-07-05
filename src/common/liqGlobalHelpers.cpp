@@ -1242,14 +1242,13 @@ RtString& getLiquidRibName( const string& name )
 /** Standard function to send messages to either the
  *  maya console or the shell for user feedback.
  */
-void liquidMessage( const string& msg, liquidVerbosityType type ) 
+void liquidMessage( MString msg, liquidVerbosityType type ) 
 {
   if ( liqglo_verbosity >= type || liquidBin ) 
   {
     if ( !liquidBin ) 
     {
-      MString infoOutput( "[Liquid] " );
-      infoOutput += msg.c_str();
+      MString infoOutput( "[Liquid] " + msg );
       switch ( type ) 
       {
         case messageInfo:
@@ -1264,7 +1263,7 @@ void liquidMessage( const string& msg, liquidVerbosityType type )
     } 
     else 
     {
-      string infoOutput;
+      MString infoOutput;
       switch ( type ) 
       {
         case messageWarning:
@@ -1278,9 +1277,9 @@ void liquidMessage( const string& msg, liquidVerbosityType type )
           infoOutput = "Info: ";  
       }
 
-      // cerr << "[Liquid]" << infoOutput.c_str() << msg.c_str() << endl << flush;
-      fprintf( STDERR, "[Liquid] %s %s\n", infoOutput.c_str(), msg.c_str() );
-      fflush( STDERR );
+      cerr << "[Liquid]" << infoOutput << msg << endl << flush;
+      //fprintf( STDERR, "[Liquid] %s %s\n", infoOutput.asChar(), msg.asChar() );
+      //fflush( STDERR );
     }
   }
 }

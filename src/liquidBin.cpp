@@ -183,9 +183,9 @@ int main(int argc, char **argv)
 
   //liquidBin = true;
   
-  liquidMessage( string(LIQUIDVERSION), messageInfo );
+  liquidMessage( LIQUIDVERSION, messageInfo );
   
-  cerr << "liquidBin = " << liquidBin << endl << flush; 
+  // cerr << "liquidBin = " << liquidBin << endl << flush; 
   
   char *maya_location = getenv( "MAYA_LOCATION" );
   if ( maya_location == NULL )

@@ -176,7 +176,7 @@ MStatus liqRibTranslator::liquidDoArgs( MArgList args )
   LIQ_ADD_SLASH_IF_NEEDED( liqglo_projectDir );
   if ( !fileFullyAccessible( liqglo_projectDir ) ) 
   {
-    liquidMessage( "Cannot find project directory, '" + string( liqglo_projectDir.asChar() ) + "'. Defaulting to system temp directory!", messageWarning );
+    liquidMessage( "Cannot find project directory, '" + liqglo_projectDir + "'. Defaulting to system temp directory!", messageWarning );
     liqglo_projectDir = m_systemTempDirectory;
   }
 
@@ -510,7 +510,7 @@ MStatus liqRibTranslator::liquidDoArgs( MArgList args )
       liqglo_beautyRibHasCameraName = argValue.asInt();
       LIQCHECKSTATUS(status, err);
     }
-    else if ((arg == "-sdm") || (arg == "-skipDefaultMatte")) 
+    else if ( ( arg == "-sdm" ) || ( arg == "-skipDefaultMatte" ) ) 
     {
       argValue = args.asString( ++i, &status );
       liqglo_skipDefaultMatte = argValue.asInt();
@@ -518,9 +518,10 @@ MStatus liqRibTranslator::liquidDoArgs( MArgList args )
     }
     else
     { 
-		  stringstream ss;
-		  ss << "[liqRibTranslator] undefined argument " << i << " : " << args.asString( i ).asChar() << ends;
-		  liquidMessage( ss.str(), messageError );
+		  MString msg( "[liqRibTranslator] undefined argument " );
+		  msg += (int)i;
+      msg += " : " + args.asString( i );
+		  liquidMessage( msg, messageError );
     }
   }
 	
@@ -531,7 +532,7 @@ MStatus liqRibTranslator::liquidDoArgs( MArgList args )
 		m_animation = false;
 	}
 
-  liquidMessage( "Using project base path '" + string( liqglo_projectDir.asChar() ) + "'", messageInfo );
+  liquidMessage( "Using project base path '" + liqglo_projectDir + "'", messageInfo );
   setSearchPaths();
   return MS::kSuccess;
 }

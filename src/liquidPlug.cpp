@@ -505,9 +505,10 @@ LIQUID_EXPORT MStatus initializePlugin(MObject obj)
   status = MGlobal::executeCommand(sourceLine);
   if ( status == MS::kSuccess )
   {
-    stringstream ss;
-    ss << "Liquid " << LIQUIDVERSION << " registered" << ends;
-    liquidMessage( ss.str(), messageInfo );
+    MString msg( "Liquid " );
+    msg += LIQUIDVERSION;
+    msg += " registered";
+    liquidMessage( msg, messageInfo );
     status = plugin.registerUI("liquidStartup", "liquidShutdown");
   }
   LIQCHECKSTATUS( status, "Can't register liquidStartup and liquidShutdown interface scripts" );
@@ -791,9 +792,10 @@ LIQUID_EXPORT MStatus uninitializePlugin(MObject obj)
 	status = plugin.deregisterCommand("liqParseString");
   LIQCHECKSTATUS( status, "Can't deregister liqParseString command" );
 
-  stringstream ss;
-  ss << "Liquid " << LIQUIDVERSION << " unregistered" << ends;
-  liquidMessage( ss.str(), messageInfo );
+  MString msg( "Liquid " );
+  msg += LIQUIDVERSION;
+  msg += " unregistered";
+  liquidMessage( msg, messageInfo );
 
 	liqShaderFactory::deleteInstance();
 

@@ -152,7 +152,7 @@ liqShader::liqShader( MObject shaderObj, bool outputAllParameters ) : liqGeneric
 	int success = ( shaderInfo.setShaderNode( shaderNode ) );
 	if ( !success )
 	{
-		liquidMessage( "Problem using shader '" + string( shaderNode.name().asChar() ) + "'", messageError );
+		liquidMessage( "Problem using shader '" + shaderNode.name() + "'", messageError );
 		rmColor[0] = 1.0;
 		rmColor[1] = 0.0;
 		rmColor[2] = 0.0;
