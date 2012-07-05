@@ -713,7 +713,8 @@ MString liqRibTranslator::generateTempMayaSceneName() const
 string liqRibTranslator::generateImageName( MString aovName, const structJob& job, MString format )
 {
   stringstream ss;
-  MString pixDir = liquidGetRelativePath( false, m_pixDir, liqglo_projectDir ); // use full name instead of relative
+  // MString pixDir = liquidGetRelativePath ( false, m_pixDir, liqglo_projectDir ); // use full name instead of relative
+  MString pixDir = getFullPathFromRelative ( m_pixDir);
   ss << pixDir.asChar();
   // cerr << "liqRibTranslator::generateImageName m_pixDir = " << m_pixDir.asChar() << " liqglo_projectDir = " << liqglo_projectDir.asChar() <<  endl;
   // cerr << "liqRibTranslator::generateImageName liquidGetRelativePath = " << ss.str() <<  endl;
@@ -893,10 +894,10 @@ MString liqRibTranslator::generateFileName( fileGenMode mode, const structJob& j
    ss << "." << setfill('0') << setw( (liqglo_doExtensionPadding)? liqglo_outPadding : 0 ) <<  job.renderFrame;
 
   ss << "." << fileExt.asChar() ;
-
   
-  filename = liquidSanitizePath( ss.str() ).c_str();
-  filename = liquidGetRelativePath( false, filename, liqglo_projectDir );
+  filename = liquidSanitizePath ( ss.str() ).c_str();
+  // filename = liquidGetRelativePath ( false, filename, liqglo_projectDir );
+  filename = getFullPathFromRelative ( filename );
   // cerr << "liqRibTranslator::generateFileName( " << debug.asChar() << " ) -> " << filename.asChar() << endl;
   LIQDEBUGPRINTF( "liqRibTranslator::generateFileName(%s) -> %s\n", debug.asChar(), filename.asChar() );
   return filename;

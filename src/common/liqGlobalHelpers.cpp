@@ -945,20 +945,57 @@ string liquidSanitizeSearchPath( const string& inputString )
  *  archives and the renderscript in case the user
  *  has choosen to have all paths to be relative
  */
-string liquidGetRelativePath( bool relative, const string& name, const string& dir ) 
+string liquidGetRelativePath ( bool relative, const string& name, const string& dir ) 
 {
-  if ( !relative && ( '/' != name[ 0 ] ) && ( ':' != name[ 1 ] ) ) 
-    return dir + name;
-  else 
-    return name;
+  string ret = name;
+  bool isNameFullPath = false;
+  
+  if ( ( '/' == name[ 0 ] ) || ( ':' == name[ 1 ] ) )
+    isNameFullPath = true;  
+  
+  if ( relative )
+  {
+    if ( isNameFullPath ) 
+    {
+      if ( dir.length() != 0 && name.find ( dir ) == 0 ) // if name starts with dir  
+      {
+        ret = name.substr ( dir.length(), name.length() - dir.length() );
+      }
+    }
+  }  
+  else
+  {  
+    if ( !isNameFullPath )
+      ret = dir + name; 
+  }  
+  return ret;
+
 }
 
-MString liquidGetRelativePath( bool relative, const MString& name, const MString& dir ) 
+MString liquidGetRelativePath ( bool relative, const MString& name, const MString& dir ) 
 {
-  if ( !relative && ( 0 != name.index('/') ) && ( name.substring( 1, 1 ) != ":" ) ) 
-    return dir + name;
+  MString ret = name;
+  bool isNameFullPath = false;
+  
+  if ( ( 0 == name.index('/') ) || ( name.substring( 1, 1 ) == ":" ) )
+    isNameFullPath = true;  
+  
+  if ( relative )
+  {
+    if ( isNameFullPath ) 
+    {
+      if ( dir.length() != 0 && name.indexW ( dir ) == 0 ) // if name starts with dir  
+      {
+        ret = name.substring ( dir.length(), name.length() - 1 );
+      }
+    }
+  }  
   else
-    return name;
+  {  
+    if ( !isNameFullPath )
+      ret = dir + name; 
+  }  
+  return ret;
 }
 
 MString removeEscapes( const MString& inputString ) 

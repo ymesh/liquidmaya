@@ -771,7 +771,7 @@ RtLightHandle liqRibLightData::lightHandle() const
   return handle;
 }
 
-MString liqRibLightData::autoShadowName( int PointLightDir ) const
+MString liqRibLightData::autoShadowName ( int PointLightDir ) const
 {
   MString frame;
   MString shadowName;
@@ -826,7 +826,7 @@ MString liqRibLightData::autoShadowName( int PointLightDir ) const
         frame = "0" + frame;
     
     shadowName += frame;
-    shadowName += ".tex";
+    shadowName += "." + liquidRenderer.textureExtension; // ".tex";
   }
   //cout <<"liqRibLightData::autoShadowName : "<<shadowName.asChar()<<"  ( "<<liqglo_sceneName.asChar()<<" )"<<endl;
   LIQDEBUGPRINTF( "[liqRibLightData::autoShadowName] : %s scene = %s\n", shadowName.asChar(), liqglo_sceneName.asChar() );
@@ -834,7 +834,7 @@ MString liqRibLightData::autoShadowName( int PointLightDir ) const
   return shadowName;
 }
 
-MString liqRibLightData::extraShadowName( const MFnDependencyNode & lightShaderNode, const int & index ) const
+MString liqRibLightData::extraShadowName ( const MFnDependencyNode & lightShaderNode, const int & index ) const
 {
   MString frame;
   MString shadowName        = "";
@@ -882,7 +882,7 @@ MString liqRibLightData::extraShadowName( const MFnDependencyNode & lightShaderN
         while( frame.length() < liqglo_outPadding ) 
           frame = "0" + frame;
       shadowName += frame;
-      shadowName += ".tex";
+      shadowName += "." + liquidRenderer.textureExtension; // ".tex";
     } 
     else 
     {

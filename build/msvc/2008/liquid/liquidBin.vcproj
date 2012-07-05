@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="liquidBin"
 	ProjectGUID="{5F957990-A5A3-408A-B508-D39C06980978}"
 	RootNamespace="liquidBin"
@@ -594,6 +594,157 @@
 				Name="VCPostBuildEventTool"
 				Description="Copy &quot;$(TargetPath)&quot; to $(LIQUIDHOME)\bin\Maya2012-x64\generic\win"
 				CommandLine="copy /Y &quot;$(TargetPath)&quot; $(LIQUIDHOME)\bin\Maya2012-x64\generic\win"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release maya2012 prman|Win32"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="1"
+			CharacterSet="2"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="2"
+				EnableIntrinsicFunctions="true"
+				RuntimeLibrary="2"
+				EnableFunctionLevelLinking="true"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				GenerateDebugInformation="true"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release maya2012 prman|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="1"
+			CharacterSet="0"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="2"
+				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="&quot;$(LIQUIDHOME)\include&quot;;&quot;$(RMANTREE)\include&quot;;&quot;C:\Autodesk\Maya2012-x64\include&quot;;C:\tools\boost\boost_1_48_0;C:\tools\zlib\include;&quot;%(AdditionalIncludeDirectories)&quot;"
+				PreprocessorDefinitions="LIQUIDBIN;NDEBUG;_WIN32;WIN32;_BOOL;REQUIRE_IOSTREAM;_CRT_SECURE_NO_DEPRECATE;LIQUID_EXPORTS;PRMAN;NO_RICMD;ZLIB_WINAPI;ZLIB_DLL"
+				RuntimeLibrary="2"
+				EnableFunctionLevelLinking="true"
+				WarningLevel="0"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="libprman.lib Foundation.lib OpenMaya.lib OpenMayaAnim.lib OpenMayaFX.lib OpenMayaRender.lib OpenMayaUI.lib glu32.lib opengl32.lib netapi32.lib ws2_32.lib libzlib.lib"
+				OutputFile="$(OutDir)\liquid.exe"
+				AdditionalLibraryDirectories="&quot;$(RMANTREE)\lib&quot;;&quot;C:\Autodesk\Maya2012-x64\lib&quot;"
+				GenerateManifest="false"
+				EnableUAC="false"
+				IgnoreDefaultLibraryNames="LIBCMT"
+				GenerateDebugInformation="false"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				TargetMachine="17"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				Description="Copy &quot;$(TargetPath)&quot; to $(LIQUIDHOME)\bin\Maya2012-x64\prman\win"
+				CommandLine="copy /Y &quot;$(TargetPath)&quot; $(LIQUIDHOME)\bin\Maya2012-x64\prman\win"
 			/>
 		</Configuration>
 	</Configurations>

@@ -98,6 +98,8 @@ Global
 		Release maya2008 generic|x64 = Release maya2008 generic|x64
 		Release maya2012 generic|Win32 = Release maya2012 generic|Win32
 		Release maya2012 generic|x64 = Release maya2012 generic|x64
+		Release maya2012 prman|Win32 = Release maya2012 prman|Win32
+		Release maya2012 prman|x64 = Release maya2012 prman|x64
 		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
 	EndGlobalSection
@@ -114,6 +116,10 @@ Global
 		{5F957990-A5A3-408A-B508-D39C06980978}.Release maya2012 generic|Win32.Build.0 = Release maya2012 generic|Win32
 		{5F957990-A5A3-408A-B508-D39C06980978}.Release maya2012 generic|x64.ActiveCfg = Release maya2012 generic|x64
 		{5F957990-A5A3-408A-B508-D39C06980978}.Release maya2012 generic|x64.Build.0 = Release maya2012 generic|x64
+		{5F957990-A5A3-408A-B508-D39C06980978}.Release maya2012 prman|Win32.ActiveCfg = Release maya2012 prman|Win32
+		{5F957990-A5A3-408A-B508-D39C06980978}.Release maya2012 prman|Win32.Build.0 = Release maya2012 prman|Win32
+		{5F957990-A5A3-408A-B508-D39C06980978}.Release maya2012 prman|x64.ActiveCfg = Release maya2012 prman|x64
+		{5F957990-A5A3-408A-B508-D39C06980978}.Release maya2012 prman|x64.Build.0 = Release maya2012 prman|x64
 		{5F957990-A5A3-408A-B508-D39C06980978}.Release|Win32.ActiveCfg = Release|Win32
 		{5F957990-A5A3-408A-B508-D39C06980978}.Release|Win32.Build.0 = Release|Win32
 		{5F957990-A5A3-408A-B508-D39C06980978}.Release|x64.ActiveCfg = Release|x64
@@ -130,6 +136,10 @@ Global
 		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release maya2012 generic|Win32.Build.0 = Release maya2012 generic|Win32
 		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release maya2012 generic|x64.ActiveCfg = Release maya2012 generic|x64
 		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release maya2012 generic|x64.Build.0 = Release maya2012 generic|x64
+		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release maya2012 prman|Win32.ActiveCfg = Release maya2012 prman|Win32
+		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release maya2012 prman|Win32.Build.0 = Release maya2012 prman|Win32
+		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release maya2012 prman|x64.ActiveCfg = Release maya2012 prman|x64
+		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release maya2012 prman|x64.Build.0 = Release maya2012 prman|x64
 		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release|Win32.ActiveCfg = Release|Win32
 		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release|Win32.Build.0 = Release|Win32
 		{B122EF73-CDB7-4160-8A1C-D042A0D6523F}.Release|x64.ActiveCfg = Release|x64

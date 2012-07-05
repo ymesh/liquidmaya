@@ -566,12 +566,21 @@ int liquidOutputPreviewShader( const string& fileName, const liqPreviewShaderOpt
   RiProjection( "perspective", "fov", &fov, RI_NULL );
   RiTranslate( 0, 0, 2.75 );
   RiExposure(1, currentShader.m_previewGamma);
+  
+  RtInt visible = 1;
+  RtString transmission = "transparent";
+
+  RiAttribute( "visibility", ( RtToken ) "camera", &visible, RI_NULL );
+  RiAttribute( "visibility",  ( RtToken ) "trace", &visible, RI_NULL );
+  // RiAttribute( "visibility", ( RtToken ) "transmission", ( RtPointer ) &transmission, RI_NULL );
+  
   RiWorldBegin();
   RiReverseOrientation();
   RiTransformBegin();
   RiRotate( -90., 1., 0., 0. );
   RiCoordinateSystem( "_environment" );
   RiTransformEnd();
+  
   RtLightHandle ambientLightH, directionalLightH;
   RtFloat intensity;
   intensity = 0.05 * (RtFloat)options.previewIntensity;
@@ -581,13 +590,16 @@ int liquidOutputPreviewShader( const string& fileName, const liqPreviewShaderOpt
   RtPoint to;
   from[0] = -1.; from[1] = 1.5; from[2] = -1.;
   to[0] = 0.; to[1] = 0.; to[2] = 0.;
+  
   RiTransformBegin();
     RiRotate( 55.,  1, 0, 0 );
     RiRotate( 30.,  0, 1, 0 );
     directionalLightH = RiLightSource( "liquiddistant", "intensity", &intensity, RI_NULL );
   RiTransformEnd();
+  
   intensity = 0.2f * (RtFloat)options.previewIntensity;
   from[0] = 1.3f; from[1] = -1.2f; from[2] = -1.;
+  
   RiTransformBegin();
     RiRotate( -50.,  1, 0, 0 );
     RiRotate( -40.,  0, 1, 0 );
@@ -595,6 +607,7 @@ int liquidOutputPreviewShader( const string& fileName, const liqPreviewShaderOpt
   RiTransformEnd();
 
   RiAttributeBegin();
+		
 
 /*!!! liqShader::writeRibAttributes do this work now	
 	// output displacement bound
@@ -927,10 +940,9 @@ int liquidOutputPreviewShader( const string& fileName, const liqPreviewShaderOpt
 			else 
         RiSurface( const_cast< RtToken >( options.backPlaneShader.c_str() ), RI_NULL );
 
-			RtInt visible = 1;
-      RtString transmission = "transparent";
 
-      RiAttribute( "visibility", ( RtToken ) "camera", &visible, ( RtToken ) "trace", &visible, ( RtToken ) "transmission", ( RtPointer ) &transmission, RI_NULL );
+      
+      
       static RtPoint backplane[4] = {
         { -1.,  1.,  2. },
         {  1.,  1.,  2. },
