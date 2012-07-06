@@ -151,10 +151,7 @@ MStatus liqRibTranslator::liquidDoArgs( MArgList args )
     liquidMessage( "Doing nothing, no parameters given", messageError );
     return MS::kFailure;
   }
-  // find the activeView for previews;
-  m_activeView = M3dView::active3dView();
-  width        = m_activeView.portWidth();
-  height       = m_activeView.portHeight();
+  
 
   // get the current project directory
   MString MELCommand = "workspace -q -rd";

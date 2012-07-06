@@ -49,7 +49,10 @@ extern MString  liqglo_ribDir;
 extern MString  liqglo_textureDir;
 extern MString  liqglo_projectDir;
 extern MString  liqglo_sceneName;
+extern MString  liqglo_renderCamera;
 extern long     liqglo_lframe;
+
+extern int debugMode;
 
 void* liqJobList::creator()
 {
@@ -70,7 +73,7 @@ MSyntax liqJobList::syntax()
   return syn;
 }
 
-MStatus liqJobList::doIt(const MArgList& args)
+MStatus liqJobList::doIt( const MArgList& args )
 {
   MStatus status;
   MArgParser argParser(syntax(), args);
@@ -108,6 +111,7 @@ MStatus liqJobList::doIt(const MArgList& args)
   if ( flagIndex != MArgList::kInvalidArgIndex ) 
   {
     debug = true;
+    debugMode = true;
   }
 
   info = false;
@@ -135,6 +139,7 @@ MStatus liqJobList::redoIt()
 {
   LIQDEBUGPRINTF( "redoIt" );
   clearResult();
+  
   MStatus status;
   MObject cameraNode;
   MDagPath lightPath;
@@ -152,11 +157,13 @@ MStatus liqJobList::redoIt()
     MGlobal::executeCommand( MELCommand, MELReturn );
     liqglo_projectDir = MELReturn;
 
-    // liquidMessage ( "liqglo_projectDir = '" + string( liqglo_projectDir.asChar() ) + "'", messageInfo );
+    //liquidMessage ( "liqglo_projectDir = '" + liqglo_projectDir + "'", messageInfo );
     //
     // set the current scene name
     //
     liqglo_sceneName = liquidTransGetSceneName();
+    
+    //liquidMessage ( "liqglo_sceneName = '" + liqglo_sceneName + "'", messageInfo );
     //
     // set the frame
     //
@@ -164,15 +171,18 @@ MStatus liqJobList::redoIt()
     //
     // read the globals
     //
-    LIQDEBUGPRINTF( "read globals...");
+    LIQDEBUGPRINTF( "read globals..." );
     if ( ribTranslator.liquidInitGlobals() ) 
       ribTranslator.liquidReadGlobals();
     else 
     {
-      MString err ("no liquidGlobals node in the scene");
+      MString err ( "no liquidGlobals node in the scene" );
       throw err;
     }
     LIQDEBUGPRINTF( "done !");
+    
+    // liquidMessage ( "liqglo_sceneName = '" + liqglo_renderCamera + "'", messageInfo );
+
     //
     // verify the output directories
     //
@@ -191,8 +201,6 @@ MStatus liqJobList::redoIt()
       throw err;
     }
     LIQDEBUGPRINTF( "done !");
-
-    
     //
     // get jobs info
     //
@@ -342,7 +350,7 @@ MStatus liqJobList::redoIt()
         result.append( "shadingRate = " + ( MString("") += (float)( iterJob->shadingRate ) ) + "\n" );
         result.append( "shadingRateFactor = " + ( MString("") += (float)( iterJob->shadingRateFactor ) ) + "\n" );
         
-        MString renderPass(""); 
+        MString renderPass( "rpNone" ); 
         switch ( iterJob->pass )
         {
           case rpHeroPass: renderPass = "rpHeroPass"; break;
@@ -359,6 +367,7 @@ MStatus liqJobList::redoIt()
         switch ( iterJob->shadowType )
         {
           case stStandart: shadowType = "stStandart"; break;
+          case stMidPoint: shadowType = "stMidPoint"; break;
           case stMinMax: shadowType = "stMinMax"; break;
           case stDeep: shadowType = "stDeep"; break;
         }

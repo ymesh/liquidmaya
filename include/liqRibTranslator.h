@@ -233,9 +233,10 @@ private: // Data
 
 private :
 
+  M3dView       m_activeView;
+
   // Old global values
   int           m_errorMode;
-  M3dView       m_activeView;
   MString       m_pixDir;
   MString       m_tmpDir;
   bool          m_noDirCheck;

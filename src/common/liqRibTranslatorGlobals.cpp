@@ -133,6 +133,11 @@ void liqRibTranslator::liquidReadGlobals()
   MFnDependencyNode rGlobalNode( rGlobalObj );
   MString varVal;
   int var;
+  // find the activeView for previews;
+  m_activeView = M3dView::active3dView();
+  width        = m_activeView.portWidth();
+  height       = m_activeView.portHeight();
+
   // Display Channels - Read and store 'em !
   // philippe : channels are stored as structures in a vector
   if ( liquidRenderer.supports_DISPLAY_CHANNELS ) 
@@ -239,10 +244,6 @@ void liqRibTranslator::liquidReadGlobals()
   liquidGetPlugValue( rGlobalNode, "launchRender", launchRender, gStatus );
   
   liquidGetPlugValue( rGlobalNode, "renderCamera", liqglo_renderCamera, gStatus, true ); // get parsed result
-  if ( gStatus == MS::kSuccess )
-    liquidMessage( "Render camera " + liqglo_renderCamera, messageInfo );
-  else
-    liquidMessage( "Render camera not found", messageError );
     
   liquidGetPlugValue( rGlobalNode, "ribName", liqglo_sceneName, gStatus, true ); // get parsed result
   liquidGetPlugValue( rGlobalNode, "alfredTags", m_alfredTags, gStatus, true ); // get parsed result

@@ -818,7 +818,7 @@ MString liquidTransGetSceneName()
 {
   MString fullName;
   MGlobal::executeCommand( "file -q -sn -shn", fullName );
-  fullName = (fullName != "")? fullName:"untitled.mb";
+  fullName = ( fullName != "" )? fullName : "untitled.mb" ;
 
   // Move backwards across the string until we hit a dirctory / and
   // take the info from there on
@@ -833,7 +833,7 @@ MString liquidTransGetSceneName()
 MString liquidTransGetFullSceneName()
 {
   MString fileName;
-  MGlobal::executeCommand( "file -q -sn", fileName );
+  MGlobal::executeCommand (  "file -q -sn", fileName );
   return fileName;
 }
 
