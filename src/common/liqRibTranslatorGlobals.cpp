@@ -138,6 +138,9 @@ void liqRibTranslator::liquidReadGlobals()
   width        = m_activeView.portWidth();
   height       = m_activeView.portHeight();
 
+  liquidRenderer.setRenderer();
+  m_renderCommand = liquidRenderer.renderCommand;
+
   // Display Channels - Read and store 'em !
   // philippe : channels are stored as structures in a vector
   if ( liquidRenderer.supports_DISPLAY_CHANNELS ) 

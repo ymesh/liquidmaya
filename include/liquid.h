@@ -246,7 +246,7 @@ enum fileGenMode {
   fgm_shadow_rib,
   fgm_shadow_archive,
   fgm_scene_archive,
-  fgm_beauty_rib,
+  fgm_hero_rib,
   fgm_image
 };
 
@@ -317,37 +317,39 @@ struct structJob {
   float   shadingRate;
   float   shadingRateFactor;
 
-  RenderPass            pass;
+  RenderPass  pass;
   
-  bool                  isShadowPass;
-  bool                  isStereoPass;
+  bool    isShadowPass;
+  bool    isStereoPass;
+
+  int     renderFrame;
 
   // shadows specific job options
-  bool                  isShadow;
-  bool                  everyFrame;
-  int                   renderFrame;
-  MString               shadowObjectSet;
-  bool                  shadowArchiveRibDone;
+  // bool                  isShadow;
+  bool    everyFrame;
   
-  ShadowType            shadowType;
-  ShadowHiderType       shadowHiderType;
+  MString shadowObjectSet;
+  bool    shadowArchiveRibDone;
+  
+  ShadowType      shadowType;
+  ShadowHiderType shadowHiderType;
 
-  bool                  hasShadowCam;
-  bool                  shadowAggregation;
+  bool    hasShadowCam;
+  bool    shadowAggregation;
   
   // MidPoint shadows specific job options
-  bool                  isMidPointShadow;
-  float                 midPointRatio;
+  //bool    isMidPointShadow;
+  float   midPointRatio;
 
   // MinMax shadows specific job options
-  bool                  isMinMaxShadow;
+  //bool    isMinMaxShadow;
 
   // Deep shadows specific job options
-  bool                  deepShadows;
-  int                   shadowPixelSamples;
+  //bool                  deepShadows;
+  //int                   shadowPixelSamples;
   VolumeInterpretation  volume;
-  int                   shadowVolumeInterpretation;
-  MString               deepShadowOption; // deep shadows display driver option
+  //int                   shadowVolumeInterpretation;
+  MString deepShadowOption; // deep shadows display driver option
   
   // pointlight shadow job options
   bool                  isPoint;

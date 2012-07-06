@@ -769,7 +769,7 @@ MString liqRibTranslator::generateFileName( fileGenMode mode, const structJob& j
 	  
 	  case fgm_shadow_rib:
 	  case fgm_shadow_archive:
-	  case fgm_beauty_rib:
+	  case fgm_hero_rib:
 	    ss << liqglo_ribDir.asChar(); 
 	    break;
 	    
@@ -789,7 +789,7 @@ MString liqRibTranslator::generateFileName( fileGenMode mode, const structJob& j
         ss << liqglo_sceneName.asChar() << "_"; 
       break;
       
-    case fgm_beauty_rib:
+    case fgm_hero_rib:
       ss << liqglo_sceneName.asChar(); 
       if ( liqglo_beautyRibHasCameraName )
 			  ss << "_" << sanitizeNodeName( job.name ).asChar();
@@ -801,8 +801,8 @@ MString liqRibTranslator::generateFileName( fileGenMode mode, const structJob& j
 	  case fgm_shadow_tex:  
 	  case fgm_shadow_rib:
 	    suffix = "_";
-	    suffix += ( job.deepShadows ? "DSH" : "SHD");
-      if ( job.isPoint && ( job.deepShadows || !job.shadowAggregation ) )
+	    suffix += ( ( job.shadowType == stDeep  )? "DSH" : "SHD");
+      if ( job.isPoint && ( job.shadowType == stDeep || !job.shadowAggregation ) )
       {
         switch ( job.pointDir )
         {
@@ -869,8 +869,8 @@ MString liqRibTranslator::generateFileName( fileGenMode mode, const structJob& j
 			fileExt = extension;
 			break;
 			
-		case fgm_beauty_rib:
-			debug = "fgm_beauty_rib";
+		case fgm_hero_rib:
+			debug = "fgm_hero_rib";
 			fileExt = extension;
 			break;
 
@@ -886,12 +886,14 @@ MString liqRibTranslator::generateFileName( fileGenMode mode, const structJob& j
 		default:
 			liquidMessage( "liqRibTranslator::generateFileName: unknown case", messageError );
 	}
- //  prepare format string "%0*d" ( boost format doesn't support * modificator )...
- if ( ( m_animation || m_useFrameExt )  ) // &&  mode != fgm_image
-   ss << "." << setfill('0') << setw( (liqglo_doExtensionPadding)? liqglo_outPadding : 0 ) <<  job.renderFrame;
-
+  if ( job.everyFrame )
+  {
+    //  prepare format string "%0*d" ( boost format doesn't support * modificator )...
+    if ( ( m_animation || m_useFrameExt )  ) // &&  mode != fgm_image
+      ss << "." << setfill('0') << setw( (liqglo_doExtensionPadding)? liqglo_outPadding : 0 ) <<  job.renderFrame;
+  }
   ss << "." << fileExt.asChar() ;
-  
+
   filename = liquidSanitizePath ( ss.str() ).c_str();
   // filename = liquidGetRelativePath ( false, filename, liqglo_projectDir );
   filename = getFullPathFromRelative ( filename );
@@ -1053,8 +1055,7 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
   status = setRenderLayer( args );
   if ( status != MS::kSuccess ) return MS::kFailure;
   
-  liquidRenderer.setRenderer();
-  m_renderCommand = liquidRenderer.renderCommand;
+  
 
   status = liquidDoArgs( args );
   if ( status != MS::kSuccess ) return MS::kFailure;
@@ -1400,13 +1401,13 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
           bool out_lightBlock = false;
           // world RiReadArchives and Rib Boxes ************************************************
           //
-          if ( liqglo_currentJob.isShadow && !liqglo_currentJob.shadowArchiveRibDone && !fullShadowRib ) 
+          if ( liqglo_currentJob.pass == rpShadowMap && !liqglo_currentJob.shadowArchiveRibDone && !fullShadowRib ) 
           {
             //  create the read-archive shadow files
             //  world_only = true
             //  out_lightBlock = (liqglo_currentJob.deepShadows && m_outputLightsInDeepShadows )
             //  archiveName = ""
-            out_lightBlock = (liqglo_currentJob.deepShadows && m_outputLightsInDeepShadows );
+            out_lightBlock = ( liqglo_currentJob.shadowType == stDeep && m_outputLightsInDeepShadows );
             if ( ribOutput( scanTime, baseShadowName, true, out_lightBlock, MString("") ) != MS::kSuccess )
               break;
 
@@ -1427,10 +1428,10 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
           //  world_only = false
           MString archiveName = "";
           
-          if ( liqglo_currentJob.isShadow && !fullShadowRib ) 
+          if ( liqglo_currentJob.pass == rpShadowMap && !fullShadowRib ) 
             archiveName = baseShadowName;
           
-          out_lightBlock = (!liqglo_currentJob.isShadow || ( liqglo_currentJob.isShadow && liqglo_currentJob.deepShadows && m_outputLightsInDeepShadows) );
+          out_lightBlock = (liqglo_currentJob.pass != rpShadowMap || ( liqglo_currentJob.pass == rpShadowMap && liqglo_currentJob.shadowType == stDeep && m_outputLightsInDeepShadows) );
           
           if ( ribOutput( scanTime, liqglo_currentJob.ribFileName, false, out_lightBlock, archiveName ) != MS::kSuccess )
             break;
@@ -2050,13 +2051,15 @@ void liqRibTranslator::exportJobCamera(const structJob &job, const structCamera 
 		// if we are describing a shadow map camera,
 		// we need to set the screenwindow to the default,
 		// as shadow maps are always square.
-		if( job.isShadow == true ) RiScreenWindow( -frameWidth, frameWidth, -frameHeight, frameHeight );
-		else 			                 RiScreenWindow( -1.0, 1.0, -1.0, 1.0 );
+		if ( job.pass == rpShadowMap ) 
+      RiScreenWindow( -frameWidth, frameWidth, -frameHeight, frameHeight );
+		else 			                 
+      RiScreenWindow( -1.0, 1.0, -1.0, 1.0 );
 	}
 	else
 	{
 		RtFloat fieldOfView = camera[0].hFOV * 180.0 / M_PI ;
-		if ( job.isShadow && job.isPoint ) fieldOfView = job.camera[0].hFOV;
+		if ( job.pass == rpShadowMap && job.isPoint ) fieldOfView = job.camera[0].hFOV;
 		
 		RiProjection( "perspective", RI_FOV, &fieldOfView, RI_NULL );
 
@@ -2064,7 +2067,7 @@ void liqRibTranslator::exportJobCamera(const structJob &job, const structCamera 
 		// we need to set the screenwindow to the default,
 		// as shadow maps are always square.
 
-		if ( job.isShadow == false )
+		if ( job.pass != rpShadowMap )
 		{
 			double ratio = (double)job.width / (double)job.height;
 			double left, right, bottom, top;
@@ -2090,10 +2093,10 @@ void liqRibTranslator::exportJobCamera(const structJob &job, const structCamera 
 		}
 	}
 	RiClipping( camera[0].neardb, camera[0].fardb );
-	if ( doDof && !job.isShadow ) RiDepthOfField( camera[0].fStop, camera[0].focalLength, camera[0].focalDistance );
+	if ( doDof && job.pass != rpShadowMap ) RiDepthOfField( camera[0].fStop, camera[0].focalLength, camera[0].focalDistance );
 	// if we motion-blur the cam, open the motion block
 	//
-	if ( doCameraMotion && ( !job.isShadow || job.deepShadows) )
+	if ( doCameraMotion && ( job.pass != rpShadowMap || job.shadowType == stDeep ) )
 	{
 		if ( liqglo_relativeMotion ) RiMotionBeginV( liqglo_motionSamples, liqglo_sampleTimesOffsets );
 		else 		                     RiMotionBeginV( liqglo_motionSamples, liqglo_sampleTimes );
@@ -2107,7 +2110,7 @@ void liqRibTranslator::exportJobCamera(const structJob &job, const structCamera 
 
 	// if we motion-blur the cam, write the subsequent motion samples and close the motion block
 	//
-	if ( doCameraMotion && ( !job.isShadow || job.deepShadows ) )
+	if ( doCameraMotion && ( job.pass != rpShadowMap || job.shadowType == stDeep ) )
 	{
 		int mm = 1;
 		while ( mm < liqglo_motionSamples )
@@ -2332,13 +2335,23 @@ MStatus liqRibTranslator::buildJobs()
   thisJob.pass = rpNone; // reset RenderPass type
 
   thisJob.name.clear();
-  
+  thisJob.texName.clear();
+
+  thisJob.height = thisJob.width = 0;
+
+  thisJob.renderName = m_renderCommand;
   thisJob.isShadowPass  = false;
-  thisJob.isShadow      = false;
+  // thisJob.isShadow      = false;
   thisJob.isPoint       = false;
   thisJob.renderFrame   = liqglo_lframe;
   thisJob.everyFrame    = true;
-  thisJob.isStereoPass = false;
+  thisJob.isStereoPass  = false;
+
+  thisJob.aspectRatio = 1.0;
+  thisJob.samples = 1;
+  thisJob.shadingRate = 1.0;
+  thisJob.shadingRateFactor = 1.0;
+
   thisJob.skip          = false;
 
   // what we do here is make all of the lights with depth shadows turned on into
@@ -2348,17 +2361,48 @@ MStatus liqRibTranslator::buildJobs()
   if ( liqglo_doShadows ) 
   {
     LIQDEBUGPRINTF("  setup shadows...\n" );
+    //
+    // lights
+    //
     MItDag dagIterator( MItDag::kDepthFirst, MFn::kLight, &returnStatus );
     for ( ; !dagIterator.isDone(); dagIterator.next()) 
     {
       if ( !dagIterator.getPath( lightPath ) ) continue;
 
       thisJob.pass = rpNone; // reset RenderPass type
-      thisJob.isShadow      = false;
+      
+      //thisJob.imageMode.clear();
+      //thisJob.format.clear();
+      //thisJob.height = thisJob.width = 0;
+
+      //thisJob.isShadow      = false;
       thisJob.isPoint       = false;
+      thisJob.pointDir = pPX;
+      thisJob.shadowObjectSet.clear();
+      thisJob.shadowArchiveRibDone = false;
+      thisJob.shadowType    = stStandart;
+      thisJob.shadowHiderType = shNone;
+      thisJob.hasShadowCam = false;
+      thisJob.shadowAggregation = false;
+      //thisJob.isMidPointShadow = false;
+      thisJob.midPointRatio = 0;
+      //thisJob.isMinMaxShadow = false;
+      //thisJob.deepShadows  = false;
       
+      //thisJob.shadowPixelSamples = 1;
+      thisJob.samples = 1;
+      thisJob.shadingRate = 1.0;
+      thisJob.shadingRateFactor = 1.0;
+      thisJob.aspectRatio = 1.0;
+
+      thisJob.volume = viNone;
+      //thisJob.shadowVolumeInterpretation = 0;
+      
+      thisJob.deepShadowOption.clear();
+      
+      thisJob.renderFrame   = liqglo_lframe;
       thisJob.everyFrame    = true;
-      
+      thisJob.skip          = false;
 
       bool usesDepthMap = false;
       MFnLight fnLightNode( lightPath );
@@ -2366,25 +2410,7 @@ MStatus liqRibTranslator::buildJobs()
 
       if ( usesDepthMap && areObjectAndParentsVisible( lightPath ) ) 
       {
-        // philippe : this is the default and can be overriden
-        // by the everyFrame/renderAtFrame attributes.
-        //
         thisJob.pass = rpShadowMap;
-
-        thisJob.renderFrame           = liqglo_lframe;
-        thisJob.everyFrame            = true;
-        thisJob.shadowObjectSet       = "";
-        thisJob.shadowArchiveRibDone  = false;
-        thisJob.skip                  = false;
-        //
-        // We have a shadow job, so find out if we need to use deep shadows,
-        // and the pixel sample count
-        //
-        thisJob.deepShadows                 = false;
-        thisJob.shadowPixelSamples          = 1;
-        thisJob.shadowVolumeInterpretation  = 1;
-        thisJob.shadingRateFactor           = 1.0;
-		    thisJob.shadowAggregation			= 0;
 
         thisJob.imageMode = "z";
         thisJob.format = "shadow";
@@ -2409,15 +2435,23 @@ MStatus liqRibTranslator::buildJobs()
 
           // Now grab the parameters.
           //
-          liquidGetPlugValue( fnLightShaderNode, "deepShadows", thisJob.deepShadows, status );
+          bool deepShadows = false;
+          liquidGetPlugValue( fnLightShaderNode, "deepShadows", deepShadows, status );
  
           // Only use the pixel samples and volume interpretation with deep shadows.
           //
-          if ( thisJob.deepShadows )
+          if ( deepShadows )
           {
-            liquidGetPlugValue( fnLightShaderNode, "pixelSamples", thisJob.shadowPixelSamples, status );
-            liquidGetPlugValue( fnLightShaderNode, "volumeInterpretation", thisJob.shadowVolumeInterpretation, status );
-            
+            thisJob.shadowType = stDeep;
+
+            int samples = (int)thisJob.samples;
+            liquidGetPlugValue( fnLightShaderNode, "pixelSamples", samples, status );
+            thisJob.samples = (short)samples;
+
+            int volume = (int)thisJob.volume;
+            liquidGetPlugValue( fnLightShaderNode, "volumeInterpretation", volume, status );
+            thisJob.volume = (VolumeInterpretation)volume;
+
             thisJob.imageMode    = liquidRenderer.dshImageMode;        //"deepopacity";
             thisJob.format       = liquidRenderer.dshDisplayName;    //"deepshad";
 
@@ -2425,7 +2459,7 @@ MStatus liqRibTranslator::buildJobs()
             liquidGetPlugValue( fnLightShaderNode, "liqDeepShadowsDisplayMode", displayImageMode, status );
             if ( displayImageMode ) thisJob.imageMode = MString( "deepprevdisttotal" );
               
-            cerr << "dbg> liqDeepShadowsDisplayMode = " << displayImageMode << " thisJob.imageMode = " << thisJob.imageMode << endl;
+            //cerr << "dbg> liqDeepShadowsDisplayMode = " << displayImageMode << " thisJob.imageMode = " << thisJob.imageMode << endl;
           }
 
           // philippe : check the shadow rendering frequency
@@ -2437,9 +2471,11 @@ MStatus liqRibTranslator::buildJobs()
           // If the job is a shadow rendering once only at a given frame, we take the
           // renderAtFrame attribute, otherwise, the current time.
           //
-          if ( !thisJob.everyFrame ) 
-            liquidGetPlugValue( fnLightShaderNode, "renderAtFrame", thisJob.renderFrame, status );  
-
+          if ( !thisJob.everyFrame )
+          {
+            thisJob.renderFrame = 0; // should be Reference frame from Globals 
+            liquidGetPlugValue( fnLightShaderNode, "renderAtFrame", thisJob.renderFrame, status ); 
+          }
           // Check if the shadow aggregation option is used
 		      liquidGetPlugValue( fnLightShaderNode, "aggregateShadowMaps", thisJob.shadowAggregation, status );  
  
@@ -2453,11 +2489,19 @@ MStatus liqRibTranslator::buildJobs()
           /* Here we support the same options as those found on light shader nodes
              but we look for dynamic attributes, so we need a bit more error checking.
            */
-          liquidGetPlugValue( fnLightNode, "deepShadows", thisJob.deepShadows, status );
-          if ( thisJob.deepShadows ) 
+          bool deepShadows = false;
+          liquidGetPlugValue( fnLightNode, "deepShadows", deepShadows, status );
+          if ( deepShadows ) 
           {
-            liquidGetPlugValue( fnLightNode, "pixelSamples", thisJob.shadowPixelSamples, status );
-            liquidGetPlugValue( fnLightNode, "volumeInterpretation", thisJob.shadowVolumeInterpretation, status );
+            thisJob.shadowType = stDeep;
+            
+            int samples = (int)thisJob.samples;
+            liquidGetPlugValue( fnLightNode, "pixelSamples", samples, status );
+            thisJob.samples = (short)samples;
+
+            int volume = (int)thisJob.volume;
+            liquidGetPlugValue( fnLightNode, "volumeInterpretation", volume, status );
+            thisJob.volume = (VolumeInterpretation)volume;
 
             thisJob.imageMode    = liquidRenderer.dshImageMode;        //"deepopacity";
             thisJob.format       = liquidRenderer.dshDisplayName;    //"deepshad";
@@ -2466,9 +2510,14 @@ MStatus liqRibTranslator::buildJobs()
             liquidGetPlugValue( fnLightNode, "liqDeepShadowsDisplayMode", displayImageMode, status );
             if ( displayImageMode ) thisJob.imageMode = MString( "deepprevdisttotal" );
           }
+
           liquidGetPlugValue( fnLightNode, "everyFrame", thisJob.everyFrame, status );
-          if ( !thisJob.everyFrame ) liquidGetPlugValue( fnLightNode, "renderAtFrame", thisJob.renderFrame, status );  
-          
+
+          if ( !thisJob.everyFrame ) 
+          {
+            thisJob.renderFrame = 0; // should be Reference frame from Globals 
+            liquidGetPlugValue( fnLightNode, "renderAtFrame", thisJob.renderFrame, status );  
+          }
           liquidGetPlugValue( fnLightNode, "geometrySet", thisJob.shadowObjectSet, status );  
           liquidGetPlugValue( fnLightNode, "shadingRateFactor", thisJob.shadingRateFactor, status ); 
         }
@@ -2503,14 +2552,14 @@ MStatus liqRibTranslator::buildJobs()
             liquidGetPlugValue( fnLightShaderNode, "shadowMainCamera", camName, status ); 
             if ( status == MS::kSuccess && camName != "" )
             {
-              cerr << ">> Light node has main shadow camera : " << camName.asChar() << endl;
+              // cerr << ">> Light node has main shadow camera : " << camName.asChar() << endl;
               MDagPath cameraPath;
               MSelectionList camList;
               camList.add( camName );
               camList.getDagPath( 0, cameraPath );
               if ( cameraPath.hasFn( MFn::kCamera ) )
               {
-                cerr << ">> cameraPath : "<< cameraPath.fullPathName() << endl;
+                //cerr << ">> cameraPath : "<< cameraPath.fullPathName() << endl;
                 thisJob.hasShadowCam = true;
                 thisJob.shadowCamPath = cameraPath;
               }
@@ -2554,21 +2603,25 @@ MStatus liqRibTranslator::buildJobs()
           }
 		      thisJob.path = lightPath;
 		      thisJob.name = fnLightNode.name();
-		      thisJob.texName = "";
-		      thisJob.isShadow = true;
-		      thisJob.isPoint = false;
-		      thisJob.isShadowPass = false;
+		      //thisJob.texName.clear();
+		      //thisJob.isShadow = true;
+		      //thisJob.isPoint = false;
+		      //thisJob.isShadowPass = false;
 
           // check to see if the minmax shadow option is used
-          thisJob.isMinMaxShadow = false;
-          liquidGetPlugValue( fnLightNode, "liquidMinMaxShadow", thisJob.isMinMaxShadow, status ); 
+          bool isMinMaxShadow = false;
+          liquidGetPlugValue( fnLightNode, "liquidMinMaxShadow", isMinMaxShadow, status ); 
+          if ( isMinMaxShadow ) thisJob.shadowType = stMinMax;
+          
           // check to see if the midpoint shadow option is used
-          thisJob.isMidPointShadow = false;
-          liquidGetPlugValue( fnLightNode, "useMidDistDmap", thisJob.isMidPointShadow, status ); 
+          bool isMidPointShadow = false;
+          liquidGetPlugValue( fnLightNode, "useMidDistDmap", isMidPointShadow, status ); 
+          if ( isMidPointShadow ) thisJob.shadowType = stMidPoint;
+          
           // in lazy compute mode, we check if the map is already on disk first.
           if ( m_lazyCompute && computeShadow ) 
           {
-            MString fileName( generateFileName( (fileGenMode) fgm_shadow_tex, thisJob ) );
+            MString fileName( generateFileName( (fileGenMode)fgm_shadow_tex, thisJob ) );
             if ( fileExists( fileName ) ) computeShadow = false;
           }
           //
@@ -2579,20 +2632,23 @@ MStatus liqRibTranslator::buildJobs()
         } 
         else if ( lightPath.hasFn(MFn::kPointLight) ) 
         {
+          thisJob.hasShadowCam = false;
+          thisJob.path = lightPath;
+          thisJob.name = fnLightNode.name();
+          //thisJob.isShadow = true;
+
+          thisJob.isShadowPass = false;
+          thisJob.isPoint = true;
+
+          // check to see if the midpoint shadow option is used
+          bool isMidPointShadow = false;
+          liquidGetPlugValue( fnLightNode, "useMidDistDmap", isMidPointShadow, status );
+          if ( isMidPointShadow ) thisJob.shadowType = stMidPoint;
+          
           for ( unsigned dirOn( 0 ); dirOn < 6; dirOn++ ) 
           {
-            thisJob.hasShadowCam = false;
-            thisJob.path = lightPath;
-            thisJob.name = fnLightNode.name();
-            thisJob.isShadow = true;
-            thisJob.isShadowPass = false;
-            thisJob.isPoint = true;
             thisJob.pointDir = ( PointLightDirection )dirOn;
 
-            // check to see if the midpoint shadow option is used
-            thisJob.isMidPointShadow = false;
-            liquidGetPlugValue( fnLightNode, "useMidDistDmap", thisJob.isMidPointShadow, status );
-            
             bool computeShadow = true;
             MStatus liquidLightShaderStatus;
             MPlug liquidLightShaderNodeConnection( fnLightNode.findPlug( "liquidLightShaderNode", &liquidLightShaderStatus ) );
@@ -2672,22 +2728,41 @@ MStatus liqRibTranslator::buildJobs()
   //						thisJob.name = shadowCamDepNode.name();
 					  if ( liquidGetPlugValue( shadowCamDepNode, "liqShadowResolution", thisJob.width, status ) == MS::kSuccess )
 						  thisJob.height = thisJob.width;
-					  liquidGetPlugValue( shadowCamDepNode, "liqMidPointShadow", thisJob.isMidPointShadow, status );
+					  
+            bool isMidPointShadow = false;
+            liquidGetPlugValue( shadowCamDepNode, "liqMidPointShadow", isMidPointShadow, status );
+            if ( isMidPointShadow ) thisJob.shadowType = stMidPoint;
+
             thisJob.midPointRatio = 0;
             liquidGetPlugValue( shadowCamDepNode, "liqMidPointRatio", thisJob.midPointRatio, status );
-            liquidGetPlugValue( shadowCamDepNode, "liqDeepShadows", thisJob.deepShadows, status );
-            liquidGetPlugValue( shadowCamDepNode, "liqPixelSamples", thisJob.shadowPixelSamples, status );
-            liquidGetPlugValue( shadowCamDepNode, "liqVolumeInterpretation", thisJob.shadowVolumeInterpretation, status );
             
-            int displayImageMode = 0; // 0 = default
-            liquidGetPlugValue( shadowCamDepNode, "liqDeepShadowsDisplayMode", displayImageMode, status );
-            if ( displayImageMode ) thisJob.imageMode = MString( "deepprevdisttotal" );
+            bool deepShadows = false;
+            liquidGetPlugValue( shadowCamDepNode, "liqDeepShadows", deepShadows, status );
+            if ( deepShadows ) 
+            {  
+              thisJob.shadowType = stDeep;
+
+              int samples = (int)thisJob.samples;
+              liquidGetPlugValue( shadowCamDepNode, "liqPixelSamples", samples, status );
+              thisJob.samples = (short)samples;
+
+              int volume = (int)thisJob.volume;
+              liquidGetPlugValue( shadowCamDepNode, "liqVolumeInterpretation", volume, status );
+              thisJob.volume = (VolumeInterpretation)volume;
+              
+              int displayImageMode = 0; // 0 = default
+              liquidGetPlugValue( shadowCamDepNode, "liqDeepShadowsDisplayMode", displayImageMode, status );
+              if ( displayImageMode ) thisJob.imageMode = MString( "deepprevdisttotal" );
+            }
 
             liquidGetPlugValue( shadowCamDepNode, "liqEveryFrame", thisJob.everyFrame, status );
 					  // as previously : this is important as thisJob.renderFrame corresponds to the
 					  // scene scanning time.
-					  if ( thisJob.everyFrame ) thisJob.renderFrame = liqglo_lframe;
-					  else liquidGetPlugValue( shadowCamDepNode, "liqRenderAtFrame", thisJob.renderFrame, status );
+					  if ( !thisJob.everyFrame )
+            {
+              thisJob.renderFrame = 0; // should be Reference frame from Globals 
+              liquidGetPlugValue( shadowCamDepNode, "liqRenderAtFrame", thisJob.renderFrame, status );
+            }
             liquidGetPlugValue( shadowCamDepNode, "liqGeometrySet", thisJob.shadowObjectSet, status );
             liquidGetPlugValue( shadowCamDepNode, "liqShadingRateFactor", thisJob.shadingRateFactor, status );
 					  // test if the file is already on disk...
@@ -2701,9 +2776,11 @@ MStatus liqRibTranslator::buildJobs()
 				  }
 			  }
 		  } // useDepthMap
-		//cout <<thisJob.name.asChar()<<" -> shd:"<<thisJob.isShadow<<" ef:"<<thisJob.everyFrame<<" raf:"<<thisJob.renderFrame<<" set:"<<thisJob.shadowObjectSet.asChar()<<endl;
-	  } // light dagIterator
+		 } // light dagIterator
 
+    //
+    // cameras
+    //
     MDagPath cameraPath;
     MItDag dagCameraIterator( MItDag::kDepthFirst, MFn::kCamera, &returnStatus );
     for ( ; !dagCameraIterator.isDone(); dagCameraIterator.next() ) 
@@ -2714,26 +2791,39 @@ MStatus liqRibTranslator::buildJobs()
       liquidGetPlugValue( fnCameraNode, "useDepthMapShadows", usesDepthMap, status );
       if ( usesDepthMap && areObjectAndParentsVisible( cameraPath ) ) 
       {
+        thisJob.pass = rpShadowMap;
+
         //
         // We have a shadow job, so find out if we need to use deep shadows,
         // and the pixel sample count
         //
-        thisJob.deepShadows = false;
-        thisJob.shadowPixelSamples = 1;
-        thisJob.shadowVolumeInterpretation = 1;
-        fnCameraNode.findPlug( "deepShadows" ).getValue( thisJob.deepShadows );
+        //thisJob.shadowPixelSamples = 1;
+        //thisJob.shadowVolumeInterpretation = 1;
+        
+        thisJob.samples = 1;
+        thisJob.volume = viNone;
+
+        bool deepShadows = false;
+        liquidGetPlugValue( fnCameraNode, "deepShadows", deepShadows, status );
         // Only use the pixel samples and volume interpretation with deep shadows.
         //
-        if ( thisJob.deepShadows )
+        if ( deepShadows )
         {
-          fnCameraNode.findPlug( "pixelSamples" ).getValue( thisJob.shadowPixelSamples );
-          fnCameraNode.findPlug( "volumeInterpretation" ).getValue( thisJob.shadowVolumeInterpretation );
-          
+          thisJob.shadowType = stDeep;
+
+          int samples = (int)thisJob.samples;
+          liquidGetPlugValue( fnCameraNode, "pixelSamples", samples, status );
+          thisJob.samples = (short)samples;
+
+          int volume = (int)thisJob.volume;
+          liquidGetPlugValue( fnCameraNode, "volumeInterpretation", volume, status );
+          thisJob.volume = (VolumeInterpretation)volume;
+
           thisJob.imageMode    = liquidRenderer.dshImageMode;        //"deepopacity";
           thisJob.format       = liquidRenderer.dshDisplayName;    //"deepshad";
 
           int displayImageMode = 0; // 0 = default
-          fnCameraNode.findPlug( "liqDeepShadowsDisplayMode" ).getValue( displayImageMode );
+          liquidGetPlugValue( fnCameraNode, "liqDeepShadowsDisplayMode", displayImageMode, status );
           if ( displayImageMode ) thisJob.imageMode = MString("deepprevdisttotal");
         }
 
@@ -2741,21 +2831,19 @@ MStatus liqRibTranslator::buildJobs()
         thisJob.shadowCamPath = cameraPath;
         thisJob.path = cameraPath;
         thisJob.name = fnCameraNode.name();
-        thisJob.isShadow = true;
+        //thisJob.isShadow = true;
         thisJob.isPoint = false;
         thisJob.isShadowPass = false;
 
         // check to see if the minmax shadow option is used
-        thisJob.isMinMaxShadow = false;
-        status.clear();
-        MPlug liquidMinMaxShadow = fnCameraNode.findPlug( "liquidMinMaxShadow", &status );
-        if ( status == MS::kSuccess ) liquidMinMaxShadow.getValue( thisJob.isMinMaxShadow );
+        bool isMinMaxShadow = false;
+        liquidGetPlugValue( fnCameraNode, "liquidMinMaxShadow", isMinMaxShadow, status ); 
+        if ( isMinMaxShadow ) thisJob.shadowType = stMinMax;
 
         // check to see if the midpoint shadow option is used
-        thisJob.isMidPointShadow = false;
-        status.clear();
-        MPlug liquidMidPointShadow = fnCameraNode.findPlug( "useMidDistDmap", &status );
-        if ( status == MS::kSuccess ) liquidMidPointShadow.getValue( thisJob.isMidPointShadow );
+        bool isMidPointShadow = false;
+        liquidGetPlugValue(  fnCameraNode, "useMidDistDmap", isMidPointShadow, status ); 
+        if ( isMidPointShadow ) thisJob.shadowType = stMidPoint;
 
         bool computeShadow( true );
         if ( m_lazyCompute ) 
@@ -2774,7 +2862,7 @@ MStatus liqRibTranslator::buildJobs()
   // setup hero pass
   thisJob.pass = rpHeroPass;
   thisJob.isShadowPass  = false;
-  thisJob.isShadow      = false;
+  //thisJob.isShadow      = false;
   thisJob.isPoint       = false;
 
   thisJob.name.clear();
@@ -2783,7 +2871,6 @@ MStatus liqRibTranslator::buildJobs()
   thisJob.everyFrame    = true;
   
   thisJob.skip          = false;
-  
 
   // Determine which cameras to render
   // it will either traverse the dag and find all the renderable cameras or
@@ -2803,7 +2890,7 @@ MStatus liqRibTranslator::buildJobs()
     	return MS::kFailure;
   	}
     
-    cerr << "liqglo_renderCamera = " << liqglo_renderCamera << endl << flush;    
+    // cerr << "liqglo_renderCamera = " << liqglo_renderCamera << endl << flush;    
 
   	if ( liqglo_renderCamera != "" ) 
   	{
@@ -2841,18 +2928,20 @@ MStatus liqRibTranslator::buildJobs()
 	else
 	{
 		liqglo_renderCamera = "";
-		liqglo_beautyRibHasCameraName = 0;
+		liqglo_beautyRibHasCameraName = false;
 	}
   
+  // thisJob.ribFileName = generateFileName( fgm_hero_rib, thisJob );
+
   if ( m_outputShadowPass )
   {
-    thisJob.pass = rpHeroPass;
-    thisJob.name         += "SHADOWPASS";
+    thisJob.pass = rpShadowPass;
     thisJob.isShadowPass  = true;
+    thisJob.name         += "SHADOWPASS";
     jobList.push_back( thisJob );
   }
   
-  if ( m_outputHeroPass ) 
+  if ( 1 )   // m_outputHeroPass
   { 
     jobList.push_back( thisJob );
   }
@@ -2868,6 +2957,7 @@ MStatus liqRibTranslator::buildJobs()
   }
   
   LIQDEBUGPRINTF("  step through the jobs and setup their names..." );
+  
   //cerr << "step through the jobs and setup their names..." << endl << flush;
 
 	// step through the jobs and setup their names
@@ -2877,76 +2967,56 @@ MStatus liqRibTranslator::buildJobs()
 		LIQ_CHECK_CANCEL_REQUEST;
 		thisJob = *iter;
 
-		MString frameFileName;
-		//if ( thisJob.isShadow ) frameFileName = generateFileName( ( fileGenMode )fgm_shadow_rib, thisJob );
-		//else 			              frameFileName = generateFileName( ( fileGenMode )fgm_beauty_rib, thisJob );
-		
-		frameFileName = generateFileName( ( iter->isShadow )? fgm_shadow_rib : fgm_beauty_rib, thisJob );
-
-		iter->ribFileName = frameFileName;
-
 		// set the skip flag for the job
 		iter->skip   = false;
-		thisJob.skip = false;
 
-		if ( thisJob.isShadow )
+    if ( iter->pass == rpHeroPass )
 		{
-			if ( !liqglo_doShadows )
-			{
-				// shadow generation disabled
-				iter->skip   = true;
-				thisJob.skip = true;
-			}
-			else if ( !iter->everyFrame && ( liqglo_noSingleFrameShadows || liqglo_lframe > frameNumbers[ 0 ] && iter->renderFrame != liqglo_lframe ) )
-			{
-				// noSingleFrameShadows or rendering past the first frame of the sequence
-				iter->skip   = true;
-				//thisJob.skip = true;
-			}
-			else if ( iter->everyFrame && liqglo_singleFrameShadowsOnly )
-			{
-				// singleFrameShadowsOnly on regular shadows
-				iter->skip   = true;
-				thisJob.skip = true;
-			}
-		}
-		else if ( liqglo_singleFrameShadowsOnly )
+      iter->ribFileName = generateFileName( fgm_hero_rib, thisJob );
+      iter->imageName = generateFileName( ( fileGenMode )fgm_image, thisJob );
+      if ( liqglo_singleFrameShadowsOnly )
+		  {
+			  // singleFrameShadowsOnly on hero pass
+			  iter->skip   = true;
+		  }
+    } 
+    else if ( iter->pass == rpShadowMap )
 		{
-			// singleFrameShadowsOnly on hero pass
-			iter->skip   = true;
-			thisJob.skip = true;
-		}
-
-		MString outFileFmtString;
-
-    if ( iter->isShadow ) 
-    {
+			iter->ribFileName = generateFileName( fgm_shadow_rib, thisJob );
+      
       MString varVal;
       MString userShadowName;
       MFnDagNode lightNode( thisJob.path );
 
       if ( liquidGetPlugValue( lightNode, "liquidShadowName", varVal, status ) == MS::kSuccess ) 
         userShadowName = parseString( varVal, false );
-      //outFileFmtString = liqglo_textureDir;
 
-      //MString outName;
-      //if ( userShadowName.length() ) outName = userShadowName;
-      // else outName = generateFileName( ( fileGenMode )fgm_shadow_tex, thisJob );
+			iter->imageName = ( userShadowName.length() )? userShadowName : generateFileName( ( fileGenMode )fgm_shadow_tex, thisJob );
+      
+      if ( !liqglo_doShadows ) // shadow generation disabled
+			{
+				iter->skip   = true;
+			}
+			else if ( !iter->everyFrame )
+			{
+				int firstFrame = 1;
+        if ( frameNumbers.size() )
+          firstFrame = frameNumbers[ 0 ];
 
-			MString outName = ( userShadowName.length() )? userShadowName : 
-																										 generateFileName( ( fileGenMode )fgm_shadow_tex, thisJob );
-
-      iter->imageName = outName;
+        if ( liqglo_noSingleFrameShadows || liqglo_lframe > firstFrame && iter->renderFrame != liqglo_lframe )
+        {
+          // noSingleFrameShadows or rendering past the first frame of the sequence
+				  iter->skip   = true;
+        }
+			}
+			else if ( iter->everyFrame && liqglo_singleFrameShadowsOnly )
+			{
+				// singleFrameShadowsOnly on regular shadows
+				iter->skip   = true;
+			}
       thisJob = *iter;
-      if ( iter->isShadow )
-        shadowList.push_back( thisJob );
-    } 
-    else 
-    {
-      MString outName;
-      outName = generateFileName( ( fileGenMode )fgm_image, thisJob );
-      iter->imageName = outName;
-    }
+      shadowList.push_back( thisJob );
+		}
     ++iter;
   }
   // sort the shadow jobs to put the reference frames first
@@ -3073,15 +3143,17 @@ MStatus liqRibTranslator::ribPrologue()
       RiArchiveRecord( RI_VERBATIM, "Option \"searchpath\" \"display\" [\"%s\"]\n", list );
     }
 	  //RiOrientation( RI_RH ); // Right-hand coordinates
-    if ( liqglo_currentJob.isShadow ) 
+    if ( liqglo_currentJob.pass == rpShadowMap ) 
     {
-      RiPixelSamples( liqglo_currentJob.shadowPixelSamples, liqglo_currentJob.shadowPixelSamples );
+      RiPixelSamples( liqglo_currentJob.samples, liqglo_currentJob.samples );
       RiShadingRate( liqglo_currentJob.shadingRateFactor );
       // Need to use Box filter for deep shadows.
       RiPixelFilter( RiBoxFilter, 1, 1 );
       RtString option;
-      if ( liqglo_currentJob.deepShadows ) option = "deepshadow";
-      else                                 option = "shadow";
+      if ( liqglo_currentJob.shadowType == stDeep ) 
+        option = "deepshadow";
+      else                                 
+        option = "shadow";
       RiOption( "user", "string pass", ( RtPointer )&option, RI_NULL );
     } 
     else 
@@ -3541,7 +3613,7 @@ MStatus liqRibTranslator::scanScene( float lframe, int sample )
       LIQ_CHECK_CANCEL_REQUEST;
       // scanScene: Get the camera/light info for this job at this frame
       MStatus status;
-      if ( !iter->isShadow ) 
+      if ( iter->pass != rpShadowMap ) 
       {
         MDagPath path;
         MFnCamera   fnCamera( iter->path );
@@ -3863,7 +3935,7 @@ MStatus liqRibTranslator::scanScene( float lframe, int sample )
           }
         } // iter->hasShadowCam
 
-        if ( iter->deepShadows )
+        if ( iter->shadowType == stDeep )
         {
           iter->camera[sample].shutter = liqglo_shutterTime;
           iter->camera[sample].motionBlur = true;
@@ -4011,12 +4083,12 @@ MStatus liqRibTranslator::framePrologue( long lframe )
 	{
 		RiFrameBegin( lframe );
 
-		if ( liqglo_currentJob.isShadow == false && liqglo_rotateCamera  == true )
+		if ( liqglo_currentJob.pass != rpShadowMap && liqglo_rotateCamera  == true )
 			// philippe : Rotated Camera Case
 			RiFormat( liqglo_currentJob.height, liqglo_currentJob.width, liqglo_currentJob.aspectRatio );
 		else
 			RiFormat( liqglo_currentJob.width, liqglo_currentJob.height, liqglo_currentJob.aspectRatio );
-		if ( !liqglo_currentJob.isShadow )
+		if ( liqglo_currentJob.pass != rpShadowMap )
 		{
 			// Smooth Shading
 			RiShadingInterpolation( "smooth" );
@@ -4031,9 +4103,9 @@ MStatus liqRibTranslator::framePrologue( long lframe )
 				RiQuantize( RI_RGBA, 0, 0, 0, 0 );
 			if ( m_rgain != 1.0 || m_rgamma != 1.0 ) RiExposure( m_rgain, m_rgamma );
 		}
-		if ( liqglo_currentJob.isShadow &&
-			 ( !liqglo_currentJob.deepShadows ||
-			   liqglo_currentJob.shadowPixelSamples == 1 ) )
+		if ( liqglo_currentJob.pass == rpShadowMap &&
+			 ( liqglo_currentJob.shadowType != stDeep ||
+			   liqglo_currentJob.samples == 1 ) )
 		{
 			if ( liquidRenderer.renderName == MString("Pixie") )
 			{
@@ -4046,7 +4118,7 @@ MStatus liqRibTranslator::framePrologue( long lframe )
 				RiHider( "hidden", "int jitter", &zero, RI_NULL );
 			}
 		}
-		if ( liqglo_currentJob.isShadow && liqglo_currentJob.isMidPointShadow && !liqglo_currentJob.deepShadows )
+		if ( liqglo_currentJob.pass == rpShadowMap && liqglo_currentJob.shadowType == stMidPoint )
 		{
 			RtString midPoint = "midpoint";
 			RtFloat midRatio = liqglo_currentJob.midPointRatio;
@@ -4058,24 +4130,25 @@ MStatus liqRibTranslator::framePrologue( long lframe )
 		}
 
 		LIQDEBUGPRINTF( "-> Setting Display Options\n" );
-		if ( liqglo_currentJob.isShadow )
+		if ( liqglo_currentJob.pass == rpShadowMap )
 		{
 			//MString relativeShadowName( liquidSanitizePath( liquidGetRelativePath( liqglo_relativeFileNames, liqglo_currentJob.imageName, liqglo_projectDir ) ) );
-			if ( !liqglo_currentJob.isMinMaxShadow )
+			if ( liqglo_currentJob.shadowType != stMinMax )
 			{
-				if ( liqglo_currentJob.deepShadows )
+				if ( liqglo_currentJob.shadowType == stDeep )
 				{
 					// RiDeclare( "volumeinterpretation", "string" );
-					RtString viContinuous = "continuous";
-					RtString viDiscrete   = "discrete";
+          RtString volume = "continuous";
 					
+          if ( liqglo_currentJob.volume != viContinuous )
+            volume = "discrete"; 
+
 					if ( liquidRenderer.renderName == MString("3Delight") )
 					{
 						RiDisplay( const_cast< char* >( liqglo_currentJob.imageName.asChar()),
 							const_cast< char* >( liqglo_currentJob.format.asChar() ),
 							(RtToken)liqglo_currentJob.imageMode.asChar(),
-							"string volumeinterpretation",
-							( liqglo_currentJob.shadowVolumeInterpretation == 1 ? &viContinuous : &viDiscrete ),
+							"string volumeinterpretation", &volume,
 							RI_NULL );
 					}
 					else
@@ -4091,8 +4164,7 @@ MStatus liqRibTranslator::framePrologue( long lframe )
 						RiDisplay( const_cast< char* >( deepFileImageName.asChar() ),
 							const_cast< char* >( liqglo_currentJob.format.asChar() ),
 							(RtToken)liqglo_currentJob.imageMode.asChar(),
-							"string volumeinterpretation",
-							( liqglo_currentJob.shadowVolumeInterpretation == 1 ? &viContinuous : &viDiscrete ),
+							"string volumeinterpretation", &volume,
 							RI_NULL );
 					}
 				}
@@ -4240,7 +4312,7 @@ MStatus liqRibTranslator::framePrologue( long lframe )
           m_channels_iterator++;
         }
 #if defined ( DELIGHT ) || defined ( GENERIC_RIBLIB ) || defined ( PRMAN ) || defined (PIXIE)
-				if ( m_isStereoCamera && !liqglo_currentJob.isShadow )
+				if ( m_isStereoCamera && liqglo_currentJob.pass != rpShadowMap )
 				{
 					RtToken   *emptyTokens = NULL;
 					RtPointer *emptyValues = NULL;
@@ -4475,19 +4547,19 @@ MStatus liqRibTranslator::framePrologue( long lframe )
     if ( liqglo_currentJob.gotJobOptions ) 
       RiArchiveRecord( RI_COMMENT, "jobOptions: \n%s", liqglo_currentJob.jobOptions.asChar() );
     
-    if ( ( liqglo_preRibBox.length() > 0 ) && !liqglo_currentJob.isShadow ) 
+    if ( ( liqglo_preRibBox.length() > 0 ) && liqglo_currentJob.pass != rpShadowMap ) 
       for ( unsigned ii(0); ii < liqglo_preRibBox.length(); ii++ ) 
         RiArchiveRecord( RI_COMMENT, "Additional Rib:\n%s", liqglo_preRibBox[ii].asChar() );
     
-    if ( ( liqglo_preReadArchive.length() > 0 ) && !liqglo_currentJob.isShadow ) 
+    if ( ( liqglo_preReadArchive.length() > 0 ) && liqglo_currentJob.pass != rpShadowMap ) 
       for ( unsigned ii(0); ii < liqglo_preReadArchive.length(); ii++ ) 
         RiArchiveRecord( RI_COMMENT, "Read Archive Data: \nReadArchive \"%s\"", liqglo_preReadArchive[ii].asChar() );
 
-    if ( ( liqglo_preRibBoxShadow.length() > 0 ) && !liqglo_currentJob.isShadow ) 
+    if ( ( liqglo_preRibBoxShadow.length() > 0 ) && liqglo_currentJob.pass != rpShadowMap ) 
       for ( unsigned ii(0); ii < liqglo_preRibBoxShadow.length(); ii++ ) 
         RiArchiveRecord( RI_COMMENT, "Additional Rib:\n%s", liqglo_preRibBoxShadow[ii].asChar() );
 
-    if ( ( liqglo_preReadArchiveShadow.length() > 0 ) && liqglo_currentJob.isShadow ) 
+    if ( ( liqglo_preReadArchiveShadow.length() > 0 ) && liqglo_currentJob.pass != rpShadowMap ) 
       for ( unsigned ii(0); ii < liqglo_preReadArchiveShadow.length(); ii++ ) 
         RiArchiveRecord( RI_COMMENT, "Read Archive Data: \nReadArchive \"%s\"", liqglo_preReadArchiveShadow[ii].asChar() );
 
@@ -4538,7 +4610,7 @@ MStatus liqRibTranslator::objectBlock()
 
   // retrieve the shadow set object
   MObject shadowSetObj;
-  if ( liqglo_currentJob.isShadow && liqglo_currentJob.shadowObjectSet != "" ) 
+  if ( liqglo_currentJob.pass == rpShadowMap && liqglo_currentJob.shadowObjectSet != "" ) 
   {
     MObject tmp;
     tmp = getNodeByName( liqglo_currentJob.shadowObjectSet, &status );
@@ -4568,10 +4640,10 @@ MStatus liqRibTranslator::objectBlock()
 
     if ( ( !ribNode ) || ( ribNode->object(0)->type == MRT_Light ) ) continue;
     if ( ribNode->object(0)->type == MRT_Coord || ribNode->object(0)->type == MRT_ClipPlane ) continue;
-    if ( ( !liqglo_currentJob.isShadow ) && ( ribNode->object(0)->ignore ) ) continue;
-    if ( ( liqglo_currentJob.isShadow ) && ( ribNode->object(0)->ignoreShadow ) ) continue;
+    if ( ( liqglo_currentJob.pass != rpShadowMap ) && ( ribNode->object(0)->ignore ) ) continue;
+    if ( ( liqglo_currentJob.pass == rpShadowMap ) && ( ribNode->object(0)->ignoreShadow ) ) continue;
     // test against the set
-    if ( ( liqglo_currentJob.isShadow ) && ( liqglo_currentJob.shadowObjectSet != "" ) && 
+    if ( ( liqglo_currentJob.pass == rpShadowMap ) && ( liqglo_currentJob.shadowObjectSet != "" ) && 
 			   ( !shadowSetObj.isNull() ) && ( !shadowSet.isMember( transform, &status ) ) ) 
     {
       //cout <<"SET FILTER : object "<<ribNode->name.asChar()<<" is NOT in "<<liqglo_currentJob.shadowObjectSet.asChar()<<endl;
@@ -4608,8 +4680,8 @@ MStatus liqRibTranslator::objectBlock()
     MObject object;
 
 	  // Moritz: only write out light linking if we're not in a shadow pass
-	  if ( !liqglo_currentJob.isShadow || 
-				 liqglo_currentJob.deepShadows && m_outputLightsInDeepShadows && !m_ignoreLights )
+	  if ( liqglo_currentJob.pass != rpShadowMap || 
+				 liqglo_currentJob.shadowType == stDeep && m_outputLightsInDeepShadows && !m_ignoreLights )
 	  {
 		  MObjectArray linkLights;
 
@@ -4643,7 +4715,7 @@ MStatus liqRibTranslator::objectBlock()
          ribNode->motion.transformationBlur &&
          ( ribNode->object( 1 ) ) &&
          //( ribNode->object(0)->type != MRT_Locator ) && // Why the fuck do we not allow motion blur for locators?
-         ( !liqglo_currentJob.isShadow || liqglo_currentJob.deepShadows ) )
+         ( liqglo_currentJob.pass != rpShadowMap || liqglo_currentJob.shadowType == stDeep ) )
     {
       LIQDEBUGPRINTF( "-> writing matrix motion blur data\n" );
       // Moritz: replaced RiMotionBegin call with ..V version to allow for more than five motion samples
@@ -4701,7 +4773,7 @@ MStatus liqRibTranslator::objectBlock()
          ribNode->motion.transformationBlur &&
          ( ribNode->object( 1 ) ) &&
          //( ribNode->object( 0 )->type != MRT_Locator ) && // Why the fuck do we not allow motion blur for locators?
-         ( !liqglo_currentJob.isShadow || liqglo_currentJob.deepShadows ) )
+         ( liqglo_currentJob.pass != rpShadowMap || liqglo_currentJob.shadowType == stDeep ) )
     {
       path = ribNode->path();
       RtMatrix ribMatrix;
@@ -4940,11 +5012,8 @@ MStatus liqRibTranslator::objectBlock()
     RtInt off( 0 );
     RtInt on( 1 );
 		// END => EOF NOT SHADOW
-    if ( !liqglo_currentJob.isShadow ) 
+    if ( liqglo_currentJob.pass != rpShadowMap ) 
     {
-      
-      
-			
 			if ( !m_skipShadingAttributes )
 			{
       	if ( !ribNode->shading.diceRasterOrient ) RiAttribute( "dice", (RtToken) "rasterorient", &off, RI_NULL );
@@ -5259,11 +5328,11 @@ MStatus liqRibTranslator::objectBlock()
         RiGeometricApproximation( "motionfactor", ribNode->motion.factor );
       
       ribNode->writeUserAttributes();
-    } // !liqglo_currentJob.isShadow
+    } // liqglo_currentJob.pass != rpShadowMap
     else
     {
-      if ( ( !liqglo_currentJob.deepShadows && !m_outputShadersInShadows ) || 
-					( liqglo_currentJob.deepShadows && !m_outputShadersInDeepShadows ) )
+      if ( ( liqglo_currentJob.shadowType != stDeep && !m_outputShadersInShadows ) || 
+					( liqglo_currentJob.shadowType == stDeep && !m_outputShadersInDeepShadows ) )
         writeShaders = false;
     }
     
@@ -5291,7 +5360,7 @@ MStatus liqRibTranslator::objectBlock()
   			//liqShader& currentShader( liqGetShader( ribNode->assignedVolume.object() ) );
 				liqGenericShader& currentShader = liqShaderFactory::instance().getShader( ribNode->assignedVolume.object(), liqglo_exportAllShadersParams );
   			// per shader shadow pass override
-  			if ( !liqglo_currentJob.isShadow || currentShader.outputInShadow )
+  			if ( liqglo_currentJob.pass != rpShadowMap || currentShader.outputInShadow )
   				currentShader.write(liqglo_shortShaderNames, 0);
   		}
 	    if ( hasSurfaceShader && !m_ignoreSurfaces )
@@ -5348,7 +5417,7 @@ MStatus liqRibTranslator::objectBlock()
 				//}
 
 			    // per shader shadow pass override
-  				if ( !liqglo_currentJob.isShadow || currentShader.outputInShadow )
+  				if ( liqglo_currentJob.pass != rpShadowMap || currentShader.outputInShadow )
   				{
   					currentShader.write(liqglo_shortShaderNames, 0);
   				}
@@ -5458,7 +5527,7 @@ MStatus liqRibTranslator::objectBlock()
         }
       }
     } 
-    else if ( liqglo_currentJob.deepShadows ) 
+    else if ( liqglo_currentJob.shadowType == stDeep ) 
     {
       // if the current job is a deep shadow,
       // we still want to output primitive color and opacity.
@@ -5573,7 +5642,7 @@ MStatus liqRibTranslator::objectBlock()
 			liqGenericShader &currentShader = liqShaderFactory::instance().getShader( ribNode->assignedDisp.object(), liqglo_exportAllShadersParams );
 
       // per shader shadow pass override
-  		if ( !liqglo_currentJob.isShadow || currentShader.outputInShadow )
+  		if ( liqglo_currentJob.pass != rpShadowMap || currentShader.outputInShadow )
   		{
   			currentShader.write(liqglo_shortShaderNames, 0);
   		}
@@ -5645,7 +5714,7 @@ MStatus liqRibTranslator::objectBlock()
                     ( ribNode->object(1) ) &&
                     ( ribNode->object(0)->type != MRT_RibGen ) &&
                     //( ribNode->object(0)->type != MRT_Locator ) &&
-                    ( !liqglo_currentJob.isShadow || liqglo_currentJob.deepShadows ) );
+                    ( liqglo_currentJob.pass != rpShadowMap || liqglo_currentJob.shadowType == stDeep ) );
 
       if ( doMotion )
       {
@@ -6039,8 +6108,8 @@ void liqRibTranslator::setSearchPaths()
 
 bool liqRibTranslator::renderFrameSort( const structJob& a, const structJob& b )
 {
-  long v1 = ( a.isShadow )? a.renderFrame : 100000000;
-  long v2 = ( b.isShadow )? b.renderFrame : 100000000;
+  long v1 = ( a.pass == rpShadowMap )? a.renderFrame : 100000000;
+  long v2 = ( b.pass == rpShadowMap )? b.renderFrame : 100000000;
   return v1 < v2;
 }
 
