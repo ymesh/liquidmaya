@@ -35,11 +35,11 @@ global proc liquidMakeRenderCurve()
 	string $current;
 	for ( $current in $selected )
 	{
-		if ( !`attributeQuery -node $current -ex "liquidCurve"`) addAttr -ln liquidCurve -at bool $current;
+		if ( !`attributeQuery -node $current -ex "liquidCurve"`) addAttr -k true -ln liquidCurve -at bool $current;
  	  if ( `attributeQuery -node $current -ex "liquidCurve"`) setAttr ( $current + ".liquidCurve" ) true;
-		if ( !`attributeQuery -node $current -ex "liquidCurveBaseWidth"`) addAttr -ln liquidCurveBaseWidth -at "float" $current;
+		if ( !`attributeQuery -node $current -ex "liquidCurveBaseWidth"`) addAttr -k true -ln liquidCurveBaseWidth -at "float" $current;
 		if ( `attributeQuery -node $current -ex "liquidCurveBaseWidth"`) setAttr ( $current + ".liquidCurveBaseWidth" ) 0.1;
-		if ( !`attributeQuery -node $current -ex "liquidCurveTipWidth"`) addAttr -ln liquidCurveTipWidth -at "float" $current;
+		if ( !`attributeQuery -node $current -ex "liquidCurveTipWidth"`) addAttr -k true -ln liquidCurveTipWidth -at "float" $current;
 		if ( `attributeQuery -node $current -ex "liquidCurveTipWidth"`) setAttr ( $current + ".liquidCurveTipWidth" ) 0.1;
 	}
 }

@@ -120,6 +120,7 @@ liqRibObj::liqRibObj( const MDagPath &path, ObjectType objType )
   if ( !ignoreShadow ) ignoreShadow = !areObjectAndParentsVisible( path );
   if ( !ignoreShadow ) ignoreShadow = !areObjectAndParentsTemplated( path );
   
+  receiveShadow = isObjectReceivesShadows( path );
 
   // don't bother storing it if it's not going to be visible!
   LIQDEBUGPRINTF( "-> about to create rep\n");
@@ -259,15 +260,15 @@ liqRibObj::liqRibObj( const MDagPath &path, ObjectType objType )
         else
         {
           bool isCurveGroup( false );
-				  if ( mfnDepNode.typeName() == "liquidBoundingBox" )
+				  if ( mfnDepNode.typeName() == "liqBoundingBoxLocator" )
 				  {
-					  MPlug curveGroupPlug( mfnDepNode.findPlug( "liquidCurveGroup", &status ) );
-					  if ( status == MS::kSuccess ) curveGroupPlug.getValue( isCurveGroup );
+            liquidGetPlugValue( mfnDepNode, "liquidCurveGroup", isCurveGroup, status );
 					  if ( isCurveGroup )
 					  {
 						  type = MRT_Curves;
-						  if ( liqglo_renderAllCurves ) data = liqRibDataPtr( new liqRibCurvesData( obj ) );
-						  else                          data = liqRibDataPtr( new liqRibCurvesData( skip ) );
+						  //if ( liqglo_renderAllCurves ) data = liqRibDataPtr( new liqRibCurvesData( obj ) );
+						  //else                          data = liqRibDataPtr( new liqRibCurvesData( skip ) );
+              data = liqRibDataPtr( new liqRibCurvesData( obj ) );
 					  }
 				  }
 				  if ( !isCurveGroup )
@@ -284,6 +285,7 @@ liqRibObj::liqRibObj( const MDagPath &path, ObjectType objType )
         else                 data = liqRibDataPtr( new liqRibImplicitSphereData( skip ) );
       }
     }
+
     data->objDagPath = path;
   } 
   LIQDEBUGPRINTF( "==> done creating rep %s\n", path.fullPathName().asChar() );

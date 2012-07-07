@@ -72,7 +72,7 @@ bool isObjectVisible( const MDagPath & path );
 bool isObjectPrimaryVisible( const MDagPath & path );
 bool isObjectTemplated( const MDagPath & path );
 bool isObjectCastsShadows( const MDagPath & path );
-bool isObjectReceiveShadows( const MDagPath & path );
+bool isObjectReceivesShadows( const MDagPath & path );
 bool isObjectMotionBlur( const MDagPath & path );
 bool areObjectAndParentsVisible( const MDagPath & path );
 bool areObjectAndParentsTemplated( const MDagPath & path );

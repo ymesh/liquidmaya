@@ -240,8 +240,7 @@ bool isObjectReceivesShadows( const MDagPath & path )
   MStatus status;
   MFnDagNode fnDN( path );
   bool receivesShadows = true;
-  liquidGetPlugValue( fnDN, "receivesShadows", receivesShadows, status );
-  
+  liquidGetPlugValue( fnDN, "receiveShadows", receivesShadows, status );
   return receivesShadows;
 }
 /** Check if the given object is motion-blurred.

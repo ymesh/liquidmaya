@@ -5689,7 +5689,7 @@ MStatus liqRibTranslator::objectBlock()
 	  if ( m_preShapeMel != "" )  MGlobal::executeCommand( m_preShapeMel );
 		
 		// receive shadows ?   =>   Attribute "user" "int receivesShadows" [0/1]
-		//if( !ribNode->object(0)->receiveShadow )
+		if( !ribNode->object(0)->receiveShadow )
 		{
 			int receiveShadows = ribNode->object(0)->receiveShadow;
 			RiAttribute("user", (RtToken)"int receivesShadows", &receiveShadows, RI_NULL);

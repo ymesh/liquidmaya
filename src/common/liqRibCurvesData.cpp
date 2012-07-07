@@ -96,15 +96,15 @@ liqRibCurvesData::liqRibCurvesData( MObject curveGroup )
 		list.getDagPath( 0, path );
 		MFnDagNode fnCurve( curveNode );
 		MObject shape( fnCurve.child( 0 ) );
-		if ( shape.hasFn( MFn::kNurbsCurve ) )
+    if ( shape.hasFn( MFn::kNurbsCurve ) )
 		{
-			curveObj.append( curveNode );
+      curveObj.append( curveNode );
 			curveDag.append( path );
 		}
 	}
-
-	if ( liqglo_renderAllCurves ) ncurves = curveObj.length();
-	else ncurves = 0;  
+  ncurves = curveObj.length();
+	//if ( liqglo_renderAllCurves ) ncurves = curveObj.length();
+	//else ncurves = 0;  
 	  
 	if ( !ncurves ) return;
 
