@@ -1926,7 +1926,7 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
 
     // return to the frame we were at before we ran the animation
     LIQDEBUGPRINTF( "-> setting frame to current frame.\n" );
-    MGlobal::viewFrame (originalTime);
+    MGlobal::viewFrame ( originalTime );
 
     if ( originalLayer != "" ) 
     {
@@ -3134,11 +3134,15 @@ MStatus liqRibTranslator::ribPrologue()
     {
       MString home( getenv( "LIQUIDHOME" ) );
       MString displaySearchPath;
+      MString rendererDisplays = liquidSanitizeSearchPath ( liquidRenderer.renderHome );
+      MString liquidDisplays = liquidSanitizeSearchPath ( home ) + "/displayDrivers/" + liquidRenderer.renderName + "/";
+
       if ( (liquidRenderer.renderName == MString("Pixie")) || (liquidRenderer.renderName == MString("Air")) || (liquidRenderer.renderName == MString("3Delight")) )
-        displaySearchPath = ".:@::" + liquidRenderer.renderHome + "/displays:" + liquidSanitizePath( home ) + "/displayDrivers/" + liquidRenderer.renderName + "/";
+        rendererDisplays += "/displays";
       else 
-        displaySearchPath = ".:@:" + liquidRenderer.renderHome + "/etc:" + liquidSanitizePath( home ) +  "/displayDrivers/" + liquidRenderer.renderName + "/";
+        rendererDisplays += "/etc";
       
+      displaySearchPath = ".:@:" + rendererDisplays + ":" + liquidDisplays;
       list = const_cast< char* > ( displaySearchPath.asChar() );
       RiArchiveRecord( RI_VERBATIM, "Option \"searchpath\" \"display\" [\"%s\"]\n", list );
     }
