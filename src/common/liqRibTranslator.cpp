@@ -6055,10 +6055,11 @@ void liqRibTranslator::setSearchPaths()
     liqglo_proceduralPath += ":" + tmphome + "/lib/plugins";
   }
   
-  liqglo_shaderPath += ":" + liqglo_projectDir;
-  liqglo_texturePath += ":" + liqglo_projectDir;
-  liqglo_archivePath += ":" + liqglo_projectDir;
-  liqglo_proceduralPath += ":" + liqglo_projectDir;
+  MString search_projectDir = liquidSanitizeSearchPath( liqglo_projectDir );
+  liqglo_shaderPath += ":" + search_projectDir;
+  liqglo_texturePath += ":" + search_projectDir;
+  liqglo_archivePath += ":" + search_projectDir;
+  liqglo_proceduralPath += ":" + search_projectDir;
 
   MStatus gStatus;
   MString varVal;
