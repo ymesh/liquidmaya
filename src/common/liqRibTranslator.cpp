@@ -1320,7 +1320,7 @@ MStatus liqRibTranslator::doIt( const MArgList& args )
         vector< structJob >::iterator iter( jobList.begin() );
         for ( ; iter != jobList.end(); ++iter ) 
         {
-          m_currentMatteMode = false;
+          // m_currentMatteMode = false;
           liqglo_currentJob = *iter;
 
           if ( liqglo_currentJob.skip ) continue;
@@ -4598,7 +4598,7 @@ MStatus liqRibTranslator::objectBlock()
   
   LIQDEBUGPRINTF( "-> objectBlock\n" );
 
-  if ( m_ignoreSurfaces && !liqglo_skipDefaultMatte ) RiSurface( "matte", RI_NULL );
+  if ( m_ignoreSurfaces && !liqglo_skipDefaultMatte && !m_exportReadArchive ) RiSurface( "matte", RI_NULL );
 
 	// Moritz: Added Pre-Geometry RIB for insertion right before any primitives
 	MFnDependencyNode globalsNode( rGlobalObj );
@@ -5367,116 +5367,88 @@ MStatus liqRibTranslator::objectBlock()
   			if ( liqglo_currentJob.pass != rpShadowMap || currentShader.outputInShadow )
   				currentShader.write(liqglo_shortShaderNames, 0);
   		}
-	    if ( hasSurfaceShader && !m_ignoreSurfaces )
-	    {
-		    if ( hasCustomSurfaceShader )
-		    {
-			    if ( hasCustomSurfaceShader == liqCustomPxShaderNode )
-			    {  // Just call the write method of the custom shader
-				    MFnDependencyNode customShaderDepNode( ribNode->assignedShader.object() );
-				    MPxNode *mpxNode = customShaderDepNode.userNode();
-				    liqCustomNode *customNode( NULL );
-				    if ( mpxNode && ( customNode = dynamic_cast<liqCustomNode*>( mpxNode ) ) )
-					    customNode->liquidWrite();
-				    else
-					    ;// Should never happen in theory ... but what is the way to report a problem ???
-			    }
-			    else
-			    { 
-				    // Default : just write the contents of the rib box
-				    RiArchiveRecord( RI_VERBATIM, ( char* )shaderRibBox.asChar() );
-				    RiArchiveRecord( RI_VERBATIM, "\n" );
-			    }
-		    }
-		    else
-		    {
-				  liqGenericShader& currentShader = liqShaderFactory::instance().getShader( ribNode->assignedShader.object(), liqglo_exportAllShadersParams );
-				
-
-			    // Output color overrides or color   ====>>>>>  WILL BE DONE IN liqShader::write
-				//if(ribNode->shading.color.r != -1.0)
-				//{
-				//	RtColor rColor;
-				//	rColor[0] = ribNode->shading.color[0];
-				//	rColor[1] = ribNode->shading.color[1];
-				//	rColor[2] = ribNode->shading.color[2];
-				//	RiColor( rColor );
-				//}
-				//else
-				//{
-				//	RiColor( currentShader.getColor() );
-				//}
-
-				//if(ribNode->shading.opacity.r != -1.0)
-				//{
-				//	RtColor rOpacity;
-				//	rOpacity[0] = ribNode->shading.opacity[0];
-				//	rOpacity[1] = ribNode->shading.opacity[1];
-				//	rOpacity[2] = ribNode->shading.opacity[2];
-				//	RiOpacity( rOpacity );
-				//}
-				//else
-				//{
-				//	RiOpacity( currentShader.getOpacity() );
-				//}
-
-			    // per shader shadow pass override
-  				if ( liqglo_currentJob.pass != rpShadowMap || currentShader.outputInShadow )
-  				{
-  					currentShader.write(liqglo_shortShaderNames, 0);
-  				}
-		    }
-	    } 
-      else 
+	    
+      if ( !m_ignoreSurfaces )
       {
-        RtColor rColor,rOpacity;
-        if ( m_shaderDebug ) 
+        if ( hasSurfaceShader )
+	      {
+		      if ( hasCustomSurfaceShader )
+		      {
+			      if ( hasCustomSurfaceShader == liqCustomPxShaderNode )
+			      {  // Just call the write method of the custom shader
+				      MFnDependencyNode customShaderDepNode( ribNode->assignedShader.object() );
+				      MPxNode *mpxNode = customShaderDepNode.userNode();
+				      liqCustomNode *customNode( NULL );
+				      if ( mpxNode && ( customNode = dynamic_cast<liqCustomNode*>( mpxNode ) ) )
+					      customNode->liquidWrite();
+				      else
+					      ;// Should never happen in theory ... but what is the way to report a problem ???
+			      }
+			      else
+			      { 
+				      // Default : just write the contents of the rib box
+				      RiArchiveRecord( RI_VERBATIM, ( char* )shaderRibBox.asChar() );
+				      RiArchiveRecord( RI_VERBATIM, "\n" );
+			      }
+		      }
+		      else
+		      {
+				    liqGenericShader& currentShader = liqShaderFactory::instance().getShader( ribNode->assignedShader.object(), liqglo_exportAllShadersParams );
+			      // per shader shadow pass override
+  				  if ( liqglo_currentJob.pass != rpShadowMap || currentShader.outputInShadow )
+  				  {
+  					  currentShader.write(liqglo_shortShaderNames, 0);
+  				  }
+		      }
+	      } 
+        else  /* use maya default shaders */
         {
-          // shader debug on !! everything goes red and opaque !!!
-          rColor[0] = 1.;
-          rColor[1] = 0.;
-          rColor[2] = 0.;
-          RiColor( rColor );
+          RtColor rColor,rOpacity;
+          if ( m_shaderDebug ) 
+          {
+            // shader debug on !! everything goes red and opaque !!!
+            rColor[0] = 1.;
+            rColor[1] = 0.;
+            rColor[2] = 0.;
+            RiColor( rColor );
 
-          rOpacity[0] = 1.;
-          rOpacity[1] = 1.;
-          rOpacity[2] = 1.;
-          RiOpacity( rOpacity );
-        } 
-        else 
-        {
-          if ( ribNode->shading.color.r != -1.0 ) 
-          {
-            rColor[0] = ribNode->shading.color[0];
-            rColor[1] = ribNode->shading.color[1];
-            rColor[2] = ribNode->shading.color[2];
-            RiColor( rColor );
-          } 
-          else if ( ( ribNode->color.r != -1.0 ) ) 
-          {
-            rColor[0] = ribNode->color[0];
-            rColor[1] = ribNode->color[1];
-            rColor[2] = ribNode->color[2];
-            RiColor( rColor );
-          }
-          if ( ribNode->shading.opacity.r != -1.0 ) 
-          {
-            rOpacity[0] = ribNode->shading.opacity[0];
-            rOpacity[1] = ribNode->shading.opacity[1];
-            rOpacity[2] = ribNode->shading.opacity[2];
+            rOpacity[0] = 1.;
+            rOpacity[1] = 1.;
+            rOpacity[2] = 1.;
             RiOpacity( rOpacity );
           } 
-          else if ( ( ribNode->opacity.r != -1.0 ) ) 
+          else 
           {
-            rOpacity[0] = ribNode->opacity[0];
-            rOpacity[1] = ribNode->opacity[1];
-            rOpacity[2] = ribNode->opacity[2];
-            RiOpacity( rOpacity );
+            if ( ribNode->shading.color.r != -1.0 ) 
+            {
+              rColor[0] = ribNode->shading.color[0];
+              rColor[1] = ribNode->shading.color[1];
+              rColor[2] = ribNode->shading.color[2];
+              RiColor( rColor );
+            } 
+            else if ( ( ribNode->color.r != -1.0 ) ) 
+            {
+              rColor[0] = ribNode->color[0];
+              rColor[1] = ribNode->color[1];
+              rColor[2] = ribNode->color[2];
+              RiColor( rColor );
+            }
+            if ( ribNode->shading.opacity.r != -1.0 ) 
+            {
+              rOpacity[0] = ribNode->shading.opacity[0];
+              rOpacity[1] = ribNode->shading.opacity[1];
+              rOpacity[2] = ribNode->shading.opacity[2];
+              RiOpacity( rOpacity );
+            } 
+            else if ( ( ribNode->opacity.r != -1.0 ) ) 
+            {
+              rOpacity[0] = ribNode->opacity[0];
+              rOpacity[1] = ribNode->opacity[1];
+              rOpacity[2] = ribNode->opacity[2];
+              RiOpacity( rOpacity );
+            }
           }
-        }
 
-        if ( !m_ignoreSurfaces ) 
-        {
           MObject shadingGroup = ribNode->assignedShadingGroup.object();
 				  MObject shader = ribNode->findShader();
           //

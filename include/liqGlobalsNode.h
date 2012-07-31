@@ -141,14 +141,22 @@ class liqGlobalsNode : public MPxNode
     static MObject aOutputMeshAsRMSArrays;
     static MObject aIlluminateByDefault;
     static MObject aLiquidSetLightLinking;
+    
     static MObject aIgnoreSurfaces;
     static MObject aIgnoreDisplacements;
     static MObject aIgnoreLights;
     static MObject aIgnoreVolumes;
+
+    static MObject aSkipVisibilityAttributes;
+    static MObject aSkipShadingAttributes;
+    static MObject aSkipRayTraceAttributes;
+    
+    static MObject aSkipDefaultMatte;
+
     static MObject aOutputShadersInShadows;
     static MObject aOutputShadersInDeepShadows;
     static MObject aOutputLightsInDeepShadows;
-	static MObject aExportAllShadersParameters;
+	  static MObject aExportAllShadersParameters;
 
     static MObject aOutputShadowPass;
     static MObject aOutputHeroPass;

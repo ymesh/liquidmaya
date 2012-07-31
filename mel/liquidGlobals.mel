@@ -554,10 +554,18 @@ global proc liquidInitGlobalVals()
     ,"liquidSetLightLinking",       "bool",   false
     ,"outputMeshUVs",               "bool",   false
     ,"outputMeshAsRMSArrays",       "bool",   false
+    
     ,"ignoreSurfaces",              "bool",   false
     ,"ignoreDisplacements",         "bool",   false
     ,"ignoreLights",                "bool",   false
     ,"ignoreVolumes",               "bool",   false
+    
+    ,"skipVisibilityAttributes",    "bool",   false
+    ,"skipShadingAttributes",       "bool",   false
+    ,"skipRayTraceAttributes",      "bool",   false
+    
+    ,"skipDefaultMatte",            "bool",   false
+    
     ,"outputShadersInShadows",      "bool",   false
     ,"outputShadersInDeepShadows",  "bool",   false
     ,"outputLightsInDeepShadows",   "bool",   false
@@ -3121,8 +3129,8 @@ global proc liquidGlobalsOptionsTab_buildIt( string $prefix )
         liquidShowBoolGlobal "outputMayaPolyCreases" 			"Use Maya Poly Creases" $prefix;
         liquidShowBoolGlobal "renderAllCurves"   					"Render All Curves" $prefix;
         liquidShowBoolGlobal "outputMeshUVs"     					"Extra MtoR Mesh UVs" $prefix;
-				liquidShowBoolGlobal "outputMeshAsRMSArrays"      "Write Mesh UVs as RMS arrays" $prefix;
-        liquidShowBoolGlobal "exportAllShadersParameters" "Export all shaders parameters" $prefix;
+				liquidShowBoolGlobal "outputMeshAsRMSArrays"      "Mesh UV as RMS arrays" $prefix;
+        liquidShowBoolGlobal "exportAllShadersParameters" "Export all shaders params" $prefix;
         liquidShowBoolGlobal "ribRelativeTransforms" 			"Relative Transforms" $prefix;
         liquidShowBoolGlobal "outputComments"    					"Detailed Comments" $prefix;
         frameLayout -bs "etchedIn" -l "Light Linking" -cll true -cl false;
@@ -3131,12 +3139,16 @@ global proc liquidGlobalsOptionsTab_buildIt( string $prefix )
             liquidShowBoolGlobal "liquidSetLightLinking" 	"Liquid Set Light Linking" $prefix;
           setParent ..;
         setParent ..;
-        frameLayout -bs "etchedIn" -l "Omit Shaders" -cll true -cl false;
+        frameLayout -bs "etchedIn" -l "Omit Shaders and Attributes" -cll true -cl false;
           columnLayout -adj true;
             liquidShowBoolGlobal "ignoreSurfaces"      "No Surfaces" $prefix;
             liquidShowBoolGlobal "ignoreDisplacements" "No Displacements" $prefix;
             liquidShowBoolGlobal "ignoreLights"        "No Lightsources" $prefix;
             liquidShowBoolGlobal "ignoreVolumes"       "No Volumes" $prefix;
+            liquidShowBoolGlobal "skipDefaultMatte"    "No Default Matte" $prefix;
+            liquidShowBoolGlobal "skipVisibilityAttributes" "No Visibility Attributes" $prefix;
+            liquidShowBoolGlobal "skipShadingAttributes" "No Shading Attributes" $prefix;
+            liquidShowBoolGlobal "skipRayTraceAttributes" "No RayTraceAttributes" $prefix;
           setParent ..;
         setParent ..;
         frameLayout -bs "etchedIn" -l "Resource Paths" -cll true -cl false;

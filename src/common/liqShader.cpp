@@ -1327,7 +1327,11 @@ void *liqShader::write(bool shortShaderNames, unsigned int indentLevel, vector<M
   	case SHADER_TYPE_SURFACE :
   		outputIndentation( indentLevel );
   		if ( useVisiblePoints )
+  		#ifdef GENERIC  ||  ( defined( PRMAN ) && defined( RI_VERSION ) &&  RI_VERSION >= 4 )
         RiVPSurfaceV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() );
+      #else
+        RiSurfaceV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() );
+      #endif
       else
         RiSurfaceV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() );
   		break;
@@ -1343,13 +1347,17 @@ void *liqShader::write(bool shortShaderNames, unsigned int indentLevel, vector<M
       {
         case VOLUME_TYPE_INTERIOR:
           if ( useVisiblePoints )
+          #ifdef GENERIC  ||  ( defined( PRMAN ) && defined( RI_VERSION ) &&  RI_VERSION >= 4 )  
             RiVPInteriorV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() ); 
+          #else
+            RiInteriorV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() );
+          #endif
           else
             RiInteriorV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() ); 
           break;
         case VOLUME_TYPE_EXTERIOR:
           if ( useVisiblePoints )
-          #ifdef GENERIC            
+          #ifdef GENERIC             
             RiVPExteriorV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() );
           #else
             // Atleast Prman 16.x haven't this function
@@ -1361,7 +1369,11 @@ void *liqShader::write(bool shortShaderNames, unsigned int indentLevel, vector<M
         case VOLUME_TYPE_ATMOSPHERE:
         default:
           if ( useVisiblePoints )
+          #ifdef GENERIC  ||  ( defined( PRMAN ) && defined( RI_VERSION ) &&  RI_VERSION >= 4 )  
             RiVPAtmosphereV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() ); 
+          #else
+            RiAtmosphereV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() );  
+          #endif
           else
             RiAtmosphereV ( shaderFileName, shaderParamCount, tokenArray.get(), pointerArray.get() ); 
           break;

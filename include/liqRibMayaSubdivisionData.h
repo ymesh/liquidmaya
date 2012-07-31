@@ -39,61 +39,29 @@
 #include <maya/MUint64Array.h>
 #include <vector>
 #include <liqRibData.h>
+#include <liqRibHierarchicalSubdivisionData.h>
 
 #include <boost/shared_array.hpp>
 
 using namespace boost;
 
-typedef struct tagMayaPolyEdgeIndx {
-    RtInt	vtx0;
-    RtInt	vtx1;
-} PolyMayaEdgeIndx;
-
-typedef RtInt PolyMayaVertexIndx;
-typedef RtInt PolyMayaFaceIndx;
-
-typedef struct tagMayaSbdExtraTag {
-    RtFloat	value;		// hardness for creases and corners
-    RtInt	length;		// number of elements
-    union tagExtraData {
-        PolyMayaEdgeIndx	*edges;
-        PolyMayaVertexIndx	*vertices;
-        PolyMayaFaceIndx	*faces;
-    } ExtraData;
-} MayaSbdExtraTag;
-
-class liqRibMayaSubdivisionData : public liqRibData {
+class liqRibMayaSubdivisionData : public liqRibHierarchicalSubdivisionData {
 public: // Methods
   liqRibMayaSubdivisionData( MObject mesh );
 
+virtual bool       getMayaData( MObject subd, bool useNormals = false );
+	
   virtual void       write();
   virtual bool       compare( const liqRibData & other ) const;
   virtual ObjectType type() const;
+  
+  virtual void checkExtraTags( MObject &subd );
+  virtual void addExtraTagsFromMaya( MObject &subd );
+  //virtual void addExtraTags( MObject &mesh, SBD_EXTRA_TAG extraTag );
+  //void addExtraTags( MObject &subd, int extraTagValue, SBD_EXTRA_TAG extraTag );
 
 private: // Data
-  RtInt     numFaces;
-  RtInt     numPoints;
-  shared_array< RtInt > nverts;
-  shared_array< RtInt > verts;
-  const RtFloat* vertexParam;
 
-  DetailType uvDetail;
-  bool trueFacevarying;
-
-  MString   name;
-  MString   longName;
-  RtMatrix  transformationMatrix;
-
-  int interpolateBoundary; // Now an integer from PRMan 12/3Delight 6
-
-  std::vector <RtToken> v_tags;
-  std::vector <RtInt>   v_nargs;
-  std::vector <RtInt>   v_intargs;
-  std::vector <RtFloat> v_floatargs;
-
-  void checkExtraTags( MObject &mesh );
-  void addExtraTags( MObject &mesh, SBD_EXTRA_TAG extraTag );
-  void addExtraTags( MObject &mesh, int extraTagValue, SBD_EXTRA_TAG extraTag );
 };
 
 #endif

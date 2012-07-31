@@ -62,7 +62,6 @@ extern "C" {
 #include <boost/scoped_array.hpp>
 #include <boost/shared_array.hpp>
 
-
 using namespace boost;
 
 extern int debugMode;
@@ -71,22 +70,28 @@ extern bool liqglo_outputMeshUVs;
 /** Create a RIB compatible subdivision surface representation using a Maya polygon mesh.
  */
 liqRibMayaSubdivisionData::liqRibMayaSubdivisionData( MObject subd )
-:	numFaces( 0 ),
-	numPoints ( 0 ),
-	nverts(),
-	verts(),
-	vertexParam( NULL ),
-	interpolateBoundary( 0 ),
-	uvDetail( rFaceVarying ),
-	trueFacevarying( false )
+:	liqRibHierarchicalSubdivisionData()
 {
-	LIQDEBUGPRINTF( "-> creating subdivision surface\n" );
-	MFnSubd fnSubd( subd );
+	LIQDEBUGPRINTF( "=> creating maya subdiv\n" );
+  if ( getMayaData ( subd, false ) )
+  { 
+    checkExtraTags( subd );
+    addAdditionalSurfaceParameters( subd );
+  }
+}
 
+/*
+ *  get maya subdivision data
+ */
+bool liqRibMayaSubdivisionData::getMayaData( MObject subd, bool useNormals )
+{
+  bool ret = true;
+  
+  //LIQDEBUGPRINTF( "-> maya subdiv getMayaData (useNormals = %s )\n", ( ( useNormals )? "Yes" : "No" ) );
+
+  MFnSubd fnSubd( subd );
 	name = fnSubd.name();
 	longName = fnSubd.fullPathName();
-
-	checkExtraTags( subd );
 
 	int level = 0;
 	numPoints = fnSubd.vertexCount( level );
@@ -189,193 +194,100 @@ liqRibMayaSubdivisionData::liqRibMayaSubdivisionData( MObject subd )
 		assert( !pFaceVertexTPointer );
 		tokenPointerArray.push_back( pFaceVertexTPointer );
 	}
-
-	addAdditionalSurfaceParameters( subd );
+  return ret;
 }
-
 
 /** Write the RIB for this mesh.
  */
 void liqRibMayaSubdivisionData::write()
 {
-	LIQDEBUGPRINTF( "-> writing subdivision surface\n" );
-
-	unsigned numTokens( tokenPointerArray.size() );
-	scoped_array< RtToken > tokenArray( new RtToken[ numTokens ] );
-	scoped_array< RtPointer > pointerArray( new RtPointer[ numTokens ] );
-	assignTokenArraysV( tokenPointerArray, tokenArray.get(), pointerArray.get() );
-
-	RiSubdivisionMeshV( "catmull-clark", numFaces, nverts.get(), verts.get(),
-                      v_tags.size(), v_tags.size() ? &v_tags[0] : NULL,
-                      v_nargs.size() ? &v_nargs[0] : NULL,
-                      v_intargs.size() ? &v_intargs[0] : NULL,
-                      v_floatargs.size() ? &v_floatargs[0] : NULL,
-                      numTokens, tokenArray.get(), pointerArray.get() );
+	LIQDEBUGPRINTF( "-> writing maya subdiv\n" );
+  liqRibHierarchicalSubdivisionData::write();
 }
 
 /** Compare this mesh to the other for the purpose of determining if its animated
  */
 bool liqRibMayaSubdivisionData::compare( const liqRibData & otherObj ) const
 {
-  unsigned i;
-  unsigned numFaceVertices = 0;
-
-  LIQDEBUGPRINTF( "-> comparing mesh\n" );
+  LIQDEBUGPRINTF( "-> comparing maya subdiv\n" );
   if ( otherObj.type() != MRT_Subdivision ) return false;
-  const liqRibMayaSubdivisionData & other = (liqRibMayaSubdivisionData&)otherObj;
-
-  if ( numFaces != other.numFaces ) return false;
-  if ( numPoints != other.numPoints ) return false;
-
-  for ( i = 0; i < numFaces; ++i ) 
-	{
-    if ( nverts[i] != other.nverts[i] ) return false;
-    numFaceVertices += nverts[i];
-  }
-
-  for ( i = 0; i < numFaceVertices; ++i ) 
-    if ( verts[i] != other.verts[i] ) return false;
-
-  for ( i = 0; i < numPoints; ++i ) 
-	{
-    const unsigned a = i * 3;
-    const unsigned b = a + 1;
-    const unsigned c = a + 2;
-    if ( !equiv( vertexParam[a], other.vertexParam[a] ) ||
-      !equiv( vertexParam[b], other.vertexParam[b] ) ||
-      !equiv( vertexParam[c], other.vertexParam[c] ) )
-    {
-      return false;
-    }
-  }
-  return true;
+  const liqRibMeshData& other = ( liqRibMeshData& )otherObj;
+  return compareMesh ( other, false );
 }
 
 /** Return the geometry type.
  */
 ObjectType liqRibMayaSubdivisionData::type() const
 {
-  LIQDEBUGPRINTF( "-> returning subdivision surface type\n" );
+  LIQDEBUGPRINTF( "-> returning maya subdiv type\n" );
   return MRT_MayaSubdivision;
 }
 
 void liqRibMayaSubdivisionData::checkExtraTags( MObject &subd )
 {
+	cerr << "liqRibMayaSubdivisionData::checkExtraTags" << endl << flush;
+	
 	MStatus status = MS::kSuccess;
 	MFnSubd fnSubd( subd );
 
+	addExtraTagsFromMaya ( subd );
+
+  // set defaults
+  int liqSubdivUVInterpolation = -1;
+	interpolateBoundary = 2;
+
+	liquidGetPlugValue( fnSubd, "liqSubdivInterpolateBoundary", interpolateBoundary, status );
+	liquidGetPlugValue( fnSubd, "liqSubdivUVInterpolation", liqSubdivUVInterpolation, status );
+  addBoundaryTags ( liqSubdivUVInterpolation );
+}
+/*
+ *
+ */
+void liqRibMayaSubdivisionData::addExtraTagsFromMaya ( MObject &subd )
+{
 	// this looks redundant but there is no other way to determine
 	// if the object has creases at all
+	MStatus      status = MS::kSuccess;
+  MFnSubd fnSubd( subd );
+  // MUintArray   ids;
 	MUint64Array vertexIds, edgeIds;
+
 	status = fnSubd.creasesGetAll( vertexIds, edgeIds );
-	if ( status == MS::kSuccess )
-	{
-		if ( vertexIds.length() ) addExtraTags( subd, 0, TAG_CORNER );
-		if ( edgeIds.length() )   addExtraTags( subd, 0, TAG_CREASE );
-	}
+	if ( status == MS::kSuccess ) 
+  {
+    for ( unsigned i( 0 ); i < edgeIds.length(); i++ )
+    {
+      MUint64 vert1, vert2;
+      fnSubd.edgeVertices( edgeIds[i], vert1, vert2 );
+			int baseVert1 = fnSubd.vertexBaseIndexFromVertexId( vert1, &status );
+			// only base edges
+			if ( status != MS::kSuccess ) continue;
 
-	// set defaults
-	interpolateBoundary = 2;
-	uvDetail = rFaceVarying;
-	trueFacevarying = true;
+			int baseVert2 = fnSubd.vertexBaseIndexFromVertexId( vert2, &status );
+			// only base edges
+			if( status != MS::kSuccess ) continue;
+			
+			addCreaseTag ( baseVert1, baseVert2, 7 );
 
-	MPlug interpolateBoundaryPlug = fnSubd.findPlug( "liqSubdivInterpolateBoundary", &status );
-	if ( status == MS::kSuccess ) interpolateBoundaryPlug.getValue( interpolateBoundary );
-
-	MPlug liqSubdivUVInterpolationPlug = fnSubd.findPlug( "liqSubdivUVInterpolation", &status );
-	if ( status == MS::kSuccess )
-	{
-		int liqSubdivUVInterpolation;
-		liqSubdivUVInterpolationPlug.getValue( liqSubdivUVInterpolation );
-		switch ( liqSubdivUVInterpolation )
+      //MGlobal::displayInfo( MString( "BASE: " ) + baseVert1 + " " + baseVert2 + " " + i );
+    }
+    for ( unsigned i( 0 ); i < vertexIds.length(); i++ )
 		{
-			case 0: // true facevarying
-				trueFacevarying = true;
-			case 1: //
-				uvDetail = rFaceVarying;
-				break;
-			case 2:
-				uvDetail = rFaceVertex;
-				break;
-		}
-	}
+			int baseId = fnSubd.vertexBaseIndexFromVertexId( vertexIds[i], &status );
 
-	if ( interpolateBoundary ) addExtraTags( subd, interpolateBoundary, TAG_BOUNDARY );
-	if ( trueFacevarying )     addExtraTags( subd, 0, TAG_FACEVARYINGBOUNDARY );
+			// only base verts
+			if ( status != MS::kSuccess ) continue;
+
+      addCornerTag ( baseId, 7 );
+
+			v_tags.push_back( "corner" );
+			v_nargs.push_back( 1 );
+			v_nargs.push_back( 1 );
+			v_intargs.push_back( baseId );
+			v_floatargs.push_back( 7 );
+		}
+  }
 }
-
-void liqRibMayaSubdivisionData::addExtraTags( MObject &subd, int extraTagValue, SBD_EXTRA_TAG extraTag )
-{
-	MStatus status;
-	MFnSubd fnSubd( subd );
-	MFnSubdNames subNames;
-	MUintArray ids;
-	MDoubleArray creaseData;
-
-	if ( TAG_BOUNDARY == extraTag )
-	{
-		v_tags.push_back( "interpolateboundary" );
-		v_nargs.push_back( 1 );		// 0 intargs
-		v_nargs.push_back( 0 );		// 0 floatargs
-		v_intargs.push_back( extraTagValue );
-	}
-
-	if ( TAG_FACEVARYINGBOUNDARY == extraTag )
-	{
-		v_tags.push_back( "facevaryinginterpolateboundary" );
-		v_nargs.push_back( 1 );		// 1 intargs
-		v_nargs.push_back( 0 );		// 0 floatargs
-		v_intargs.push_back( extraTagValue );
-	}
-
-	if ( TAG_CREASE == extraTag )
-	{
-		MUint64Array vertexIds, edgeIds;
-		status = fnSubd.creasesGetAll( vertexIds, edgeIds );
-		if ( status == MS::kSuccess )
-		{
-			MUint64 vert1, vert2;
-			for ( unsigned i( 0 ); i < edgeIds.length(); i++ )
-			{
-				fnSubd.edgeVertices( edgeIds[i], vert1, vert2 );
-				int baseVert1 = fnSubd.vertexBaseIndexFromVertexId( vert1, &status );
-				// only base edges
-				if ( status != MS::kSuccess ) continue;
-
-				int baseVert2 = fnSubd.vertexBaseIndexFromVertexId( vert2, &status );
-				// only base edges
-				if( status != MS::kSuccess ) continue;
-				
-				//MGlobal::displayInfo( MString( "BASE: " ) + baseVert1 + " " + baseVert2 + " " + i );
-				v_tags.push_back( "crease" );
-				v_nargs.push_back( 2 );
-				v_nargs.push_back( 1 );
-				v_intargs.push_back( baseVert1 );
-				v_intargs.push_back( baseVert2 );
-				v_floatargs.push_back( 7 );
-			}
-		}
-	}
-
-	if ( TAG_CORNER == extraTag )
-	{
-		MUint64Array vertexIds, edgeIds;
-		status = fnSubd.creasesGetAll( vertexIds, edgeIds );
-		if ( status == MS::kSuccess )
-		{
-			for ( unsigned i( 0 ); i < vertexIds.length(); i++ )
-			{
-				int baseId = fnSubd.vertexBaseIndexFromVertexId( vertexIds[i], &status );
-
-				// only base verts
-				if ( status != MS::kSuccess ) continue;
-
-				v_tags.push_back( "corner" );
-				v_nargs.push_back( 1 );
-				v_nargs.push_back( 1 );
-				v_intargs.push_back( baseId );
-				v_floatargs.push_back( 7 );
-			}
-		}
-	}
-}
+/*
+ *
+ */

@@ -442,7 +442,15 @@ global proc liquidCreateShaderAttributesMenu( string $prefix )
     menuItem -label "Remove RIB Group" -command liquidRemoveShaderRIBBox -ann "Remove all RIBBox attributes";
   setParent -menu ..;
 }
-
+/**
+ * call python liquid script
+ */
+global proc liquidRenderScript ()
+{
+  python( "import liquidRender as lr" );
+  python( "reload( lr )" );
+  python( "lr.liquidRender()" );
+}  
 /**
  * create the liquid menu interface
  */
@@ -462,6 +470,7 @@ global proc liquidCreateMenus()
       menuItem -label "Render" -ann "Render" -command "liquidRender" -image ($iconPath+"liquidRender.xpm");
       menuItem -label "Render Selected" -ann "Render only Selected Objects" -command "liquidRenderSelected";
       menuItem -d true;
+      menuItem -label "Render..." -ann "Render" -command "liquidRenderScript";
       menuItem -label "Attribute Manager..."   -command liquidAttributeManager -ann "Liquid attributes manager";
       //liquidCreateObjectsAttributesMenu( "main" );
       //liquidCreateLightsAttributesMenu( "main" );

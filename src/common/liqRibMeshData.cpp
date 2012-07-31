@@ -67,9 +67,10 @@ extern int debugMode;
 extern bool liqglo_outputMeshUVs;
 extern bool liqglo_outputMeshAsRMSArrays;
 
-/** Create a RIB compatible representation of a Maya polygon mesh.
+/*
+ * Create a RIB compatible representation of a Maya polygon mesh.
  */
-liqRibMeshData::liqRibMeshData( MObject mesh )
+liqRibMeshData::liqRibMeshData()
 : numFaces( 0 ),
   numPoints ( 0 ),
   numNormals ( 0 ),
@@ -78,28 +79,51 @@ liqRibMeshData::liqRibMeshData( MObject mesh )
   vertexParam(),
   normalParam()
 {
-  areaLight = false;
+}
+/*
+*
+*/
+liqRibMeshData::liqRibMeshData( MObject mesh, bool useNormals )
+: numFaces( 0 ),
+  numPoints ( 0 ),
+  numNormals ( 0 ),
+  nverts(),
+  verts(),
+  vertexParam(),
+  normalParam()
+{
   LIQDEBUGPRINTF( "-> creating mesh\n" );
+  if ( getMayaData ( mesh, useNormals ) )
+  { 
+    addAdditionalSurfaceParameters( mesh );
+  }
+}
+/*
+ *  get maya poly mesh data
+ */
+bool liqRibMeshData::getMayaData( MObject mesh, bool useNormals )
+{
+  bool ret = true;
+  
+  // LIQDEBUGPRINTF( "-> mesh getMayaData (useNormals = %s )\n", ( ( useNormals )? "Yes" : "No" ) );
+
   MFnMesh fnMesh( mesh );
   objDagPath = fnMesh.dagPath();
   MStatus astatus;
   
   name = fnMesh.name();
-  areaLight =( liquidGetPlugValue( fnMesh, "areaIntensity", areaIntensity, astatus ) == MS::kSuccess )? true : false ; 
-
-  if ( areaLight ) 
-  {
-    MDagPath meshDagPath;
-    meshDagPath = fnMesh.dagPath();
-    MTransformationMatrix worldMatrix = meshDagPath.inclusiveMatrix();
-    MMatrix worldMatrixM = worldMatrix.asMatrix();
-    worldMatrixM.get( transformationMatrix );
-  }
+  longName = fnMesh.fullPathName();
 
   numPoints = fnMesh.numVertices();
-  numNormals = fnMesh.numNormals();
-
-  // UV sets -------------------
+  numFaces = fnMesh.numPolygons();
+  if ( useNormals ) numNormals = fnMesh.numNormals();
+  
+  if ( numPoints < 1 )
+	{
+	  liquidMessage( "Could not export degenerate mesh " + longName, messageInfo );
+		return false;
+	}
+	// UV sets -------------------
   //
   //const unsigned numSTs( fnMesh.numUVs() );
   const unsigned numUVSets( fnMesh.numUVSets() );
@@ -112,19 +136,10 @@ liqRibMeshData::liqRibMeshData( MObject mesh )
   for ( unsigned i( 0 ); i < numUVSets ; i++ ) 
     if ( UVSetNames[i] != currentUVSetName ) 
       extraUVSetNames.append( UVSetNames[i] );
-
-  numFaces = fnMesh.numPolygons();
+  
   const unsigned numFaceVertices( fnMesh.numFaceVertices() );
-
-	if ( numPoints < 1 )
-	{
-//		MGlobal::displayInfo( MString( "fnMesh: " ) + fnMesh.name() );
-//		cerr << "Liquid : Could not export degenerate mesh '"<< fnMesh.fullPathName( &astatus ).asChar() << "'" << endl << flush;
-		return;
-	}
-
-  unsigned face = 0;
-  unsigned faceVertex = 0;
+  unsigned face ( 0 );
+  unsigned faceVertex ( 0 );
   unsigned count;
   unsigned vertex;
   unsigned normal;
@@ -135,27 +150,28 @@ liqRibMeshData::liqRibMeshData( MObject mesh )
   liqTokenPointer normalsPointerPair;
   liqTokenPointer pFaceVertexSPointer;
   liqTokenPointer pFaceVertexTPointer;
-
+  
   // Allocate memory and tokens
-  numFaces = numFaces;
   nverts = shared_array< RtInt >( new RtInt[ numFaces ] );
   verts = shared_array< RtInt >( new RtInt[ numFaceVertices ] );
 
   pointsPointerPair.set( "P", rPoint, numPoints );
   pointsPointerPair.setDetailType( rVertex );
 
-  if ( numNormals == numPoints ) 
+  if ( useNormals )
   {
-    normalsPointerPair.set( "N", rNormal, numPoints );
-    normalsPointerPair.setDetailType( rVertex );
-  } 
-  else 
-  {
-    normalsPointerPair.set( "N", rNormal, numFaceVertices );
-    normalsPointerPair.setDetailType( rFaceVarying );
+    if ( numNormals == numPoints ) 
+    {
+      normalsPointerPair.set( "N", rNormal, numPoints );
+      normalsPointerPair.setDetailType( rVertex );
+    } 
+    else 
+    {
+      normalsPointerPair.set( "N", rNormal, numFaceVertices );
+      normalsPointerPair.setDetailType( rFaceVarying );
+    }
   }
-
-	// uv
+  // uv
   std::vector<liqTokenPointer> UVSetsArray;
   UVSetsArray.reserve( 1 + extraUVSetNames.length() );
 	liqTokenPointer currentUVSetUPtr;
@@ -172,19 +188,23 @@ liqRibMeshData::liqRibMeshData( MObject mesh )
 
 		currentUVSetVPtr.set( "t", rFloat, numFaceVertices );
 		currentUVSetVPtr.setDetailType( rFaceVarying );
+
 		currentUVSetNamePtr.set( "currentUVSet", rString, 1 );
 		currentUVSetNamePtr.setDetailType( rConstant );
+		
 		if ( numUVSets > 1 )
 		{
 			extraUVSetsUPtr.set( "u_uvSet", rFloat, numFaceVertices, numUVSets-1 );
 			extraUVSetsUPtr.setDetailType( rFaceVarying );
+
 			extraUVSetsVPtr.set( "v_uvSet", rFloat, numFaceVertices, numUVSets-1 );
 			extraUVSetsVPtr.setDetailType( rFaceVarying );
+
 			extraUVSetsNamePtr.set( "extraUVSets", rString, numUVSets-1 );
 			extraUVSetsNamePtr.setDetailType( rConstant );
 		}
 	}
-	else
+  else
 	{
 		if ( numUVSets > 0 )
   	{
@@ -217,14 +237,15 @@ liqRibMeshData::liqRibMeshData( MObject mesh )
     	}
 		}
   }
-
   vertexParam = pointsPointerPair.getTokenFloatArray();
-  normalParam = normalsPointerPair.getTokenFloatArray();
-
-  // Read the mesh from Maya
   MFloatVectorArray normals;
-  fnMesh.getNormals( normals );
 
+  // Read the mesh normals from Maya
+  if ( useNormals ) 
+  { 
+    normalParam = normalsPointerPair.getTokenFloatArray();
+    fnMesh.getNormals( normals );
+  }
   for ( MItMeshPolygon polyIt ( mesh ); polyIt.isDone() == false ; polyIt.next() ) 
   {
     count = polyIt.polygonVertexCount();
@@ -240,13 +261,16 @@ liqRibMeshData::liqRibMeshData( MObject mesh )
       verts[faceVertex] = vertex;
       point = polyIt.point( i, MSpace::kObject );
       pointsPointerPair.setTokenFloat( vertex, point.x, point.y, point.z );
-      normal = polyIt.normalIndex( i );
-
-      if ( numNormals == numPoints ) 
-        normalsPointerPair.setTokenFloat( vertex, normals[normal].x, normals[normal].y, normals[normal].z );
-      else 
-        normalsPointerPair.setTokenFloat( faceVertex, normals[normal].x, normals[normal].y, normals[normal].z );
-
+      
+      if ( useNormals )
+      {
+        normal = polyIt.normalIndex( i );
+        if ( numNormals == numPoints ) 
+          normalsPointerPair.setTokenFloat( vertex, normals[normal].x, normals[normal].y, normals[normal].z );
+        else 
+          normalsPointerPair.setTokenFloat( faceVertex, normals[normal].x, normals[normal].y, normals[normal].z );
+      }
+      
       if ( liqglo_outputMeshAsRMSArrays )
 			{
 				for ( j = 0 ; j < numUVSets ; j++ )
@@ -302,7 +326,8 @@ liqRibMeshData::liqRibMeshData( MObject mesh )
 	}
   // Add tokens to array and clean up after
   tokenPointerArray.push_back( pointsPointerPair );
-  tokenPointerArray.push_back( normalsPointerPair );
+  if ( useNormals ) 
+    tokenPointerArray.push_back( normalsPointerPair );
 	
 	if ( liqglo_outputMeshAsRMSArrays )
 	{
@@ -327,11 +352,11 @@ liqRibMeshData::liqRibMeshData( MObject mesh )
     	tokenPointerArray.push_back( pFaceVertexTPointer );
   	}
 	}
-  addAdditionalSurfaceParameters( mesh );
+  return ret;  
 }
-
 /**      Print data about this mesh.
  */
+/*
 void liqRibMeshData::printMesh()
 {
 	int i;
@@ -359,75 +384,64 @@ void liqRibMeshData::printMesh()
 	printf ( "\n" );
 	// print tokens & pointers
 }
+*/
 
-
-/**      Write the RIB for this mesh.
+/*
+ *  Write the RIB for this mesh.
  */
 void liqRibMeshData::write()
 {
-  if ( numPoints > 1 ) 
-  {
-    LIQDEBUGPRINTF( "-> writing mesh\n" );
-    RtLightHandle handle = NULL;
-    if ( areaLight ) 
-    { // What happens if we're inside a motion block????? This whole approach of Liquid is flawed...
-      LIQDEBUGPRINTF( "-> mesh is area light\n" );
-      //	RiAttributeBegin();
-      RtString ribname = const_cast< char* >( name.asChar() );
-      RiAttribute( "identifier", "name", &ribname, RI_NULL );
-      RtMatrix tmp;
-      memcpy( tmp, transformationMatrix, sizeof( RtMatrix ) );
-      RiTransform( tmp );
-
-      handle = RiAreaLightSource( "arealight", "intensity", &areaIntensity, RI_NULL );
-    }
-
-    // Each loop has one polygon, so we just want an array of 1's of
-    // the correct size. Stack version.
-    //vector< RtInt > nloops( numFaces, 1 );
-    // Alternatively (heap version):
-    scoped_array< RtInt > nloops( new RtInt[ numFaces ] );
-    fill( nloops.get(), nloops.get() + numFaces, ( RtInt )1 );
-
-    unsigned numTokens( tokenPointerArray.size() );
-    scoped_array< RtToken > tokenArray( new RtToken[ numTokens ] );
-    scoped_array< RtPointer > pointerArray( new RtPointer[ numTokens ] );
-    assignTokenArraysV( tokenPointerArray, tokenArray.get(), pointerArray.get() );
-
-    RiPointsGeneralPolygonsV( numFaces,
-                              &nloops[ 0 ],
-                              nverts.get(),
-                              verts.get(),
-                              numTokens,
-                              tokenArray.get(),
-                              pointerArray.get() );
-
-    if ( areaLight ) 
-    {
-      // RiAttributeEnd();
-      RiIlluminate( handle, 1 );
-    }
-  } 
-  else 
-  {
-//    liquidMessage( "Could not export degenerate mesh", messageError );
-  }
+  LIQDEBUGPRINTF( "-> writing mesh\n" );
+  writeMesh();
 }
 
-/** Compare this mesh to the other for the purpose of determining
+void liqRibMeshData::writeMesh()
+{
+//  if ( numPoints > 1 ) 
+  // Each loop has one polygon, so we just want an array of 1's of
+  // the correct size. Stack version.
+  //vector< RtInt > nloops( numFaces, 1 );
+  // Alternatively (heap version):
+  scoped_array< RtInt > nloops( new RtInt[ numFaces ] );
+  fill( nloops.get(), nloops.get() + numFaces, ( RtInt )1 );
+
+  unsigned numTokens( tokenPointerArray.size() );
+  scoped_array< RtToken > tokenArray( new RtToken[ numTokens ] );
+  scoped_array< RtPointer > pointerArray( new RtPointer[ numTokens ] );
+  assignTokenArraysV( tokenPointerArray, tokenArray.get(), pointerArray.get() );
+
+  RiPointsGeneralPolygonsV( numFaces,
+                            &nloops[ 0 ],
+                            nverts.get(),
+                            verts.get(),
+                            numTokens,
+                            tokenArray.get(),
+                            pointerArray.get() );
+}
+
+/*
+ * Compare this mesh to the other for the purpose of determining
  *  if it's animated.
  */
 bool liqRibMeshData::compare( const liqRibData & otherObj ) const
 {
-  unsigned numFaceVertices( 0 );
-
   LIQDEBUGPRINTF( "-> comparing mesh\n" );
   if ( otherObj.type() != MRT_Mesh ) return false;
-  const liqRibMeshData& other = (liqRibMeshData&)otherObj;
+  const liqRibMeshData& other = ( liqRibMeshData& )otherObj;
+  return compareMesh ( other );
+}
+
+/*
+ * Compare this mesh to the other for the purpose of determining
+ *  if it's animated.
+ */
+bool liqRibMeshData::compareMesh( const liqRibMeshData & other, bool useNormals ) const
+{
+  unsigned numFaceVertices( 0 );
 
   if ( numFaces != other.numFaces )     return false;
   if ( numPoints != other.numPoints )   return false;
-  if ( numNormals != other.numNormals ) return false;
+  if ( useNormals && numNormals != other.numNormals ) return false;
 
   for ( unsigned i( 0 ); i < numFaces; ++i ) 
   {
@@ -452,26 +466,29 @@ bool liqRibMeshData::compare( const liqRibData & otherObj ) const
     }
   }
 
-  for ( unsigned i( 0 ); i < numNormals; ++i ) 
+  if ( useNormals )
   {
-    const unsigned a = i * 3;
-    const unsigned b = a + 1;
-    const unsigned c = a + 2;
-    if (  !equiv( normalParam[a], other.normalParam[a] ) ||
-          !equiv( normalParam[b], other.normalParam[b] ) ||
-          !equiv( normalParam[c], other.normalParam[c] ) )
+    for ( unsigned i( 0 ); i < numNormals; ++i ) 
     {
-      return false;
+      const unsigned a = i * 3;
+      const unsigned b = a + 1;
+      const unsigned c = a + 2;
+      if (  !equiv( normalParam[a], other.normalParam[a] ) ||
+            !equiv( normalParam[b], other.normalParam[b] ) ||
+            !equiv( normalParam[c], other.normalParam[c] ) )
+      {
+        return false;
+      }
     }
   }
   return true;
 }
-
-/** Return the geometry type.
+/*
+ * Return the geometry type.
  */
 ObjectType liqRibMeshData::type() const
 {
   LIQDEBUGPRINTF( "-> returning mesh type\n" );
-  return ( areaLight )? MRT_Light : MRT_Mesh;
+  return MRT_Mesh;
 }
 

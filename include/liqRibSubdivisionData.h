@@ -35,8 +35,14 @@
 ** Liquid Rib Mesh Data Header File
 ** ______________________________________________________________________
 */
+#include <maya/MItMeshPolygon.h>
+#include <maya/MItMeshEdge.h>
+#include <maya/MItMeshVertex.h>
+
 #include <vector>
 #include <liqRibData.h>
+#include <liqRibMeshData.h>
+
 #include <boost/shared_array.hpp>
 
 using namespace boost;
@@ -67,38 +73,48 @@ typedef struct tagSbdExtraTag
 
 #endif
 
-class liqRibSubdivisionData : public liqRibData {
+class liqRibSubdivisionData : public liqRibMeshData 
+{
 public: // Methods
-  liqRibSubdivisionData( MObject mesh );
-
+  
+  liqRibSubdivisionData();
+  liqRibSubdivisionData( MObject mesh, bool initSubdivData = true );
+  
+  virtual bool       getMayaData( MObject mesh, bool useNormals ){ return liqRibMeshData::getMayaData( mesh, useNormals ); }
+  
   virtual void       write();
   virtual bool       compare( const liqRibData & other ) const;
   virtual ObjectType type() const;
-
-private: // Data
-  RtInt     numFaces;
-  RtInt     numPoints;
-  shared_array< RtInt > nverts;
-  shared_array< RtInt > verts;
-  const RtFloat* vertexParam;
-
+  
+  // subdiv params
+	RtToken subdivScheme;
+  
   DetailType uvDetail;
   bool trueFacevarying;
-
-  MString   name;
-  MString   longName;
-  RtMatrix  transformationMatrix;
-
   int interpolateBoundary; // Now an integer from PRMan 12/3Delight 6
 
-  std::vector <RtToken> v_tags;
-  std::vector <RtInt>   v_nargs;
-  std::vector <RtInt>   v_intargs;
-  std::vector <RtFloat> v_floatargs;
+  std::vector <RtToken>   v_tags;
+  std::vector <RtInt>     v_nargs;
+  std::vector <RtInt>     v_intargs;
+  std::vector <RtFloat>   v_floatargs;
+  
 
-  void checkExtraTags( MObject &mesh );
-  void addExtraTags( MObject &mesh, SBD_EXTRA_TAG extraTag );
-  void addExtraTags( MObject &mesh, float extraTagValue, SBD_EXTRA_TAG extraTag );
-};
+  virtual void checkExtraTags( MObject &mesh );
+  
+  virtual void addExtraTagsFromMaya( MObject &mesh );
+  virtual void addExtraTagsFromSets( MObject &mesh );
+  
+  void addBoundaryTags ( int liqSubdivUVInterpolation );
+ 
+  virtual void addExtraTag( int intValue, SBD_EXTRA_TAG extraTag );
+  virtual void addCornerTag( int intValue, float floatValue );
+  virtual void addCreaseTag( int intValue1, int intValue2, float floatValue );
+  virtual void addHoleTag( MItMeshPolygon &faceIter );
+  virtual void addStitchTag( MItMeshVertex &vertexIter, int intTagValue );
+
+
+private: // Data
+	
+ };
 
 #endif

@@ -232,32 +232,168 @@ void liqRibTranslator::liquidReadGlobals()
   }
   liquidGetPlugValue( rGlobalNode, "shotName", liqglo_shotName, gStatus ); // no substitution here
   liquidGetPlugValue( rGlobalNode, "shotVersion", liqglo_shotVersion, gStatus ); // no substitution here
-  liquidGetPlugValue( rGlobalNode, "rotateCamera", liqglo_rotateCamera, gStatus );
-  liquidGetPlugValue( rGlobalNode, "relativeFileNames", liqglo_relativeFileNames, gStatus );
-  liquidGetPlugValue( rGlobalNode, "renderScriptFileName", m_userRenderScriptFileName, gStatus );
-  liquidGetPlugValue( rGlobalNode, "beautyRibHasCameraName", liqglo_beautyRibHasCameraName, gStatus );
+
+  liquidGetPlugValue( rGlobalNode, "outputShadowPass", m_outputShadowPass, gStatus );
+  liquidGetPlugValue( rGlobalNode, "outputHeroPass", m_outputHeroPass, gStatus );
+
+  // Directories
+  liquidGetPlugValue( rGlobalNode, "createOutputDirectories", createOutputDirectories, gStatus ); 
   
+ 
+  // Camera 
+  liquidGetPlugValue( rGlobalNode, "renderCamera", liqglo_renderCamera, gStatus, true ); // get parsed result
+  liquidGetPlugValue( rGlobalNode, "rotateCamera", liqglo_rotateCamera, gStatus );
+  liquidGetPlugValue( rGlobalNode, "beautyRibHasCameraName", liqglo_beautyRibHasCameraName, gStatus );
+
+  // Animation
+  liquidGetPlugValue( rGlobalNode, "doAnimation", m_animation, gStatus );
+  if ( m_animation ) 
+  {
+    MString frameSequence;
+    liquidGetPlugValue( rGlobalNode, "frameSequence", frameSequence, gStatus );
+    if( gStatus == MS::kSuccess ) frameNumbers = generateFrameNumbers( string( frameSequence.asChar() ) );
+  }
+  liquidGetPlugValue( rGlobalNode, "doPadding", liqglo_doExtensionPadding, gStatus );
+  if ( liqglo_doExtensionPadding ) liquidGetPlugValue( rGlobalNode, "padding", liqglo_outPadding, gStatus );
+  
+  // Rib
+  liquidGetPlugValue( rGlobalNode, "justRib", m_justRib, gStatus );
+  liquidGetPlugValue( rGlobalNode, "ribName", liqglo_sceneName, gStatus, true ); // get parsed result
+  liquidGetPlugValue( rGlobalNode, "relativeFileNames", liqglo_relativeFileNames, gStatus );
+  liquidGetPlugValue( rGlobalNode, "ribRelativeTransforms", liqglo_relativeTransforms, gStatus ); 
+
+  liquidGetPlugValue( rGlobalNode, "binaryOutput", liqglo_doBinary, gStatus );
+  liquidGetPlugValue( rGlobalNode, "compressedOutput", liqglo_doCompression, gStatus );
+  
+  liquidGetPlugValue( rGlobalNode, "exportReadArchive", m_exportReadArchive, gStatus ); 
+
+  // Shaders
+  liquidGetPlugValue( rGlobalNode, "shaderDebug", m_shaderDebug, gStatus );
+  liquidGetPlugValue( rGlobalNode, "shortShaderNames", liqglo_shortShaderNames, gStatus ); 
+  liquidGetPlugValue( rGlobalNode, "expandShaderArrays", liqglo_expandShaderArrays, gStatus );
+  liquidGetPlugValue( rGlobalNode, "exportAllShadersParameters", liqglo_exportAllShadersParams, gStatus );
+
+  liquidGetPlugValue( rGlobalNode, "illuminateByDefault", m_illuminateByDefault, gStatus );
+  liquidGetPlugValue( rGlobalNode, "liquidSetLightLinking", m_liquidSetLightLinking, gStatus );
+  liquidGetPlugValue( rGlobalNode, "ignoreLights", m_ignoreLights, gStatus );
+  liquidGetPlugValue( rGlobalNode, "ignoreSurfaces", m_ignoreSurfaces, gStatus );
+  liquidGetPlugValue( rGlobalNode, "ignoreDisplacements", m_ignoreDisplacements, gStatus );
+  liquidGetPlugValue( rGlobalNode, "ignoreVolumes", m_ignoreVolumes, gStatus );
+  
+  liquidGetPlugValue( rGlobalNode, "skipVisibilityAttributes", m_skipVisibilityAttributes, gStatus );
+  liquidGetPlugValue( rGlobalNode, "skipShadingAttributes", m_skipShadingAttributes, gStatus );
+  liquidGetPlugValue( rGlobalNode, "skipRayTraceAttributes", m_skipRayTraceAttributes, gStatus );
+
+  liquidGetPlugValue( rGlobalNode, "skipDefaultMatte", liqglo_skipDefaultMatte, gStatus );
+
+  // Shadows
+  liquidGetPlugValue( rGlobalNode, "ignoreShadows", liqglo_doShadows, gStatus );
+  liqglo_doShadows = !liqglo_doShadows;
+  
+  liquidGetPlugValue( rGlobalNode, "shapeOnlyInShadowNames", liqglo_shapeOnlyInShadowNames, gStatus );
+  liquidGetPlugValue( rGlobalNode, "fullShadowRibs", fullShadowRib, gStatus );
+  liquidGetPlugValue( rGlobalNode, "lazyCompute", m_lazyCompute, gStatus );
+  liquidGetPlugValue( rGlobalNode, "outputShadersInShadows", m_outputShadersInShadows, gStatus );
+  // Moritz: added new options for light/shader output in deep shadows
+  liquidGetPlugValue( rGlobalNode, "outputShadersInDeepShadows", m_outputShadersInDeepShadows, gStatus );
+  liquidGetPlugValue( rGlobalNode, "outputLightsInDeepShadows", m_outputLightsInDeepShadows, gStatus );
+
+  // Ribgen
   liquidGetPlugValue( rGlobalNode, "ribgenCommand", m_ribgenCommand, gStatus, true ); // get parsed result
+  liquidGetPlugValue( rGlobalNode, "deferredGen", m_deferredGen, gStatus );
+  liquidGetPlugValue( rGlobalNode, "deferredBlock", m_deferredBlockSize, gStatus );
+  
+  // Render
+  liquidGetPlugValue( rGlobalNode, "launchRender", launchRender, gStatus );
+  liquidGetPlugValue( rGlobalNode, "remoteRender", remoteRender, gStatus );
+  liquidGetPlugValue( rGlobalNode, "netRManRender", useNetRman, gStatus );
+  
+  liquidGetPlugValue( rGlobalNode, "minCPU", m_minCPU, gStatus ); 
+  liquidGetPlugValue( rGlobalNode, "maxCPU", m_maxCPU, gStatus );
+  liquidGetPlugValue( rGlobalNode, "showProgress", m_showProgress, gStatus );
+ 
+  // Script Job
+  
+  liquidGetPlugValue( rGlobalNode, "useRenderScript", useRenderScript, gStatus );
+  liquidGetPlugValue( rGlobalNode, "renderJobName", renderJobName, gStatus );
+  liquidGetPlugValue( rGlobalNode, "renderScriptFileName", m_userRenderScriptFileName, gStatus );
+  liquidGetPlugValue( rGlobalNode, "renderScriptCommand", varVal, gStatus );
+  m_renderScriptCommand = ( varVal != "" )? parseString( varVal, false ) : "alfred";
+  liquidGetPlugValue( rGlobalNode, "renderScriptFormat", var, gStatus );
+  if ( gStatus == MS::kSuccess ) m_renderScriptFormat = ( enum renderScriptFormat ) var;
   
   liquidGetPlugValue( rGlobalNode, "preJobCommand", m_preJobCommand, gStatus, true ); // get parsed result
   liquidGetPlugValue( rGlobalNode, "postJobCommand", m_postJobCommand, gStatus, true ); // get parsed result
-  liquidGetPlugValue( rGlobalNode, "postFrameCommand", m_postFrameCommand, gStatus );
-  liquidGetPlugValue( rGlobalNode, "preFrameCommand", m_preFrameCommand, gStatus );
-  liquidGetPlugValue( rGlobalNode, "preCommand", m_preCommand, gStatus );
-  liquidGetPlugValue( rGlobalNode, "launchRender", launchRender, gStatus );
+
+  liquidGetPlugValue( rGlobalNode, "dirmaps", m_dirmaps, gStatus, true ); // get parsed result
+
+  liquidGetPlugValue( rGlobalNode, "cleanRib", cleanRib, gStatus );
+  liquidGetPlugValue( rGlobalNode, "cleanRenderScript", cleanRenderScript, gStatus );
+  liquidGetPlugValue( rGlobalNode, "cleanTex", cleanTextures, gStatus );
+  liquidGetPlugValue( rGlobalNode, "cleanShad", cleanShadows, gStatus );
   
-  liquidGetPlugValue( rGlobalNode, "renderCamera", liqglo_renderCamera, gStatus, true ); // get parsed result
-    
-  liquidGetPlugValue( rGlobalNode, "ribName", liqglo_sceneName, gStatus, true ); // get parsed result
+
+  // Alfred 
   liquidGetPlugValue( rGlobalNode, "alfredTags", m_alfredTags, gStatus, true ); // get parsed result
   liquidGetPlugValue( rGlobalNode, "alfredServices", m_alfredServices, gStatus, true ); // get parsed result
-  liquidGetPlugValue( rGlobalNode, "dirmaps", m_dirmaps, gStatus, true ); // get parsed result
   liquidGetPlugValue( rGlobalNode, "key",  m_defGenKey, gStatus, true ); // get parsed result
   liquidGetPlugValue( rGlobalNode, "service", m_defGenService, gStatus, true ); // get parsed result
+  liquidGetPlugValue( rGlobalNode, "expandAlfred", m_alfredExpand, gStatus ); 
+  
 
   liquidGetPlugValue( rGlobalNode, "preframeMel", m_preFrameMel, gStatus );
   liquidGetPlugValue( rGlobalNode, "postframeMel", m_postFrameMel, gStatus );
   
+  liquidGetPlugValue( rGlobalNode, "postFrameCommand", m_postFrameCommand, gStatus );
+  liquidGetPlugValue( rGlobalNode, "preFrameCommand", m_preFrameCommand, gStatus );
+  liquidGetPlugValue( rGlobalNode, "preCommand", m_preCommand, gStatus );
+  
+  // Image
+  liquidGetPlugValue( rGlobalNode, "imageDriver", varVal, gStatus );
+  if ( gStatus == MS::kSuccess ) outFormat = parseString( varVal, false );
+  
+  {  
+    int gWidth, gHeight;
+    liquidGetPlugValue( rGlobalNode, "xResolution", gWidth, gStatus );
+    liquidGetPlugValue( rGlobalNode, "yResolution", gHeight, gStatus );
+    if ( gWidth > 0 ) width = gWidth;
+    if ( gHeight > 0 ) height = gHeight;
+  }
+  liquidGetPlugValue( rGlobalNode, "pixelAspectRatio", aspectRatio, gStatus );
+
+  liquidGetPlugValue( rGlobalNode, "cropX1", m_cropX1, gStatus );
+  liquidGetPlugValue( rGlobalNode, "cropX2", m_cropX2, gStatus );
+  liquidGetPlugValue( rGlobalNode, "cropY1", m_cropY1, gStatus );
+  liquidGetPlugValue( rGlobalNode, "cropY2", m_cropY2, gStatus );
+
+  liquidGetPlugValue( rGlobalNode, "gain", m_rgain, gStatus );
+  liquidGetPlugValue( rGlobalNode, "gamma", m_rgamma, gStatus );
+
+  // REYES
+  liquidGetPlugValue( rGlobalNode, "depthOfField", doDof, gStatus );
+  liquidGetPlugValue( rGlobalNode, "pixelSamples", pixelSamples, gStatus );
+  liquidGetPlugValue( rGlobalNode, "shadingRate", shadingRate, gStatus );
+  liquidGetPlugValue( rGlobalNode, "limitsBucketXSize", bucketSize[0], gStatus );
+  liquidGetPlugValue( rGlobalNode, "limitsBucketYSize", bucketSize[1], gStatus );
+  liquidGetPlugValue( rGlobalNode, "limitsGridSize", gridSize, gStatus );
+  liquidGetPlugValue( rGlobalNode, "limitsTextureMemory", textureMemory, gStatus );
+  liquidGetPlugValue( rGlobalNode, "limitsEyeSplits", eyeSplits, gStatus );
+  
+  liquidGetPlugValue( rGlobalNode, "limitsOThreshold", othreshold, gStatus );
+  liquidGetPlugValue( rGlobalNode, "limitsZThreshold", zthreshold, gStatus );
+
+  // Motion blur
+  liquidGetPlugValue( rGlobalNode, "transformationBlur", liqglo_doMotion, gStatus );
+  liquidGetPlugValue( rGlobalNode, "cameraBlur", doCameraMotion, gStatus );
+  liquidGetPlugValue( rGlobalNode, "deformationBlur", liqglo_doDef, gStatus );
+  liquidGetPlugValue( rGlobalNode, "shutterConfig", var, gStatus );
+  if ( gStatus == MS::kSuccess ) shutterConfig = ( enum shutterConfig ) var;
+  liquidGetPlugValue( rGlobalNode, "shutterEfficiency", liqglo_shutterEfficiency, gStatus );
+  liquidGetPlugValue( rGlobalNode, "motionBlurSamples", liqglo_motionSamples, gStatus );
+  if ( liqglo_motionSamples > LIQMAXMOTIONSAMPLES ) liqglo_motionSamples = LIQMAXMOTIONSAMPLES;
+  liquidGetPlugValue( rGlobalNode, "motionFactor", liqglo_motionFactor, gStatus );
+  liquidGetPlugValue( rGlobalNode, "relativeMotion", liqglo_relativeMotion, gStatus );
+
   // RENDER OPTIONS:BEGIN
   liquidGetPlugValue( rGlobalNode, "hider", var, gStatus );
   if ( gStatus == MS::kSuccess ) liqglo_hider = (enum HiderType) var;
@@ -292,11 +428,6 @@ void liqRibTranslator::liquidReadGlobals()
   liquidGetPlugValue( rGlobalNode, "depthMaskDepthBias", m_depthMaskDepthBias, gStatus ); 
   // RENDER OPTIONS:END
 
-  liquidGetPlugValue( rGlobalNode, "cropX1", m_cropX1, gStatus );
-  liquidGetPlugValue( rGlobalNode, "cropX2", m_cropX2, gStatus );
-  liquidGetPlugValue( rGlobalNode, "cropY1", m_cropY1, gStatus );
-  liquidGetPlugValue( rGlobalNode, "cropY2", m_cropY2, gStatus );
-
   // RAYTRACING OPTIONS:BEGIN
   liquidGetPlugValue( rGlobalNode, "useRayTracing", rt_useRayTracing, gStatus );
   liquidGetPlugValue( rGlobalNode, "traceMaxDepth", rt_traceMaxDepth, gStatus );
@@ -325,111 +456,9 @@ void liqRibTranslator::liquidReadGlobals()
 
   liquidGetPlugValue( rGlobalNode, "photonShadingModel", rt_photonShadingModel, gStatus );
   liquidGetPlugValue( rGlobalNode, "photonEstimator", rt_photonEstimator, gStatus );
-
   // RAYTRACING OPTIONS:END
-  liquidGetPlugValue( rGlobalNode, "outputMayaPolyCreases", liqglo_outputMayaPolyCreases, gStatus ); 
-  liquidGetPlugValue( rGlobalNode, "useMtorSubdiv", liqglo_useMtorSubdiv, gStatus ); 
-  liquidGetPlugValue( rGlobalNode, "ribRelativeTransforms", liqglo_relativeTransforms, gStatus ); 
-  liquidGetPlugValue( rGlobalNode, "shortShaderNames", liqglo_shortShaderNames, gStatus ); 
-  liquidGetPlugValue( rGlobalNode, "expandAlfred", m_alfredExpand, gStatus ); 
-  liquidGetPlugValue( rGlobalNode, "createOutputDirectories", createOutputDirectories, gStatus ); 
-  liquidGetPlugValue( rGlobalNode, "minCPU", m_minCPU, gStatus ); 
-  liquidGetPlugValue( rGlobalNode, "maxCPU", m_maxCPU, gStatus );
-  liquidGetPlugValue( rGlobalNode, "showProgress", m_showProgress, gStatus );
-  liquidGetPlugValue( rGlobalNode, "expandShaderArrays", liqglo_expandShaderArrays, gStatus );
-  liquidGetPlugValue( rGlobalNode, "exportAllShadersParameters", liqglo_exportAllShadersParams, gStatus );
-  liquidGetPlugValue( rGlobalNode, "outputComments", m_outputComments, gStatus );
-  liquidGetPlugValue( rGlobalNode, "shaderDebug", m_shaderDebug, gStatus );
-  liquidGetPlugValue( rGlobalNode, "deferredGen", m_deferredGen, gStatus );
-  liquidGetPlugValue( rGlobalNode, "deferredBlock", m_deferredBlockSize, gStatus );
-  liquidGetPlugValue( rGlobalNode, "useRenderScript", useRenderScript, gStatus );
-  liquidGetPlugValue( rGlobalNode, "remoteRender", remoteRender, gStatus );
-  liquidGetPlugValue( rGlobalNode, "renderAllCurves", m_renderAllCurves, gStatus );
-  liquidGetPlugValue( rGlobalNode, "illuminateByDefault", m_illuminateByDefault, gStatus );
-  liquidGetPlugValue( rGlobalNode, "liquidSetLightLinking", m_liquidSetLightLinking, gStatus );
-  liquidGetPlugValue( rGlobalNode, "ignoreLights", m_ignoreLights, gStatus );
-  liquidGetPlugValue( rGlobalNode, "ignoreSurfaces", m_ignoreSurfaces, gStatus );
-  liquidGetPlugValue( rGlobalNode, "ignoreDisplacements", m_ignoreDisplacements, gStatus );
-  liquidGetPlugValue( rGlobalNode, "ignoreVolumes", m_ignoreVolumes, gStatus );
-  
-  liquidGetPlugValue( rGlobalNode, "outputShadowPass", m_outputShadowPass, gStatus );
-  liquidGetPlugValue( rGlobalNode, "outputHeroPass", m_outputHeroPass, gStatus );
 
-  liquidGetPlugValue( rGlobalNode, "netRManRender", useNetRman, gStatus );
-  liquidGetPlugValue( rGlobalNode, "ignoreShadows", liqglo_doShadows, gStatus );
-  liqglo_doShadows = !liqglo_doShadows;
-  
-  liquidGetPlugValue( rGlobalNode, "shapeOnlyInShadowNames", liqglo_shapeOnlyInShadowNames, gStatus );
-  liquidGetPlugValue( rGlobalNode, "fullShadowRibs", fullShadowRib, gStatus );
-  liquidGetPlugValue( rGlobalNode, "binaryOutput", liqglo_doBinary, gStatus );
-  liquidGetPlugValue( rGlobalNode, "lazyCompute", m_lazyCompute, gStatus );
-  liquidGetPlugValue( rGlobalNode, "outputShadersInShadows", m_outputShadersInShadows, gStatus );
-  // Moritz: added new options for light/shader output in deep shadows
-  liquidGetPlugValue( rGlobalNode, "outputShadersInDeepShadows", m_outputShadersInDeepShadows, gStatus );
-  liquidGetPlugValue( rGlobalNode, "outputLightsInDeepShadows", m_outputLightsInDeepShadows, gStatus );
- 
-  liquidGetPlugValue( rGlobalNode, "outputMeshUVs", liqglo_outputMeshUVs, gStatus );
-  liquidGetPlugValue( rGlobalNode, "compressedOutput", liqglo_doCompression, gStatus );
-  liquidGetPlugValue( rGlobalNode, "exportReadArchive", m_exportReadArchive, gStatus );
-  liquidGetPlugValue( rGlobalNode, "renderJobName", renderJobName, gStatus );
-  liquidGetPlugValue( rGlobalNode, "doAnimation", m_animation, gStatus );
-  if ( m_animation ) 
-  {
-    MString frameSequence;
-    liquidGetPlugValue( rGlobalNode, "frameSequence", frameSequence, gStatus );
-    if( gStatus == MS::kSuccess ) frameNumbers = generateFrameNumbers( string( frameSequence.asChar() ) );
-  }
-  liquidGetPlugValue( rGlobalNode, "doPadding", liqglo_doExtensionPadding, gStatus );
-  if ( liqglo_doExtensionPadding ) liquidGetPlugValue( rGlobalNode, "padding", liqglo_outPadding, gStatus );
-  {  
-    int gWidth, gHeight;
-    liquidGetPlugValue( rGlobalNode, "xResolution", gWidth, gStatus );
-    liquidGetPlugValue( rGlobalNode, "yResolution", gHeight, gStatus );
-    if ( gWidth > 0 ) width = gWidth;
-    if ( gHeight > 0 ) height = gHeight;
-  }
-  liquidGetPlugValue( rGlobalNode, "pixelAspectRatio", aspectRatio, gStatus );
-  
-  liquidGetPlugValue( rGlobalNode, "transformationBlur", liqglo_doMotion, gStatus );
-  liquidGetPlugValue( rGlobalNode, "cameraBlur", doCameraMotion, gStatus );
-  liquidGetPlugValue( rGlobalNode, "deformationBlur", liqglo_doDef, gStatus );
-  liquidGetPlugValue( rGlobalNode, "shutterConfig", var, gStatus );
-  if ( gStatus == MS::kSuccess ) shutterConfig = ( enum shutterConfig ) var;
-  liquidGetPlugValue( rGlobalNode, "shutterEfficiency", liqglo_shutterEfficiency, gStatus );
-  liquidGetPlugValue( rGlobalNode, "motionBlurSamples", liqglo_motionSamples, gStatus );
-  if ( liqglo_motionSamples > LIQMAXMOTIONSAMPLES ) liqglo_motionSamples = LIQMAXMOTIONSAMPLES;
-  liquidGetPlugValue( rGlobalNode, "motionFactor", liqglo_motionFactor, gStatus );
-  liquidGetPlugValue( rGlobalNode, "relativeMotion", liqglo_relativeMotion, gStatus );
-  liquidGetPlugValue( rGlobalNode, "depthOfField", doDof, gStatus );
-  liquidGetPlugValue( rGlobalNode, "pixelSamples", pixelSamples, gStatus );
-  liquidGetPlugValue( rGlobalNode, "shadingRate", shadingRate, gStatus );
-  liquidGetPlugValue( rGlobalNode, "limitsBucketXSize", bucketSize[0], gStatus );
-  liquidGetPlugValue( rGlobalNode, "limitsBucketYSize", bucketSize[1], gStatus );
-  liquidGetPlugValue( rGlobalNode, "limitsGridSize", gridSize, gStatus );
-  liquidGetPlugValue( rGlobalNode, "limitsTextureMemory", textureMemory, gStatus );
-  liquidGetPlugValue( rGlobalNode, "limitsEyeSplits", eyeSplits, gStatus );
-  
-  liquidGetPlugValue( rGlobalNode, "limitsOThreshold", othreshold, gStatus );
-  liquidGetPlugValue( rGlobalNode, "limitsZThreshold", zthreshold, gStatus );
-  
-  liquidGetPlugValue( rGlobalNode, "cleanRib", cleanRib, gStatus );
-  liquidGetPlugValue( rGlobalNode, "cleanRenderScript", cleanRenderScript, gStatus );
-  liquidGetPlugValue( rGlobalNode, "cleanTex", cleanTextures, gStatus );
-  liquidGetPlugValue( rGlobalNode, "cleanShad", cleanShadows, gStatus );
-  liquidGetPlugValue( rGlobalNode, "justRib", m_justRib, gStatus );
-  liquidGetPlugValue( rGlobalNode, "gain", m_rgain, gStatus );
-  liquidGetPlugValue( rGlobalNode, "gamma", m_rgamma, gStatus );
-  liquidGetPlugValue( rGlobalNode, "renderViewLocal", m_renderViewLocal, gStatus );
-  liquidGetPlugValue( rGlobalNode, "renderViewPort", m_renderViewPort, gStatus );
-  liquidGetPlugValue( rGlobalNode, "renderViewTimeOut", m_renderViewTimeOut, gStatus );
-  liquidGetPlugValue( rGlobalNode, "statistics", m_statistics, gStatus );
-  liquidGetPlugValue( rGlobalNode, "statisticsFile", varVal, gStatus );
-  if ( varVal != "" ) 
-    m_statisticsFile = parseString( varVal, false );
-
-  // Philippe : OBSOLETE ?
-  liquidGetPlugValue( rGlobalNode, "imageDriver", varVal, gStatus );
-  if ( gStatus == MS::kSuccess ) outFormat = parseString( varVal, false );
+  // BAKE
   liquidGetPlugValue( rGlobalNode, "bakeRasterOrient", m_bakeNonRasterOrient, gStatus );
   if ( gStatus == MS::kSuccess ) m_bakeNonRasterOrient = !m_bakeNonRasterOrient;
   liquidGetPlugValue( rGlobalNode, "bakeCullBackface", m_bakeNoCullBackface, gStatus );
@@ -470,11 +499,27 @@ void liqRibTranslator::liquidReadGlobals()
 		if ( request != "" ) m_preGeomRIB = parseString( request );
 	}
 	
-  liquidGetPlugValue( rGlobalNode, "renderScriptFormat", var, gStatus );
-  if ( gStatus == MS::kSuccess ) m_renderScriptFormat = ( enum renderScriptFormat ) var;
+  // Subdivs
+  liquidGetPlugValue( rGlobalNode, "outputMayaPolyCreases", liqglo_outputMayaPolyCreases, gStatus ); 
+  liquidGetPlugValue( rGlobalNode, "useMtorSubdiv", liqglo_useMtorSubdiv, gStatus ); 
   
-  liquidGetPlugValue( rGlobalNode, "renderScriptCommand", varVal, gStatus );
-  m_renderScriptCommand = ( varVal != "" )? parseString( varVal, false ) : "alfred";
+  // Curves
+  liquidGetPlugValue( rGlobalNode, "renderAllCurves", m_renderAllCurves, gStatus );
+ 
+  // Mesh
+  liquidGetPlugValue( rGlobalNode, "outputMeshUVs", liqglo_outputMeshUVs, gStatus );
+
+  // Maya Render View
+  liquidGetPlugValue( rGlobalNode, "renderViewLocal", m_renderViewLocal, gStatus );
+  liquidGetPlugValue( rGlobalNode, "renderViewPort", m_renderViewPort, gStatus );
+  liquidGetPlugValue( rGlobalNode, "renderViewTimeOut", m_renderViewTimeOut, gStatus );
+  
+  // Statistics
+  liquidGetPlugValue( rGlobalNode, "statistics", m_statistics, gStatus );
+  liquidGetPlugValue( rGlobalNode, "statisticsFile", varVal, gStatus );
+  if ( varVal != "" ) m_statisticsFile = parseString( varVal, false );
+
+  liquidGetPlugValue( rGlobalNode, "outputComments", m_outputComments, gStatus );
     
   setOutDirs();
   setSearchPaths();

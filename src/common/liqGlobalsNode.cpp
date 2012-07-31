@@ -138,10 +138,18 @@ MObject liqGlobalsNode::aOutputMeshUVs;
 MObject liqGlobalsNode::aOutputMeshAsRMSArrays;
 MObject liqGlobalsNode::aIlluminateByDefault;
 MObject liqGlobalsNode::aLiquidSetLightLinking;
+
 MObject liqGlobalsNode::aIgnoreSurfaces;
 MObject liqGlobalsNode::aIgnoreDisplacements;
 MObject liqGlobalsNode::aIgnoreLights;
 MObject liqGlobalsNode::aIgnoreVolumes;
+
+MObject liqGlobalsNode::aSkipVisibilityAttributes;
+MObject liqGlobalsNode::aSkipShadingAttributes;
+MObject liqGlobalsNode::aSkipRayTraceAttributes;
+
+MObject liqGlobalsNode::aSkipDefaultMatte;
+
 MObject liqGlobalsNode::aOutputShadersInShadows;
 MObject liqGlobalsNode::aOutputShadersInDeepShadows;
 MObject liqGlobalsNode::aOutputLightsInDeepShadows;
@@ -523,37 +531,37 @@ MStatus liqGlobalsNode::initialize()
 
 
 	// Create input attributes
-	CREATE_BOOL( nAttr,  aLaunchRender,             "launchRender",                 "lr",     true  );
+	CREATE_BOOL( nAttr,  aLaunchRender,               "launchRender",                 "lr",     true  );
 	CREATE_STRING( tAttr,  aRenderCamera,             "renderCamera",                 "rc",     ""    );
-	CREATE_BOOL( nAttr,  aRotateCamera,             "rotateCamera",                 "roc",    false );
-	CREATE_BOOL( nAttr,  aIgnoreAOVDisplays,        "ignoreAOVDisplays",            "iaov",   false );
+	CREATE_BOOL( nAttr,  aRotateCamera,               "rotateCamera",                 "roc",    false );
+	CREATE_BOOL( nAttr,  aIgnoreAOVDisplays,          "ignoreAOVDisplays",            "iaov",   false );
 
-	CREATE_MULTI_STRING( tAttr,  aDdImageName,              "ddImageName",                  "ddin",   ""    );
-	CREATE_MULTI_STRING( tAttr,  aDdImageMode,              "ddImageMode",                  "ddim",   ""    );
-	CREATE_MULTI_STRING( tAttr,  aDdImageType,              "ddImageType",                  "ddit",   ""    );
-	CREATE_MULTI_STRING( tAttr,  aDdParamType,              "ddParamType",                  "ddpt",   ""    );
-	CREATE_MULTI_BOOL( nAttr,  aDdEnable,                 "ddEnable",                     "dde",    true  );
-	CREATE_MULTI_BOOL( nAttr,  aDdQuantizeEnabled,        "ddQuantizeEnabled",            "ddqe",   false );
-	CREATE_MULTI_INT( nAttr,  aDdBitDepth,               "ddBitDepth",                   "ddbd",   0     );
-	CREATE_MULTI_FLOAT( nAttr,  aDdDither,                 "ddDither",                     "ddd",    0     );
-	CREATE_MULTI_BOOL( nAttr,  aDdFilterEnabled,          "ddFilterEnabled",              "ddfe",   false );
-	CREATE_MULTI_INT( nAttr,  aDdPixelFilter,            "ddPixelFilter",                "ddpf",   0     );
-	CREATE_MULTI_FLOAT( nAttr,  aDdPixelFilterX,           "ddPixelFilterX",               "ddpfx",  2.0   );
-	CREATE_MULTI_FLOAT( nAttr,  aDdPixelFilterY,           "ddPixelFilterY",               "ddpfy",  2.0   );
-	CREATE_MULTI_STR_ARRAY( tAttr,  aDdXtraParamNames,         "ddXtraParamNames",             "ddxpn"         );
-	CREATE_MULTI_INT_ARRAY( tAttr,  aDdXtraParamTypes,         "ddXtraParamTypes",             "ddxpt"         );
-	CREATE_MULTI_STR_ARRAY( tAttr,  aDdXtraParamDatas,         "ddXtraParamDatas",             "ddxpd"         );
+	CREATE_MULTI_STRING( tAttr,  aDdImageName,        "ddImageName",                  "ddin",   ""    );
+	CREATE_MULTI_STRING( tAttr,  aDdImageMode,        "ddImageMode",                  "ddim",   ""    );
+	CREATE_MULTI_STRING( tAttr,  aDdImageType,        "ddImageType",                  "ddit",   ""    );
+	CREATE_MULTI_STRING( tAttr,  aDdParamType,        "ddParamType",                  "ddpt",   ""    );
+	CREATE_MULTI_BOOL( nAttr,  aDdEnable,             "ddEnable",                     "dde",    true  );
+	CREATE_MULTI_BOOL( nAttr,  aDdQuantizeEnabled,    "ddQuantizeEnabled",            "ddqe",   false );
+	CREATE_MULTI_INT( nAttr,  aDdBitDepth,            "ddBitDepth",                   "ddbd",   0     );
+	CREATE_MULTI_FLOAT( nAttr,  aDdDither,            "ddDither",                     "ddd",    0     );
+	CREATE_MULTI_BOOL( nAttr,  aDdFilterEnabled,      "ddFilterEnabled",              "ddfe",   false );
+	CREATE_MULTI_INT( nAttr,  aDdPixelFilter,         "ddPixelFilter",                "ddpf",   0     );
+	CREATE_MULTI_FLOAT( nAttr,  aDdPixelFilterX,      "ddPixelFilterX",               "ddpfx",  2.0   );
+	CREATE_MULTI_FLOAT( nAttr,  aDdPixelFilterY,      "ddPixelFilterY",               "ddpfy",  2.0   );
+	CREATE_MULTI_STR_ARRAY( tAttr, aDdXtraParamNames, "ddXtraParamNames",             "ddxpn"         );
+	CREATE_MULTI_INT_ARRAY( tAttr, aDdXtraParamTypes, "ddXtraParamTypes",             "ddxpt"         );
+	CREATE_MULTI_STR_ARRAY( tAttr, aDdXtraParamDatas, "ddXtraParamDatas",             "ddxpd"         );
 
-	CREATE_MULTI_STRING( tAttr,  aChannelName,                "channelName",                  "dcn",    ""    );
-	CREATE_MULTI_INT( nAttr,  aChannelType,                "channelType",                  "dct",    0     );
-	CREATE_MULTI_INT( nAttr,  aChannelArraySize,           "channelArraySize",             "dcs",    0     );
-	CREATE_MULTI_BOOL( nAttr,  aChannelQuantize,            "channelQuantize",              "dcq",    false );
-	CREATE_MULTI_INT( nAttr,  aChannelBitDepth,            "channelBitDepth",              "dcbd",   8     );
-	CREATE_MULTI_FLOAT( nAttr,  aChannelDither,              "channelDither",                "dcd",    0.5   );
-	CREATE_MULTI_BOOL( nAttr,  aChannelFilter,              "channelFilter",                "dcf",    0     );
-	CREATE_MULTI_INT( nAttr,  aChannelPixelFilter,         "channelPixelFilter",           "dcpf",   false );
-	CREATE_MULTI_FLOAT( nAttr,  aChannelPixelFilterX,        "channelPixelFilterX",          "dcfx",   0.0   );
-	CREATE_MULTI_FLOAT( nAttr,  aChannelPixelFilterY,        "channelPixelFilterY",          "dcfy",   0.0   );
+	CREATE_MULTI_STRING( tAttr,  aChannelName,        "channelName",                  "dcn",    ""    );
+	CREATE_MULTI_INT( nAttr,  aChannelType,           "channelType",                  "dct",    0     );
+	CREATE_MULTI_INT( nAttr,  aChannelArraySize,      "channelArraySize",             "dcs",    0     );
+	CREATE_MULTI_BOOL( nAttr,  aChannelQuantize,      "channelQuantize",              "dcq",    false );
+	CREATE_MULTI_INT( nAttr,  aChannelBitDepth,       "channelBitDepth",              "dcbd",   8     );
+	CREATE_MULTI_FLOAT( nAttr,  aChannelDither,       "channelDither",                "dcd",    0.5   );
+	CREATE_MULTI_BOOL( nAttr,  aChannelFilter,        "channelFilter",                "dcf",    0     );
+	CREATE_MULTI_INT( nAttr,  aChannelPixelFilter,    "channelPixelFilter",           "dcpf",   false );
+	CREATE_MULTI_FLOAT( nAttr,  aChannelPixelFilterX, "channelPixelFilterX",          "dcfx",   0.0   );
+	CREATE_MULTI_FLOAT( nAttr,  aChannelPixelFilterY, "channelPixelFilterY",          "dcfy",   0.0   );
 
 	CREATE_BOOL( nAttr,  aCreateOutputDirectories,    "createOutputDirectories",      "cod",    true  );
 	CREATE_BOOL( nAttr,  aExpandShaderArrays,         "expandShaderArrays",           "esa",    true  );
@@ -562,22 +570,22 @@ MStatus liqGlobalsNode::initialize()
 	CREATE_BOOL( nAttr,  aBakeCullBackface,           "bakeCullBackface",             "bcb",    true  );
 	CREATE_BOOL( nAttr,  aBakeCullHidden,             "bakeCullHidden",               "bch",    true  );
 
-	CREATE_STRING( tAttr,  aShaderPath,                 "shaderPath",                   "spth",   ""    );
-	CREATE_STRING( tAttr,  aTexturePath,                "texturePath",                  "tpth",   ""    );
-	CREATE_STRING( tAttr,  aArchivePath,                "archivePath",                  "apth",   ""    );
-	CREATE_STRING( tAttr,  aProceduralPath,             "proceduralPath",               "ppth",   ""    );
+	CREATE_STRING( tAttr,  aShaderPath,               "shaderPath",                   "spth",   ""    );
+	CREATE_STRING( tAttr,  aTexturePath,              "texturePath",                  "tpth",   ""    );
+	CREATE_STRING( tAttr,  aArchivePath,              "archivePath",                  "apth",   ""    );
+	CREATE_STRING( tAttr,  aProceduralPath,           "proceduralPath",               "ppth",   ""    );
 
-	CREATE_STRING( tAttr,  aRibName,                    "ribName",                      "ribn",   ""    );
+	CREATE_STRING( tAttr,  aRibName,                  "ribName",                      "ribn",   ""    );
 	CREATE_BOOL( nAttr,  aBeautyRibHasCameraName,     "beautyRibHasCameraName",       "bhcn",   true  );
 
-	CREATE_STRING( tAttr,  aPictureDirectory,           "pictureDirectory",             "picd",   ""    );
-	CREATE_STRING( tAttr,  aTextureDirectory,           "textureDirectory",             "texd",   ""    );
-	CREATE_STRING( tAttr,  aRibDirectory,               "ribDirectory",                 "ribd",   ""    );
-	CREATE_STRING( tAttr,  aShaderDirectory,            "shaderDirectory",              "shdd",   ""    );
-	CREATE_STRING( tAttr,  aTempDirectory,              "tempDirectory",                "tmpd",   ""    );
+	CREATE_STRING( tAttr,  aPictureDirectory,         "pictureDirectory",             "picd",   ""    );
+	CREATE_STRING( tAttr,  aTextureDirectory,         "textureDirectory",             "texd",   ""    );
+	CREATE_STRING( tAttr,  aRibDirectory,             "ribDirectory",                 "ribd",   ""    );
+	CREATE_STRING( tAttr,  aShaderDirectory,          "shaderDirectory",              "shdd",   ""    );
+	CREATE_STRING( tAttr,  aTempDirectory,            "tempDirectory",                "tmpd",   ""    );
 
-	CREATE_BOOL( nAttr, aDeferredGen,                "deferredGen",                  "defg",   false );
-	CREATE_INT( nAttr,  aDeferredBlock,              "deferredBlock",                "defb",   1     );
+	CREATE_BOOL( nAttr, aDeferredGen,                 "deferredGen",                  "defg",   false );
+	CREATE_INT( nAttr,  aDeferredBlock,               "deferredBlock",                "defb",   1     );
 	CREATE_STRING( tAttr,aPreframeMel,                "preframeMel",                  "prfm",   ""    );
 	CREATE_STRING( tAttr,aPostframeMel,               "postframeMel",                 "pofm",   ""    );
 	CREATE_BOOL( nAttr,  aUseRenderScript,            "useRenderScript",              "urs",    false );
@@ -597,11 +605,19 @@ MStatus liqGlobalsNode::initialize()
 	CREATE_BOOL( nAttr,  aOutputMeshAsRMSArrays,      "outputMeshAsRMSArrays",        "rmsuv",  false );
 	CREATE_BOOL( nAttr,  aIlluminateByDefault,        "illuminateByDefault",          "ilbd",   true );
 	CREATE_BOOL( nAttr,  aLiquidSetLightLinking,      "liquidSetLightLinking",        "setll",   false );
-	CREATE_BOOL( nAttr,  aIgnoreSurfaces,             "ignoreSurfaces",               "isrf",   false );
+	
+  CREATE_BOOL( nAttr,  aIgnoreSurfaces,             "ignoreSurfaces",               "isrf",   false );
 	CREATE_BOOL( nAttr,  aIgnoreDisplacements,        "ignoreDisplacements",          "idsp",   false );
 	CREATE_BOOL( nAttr,  aIgnoreLights,               "ignoreLights",                 "ilgt",   false );
 	CREATE_BOOL( nAttr,  aIgnoreVolumes,              "ignoreVolumes",                "ivol",   false );
-	CREATE_BOOL( nAttr,  aOutputShadersInShadows,     "outputShadersInShadows",       "osis",   false );
+
+  CREATE_BOOL( nAttr,  aSkipVisibilityAttributes,   "skipVisibilityAttributes",     "skv",   false );
+  CREATE_BOOL( nAttr,  aSkipShadingAttributes,      "skipShadingAttributes",        "sks",   false );
+  CREATE_BOOL( nAttr,  aSkipRayTraceAttributes,     "skipRayTraceAttributes",       "skr",   false );
+
+  CREATE_BOOL( nAttr,  aSkipDefaultMatte,           "skipDefaultMatte",             "skdm",   false );
+	
+  CREATE_BOOL( nAttr,  aOutputShadersInShadows,     "outputShadersInShadows",       "osis",   false );
 	CREATE_BOOL( nAttr,  aOutputShadersInDeepShadows, "outputShadersInDeepShadows",   "osids",  false );
 	CREATE_BOOL( nAttr,  aOutputLightsInDeepShadows,  "outputLightsInDeepShadows",    "olids",  false );
 	CREATE_BOOL( nAttr,  aExportAllShadersParameters, "exportAllShadersParameters",   "easp",  false );
@@ -618,83 +634,83 @@ MStatus liqGlobalsNode::initialize()
 	CREATE_INT( nAttr,  aNumProcs,                    "numProcs",                     "np",     0     );
 	CREATE_FLOAT( nAttr,  aGain,                      "gain",                         "gn",     1.0   );
 	CREATE_FLOAT( nAttr,  aGamma,                     "gamma",                        "gm",     1.0   );
-	CREATE_INT( nAttr,  aXResolution,                "xResolution",                  "xres",   1024  );
-	CREATE_INT( nAttr,  aYResolution,                "yResolution",                  "yres",   768   );
+	CREATE_INT( nAttr,  aXResolution,                 "xResolution",                  "xres",   1024  );
+	CREATE_INT( nAttr,  aYResolution,                 "yResolution",                  "yres",   768   );
 	CREATE_FLOAT( nAttr,  aPixelAspectRatio,          "pixelAspectRatio",             "par",    1.0   );
 
-	CREATE_BOOL(  nAttr,  aCameraBlur,                 "cameraBlur",                   "cb",     false  );
-	CREATE_BOOL(  nAttr,  aTransformationBlur,         "transformationBlur",           "tb",     false  );
-	CREATE_BOOL(  nAttr,  aDeformationBlur,            "deformationBlur",              "db",     false  );
-	CREATE_INT(   nAttr,  aShutterConfig,              "shutterConfig",                "shc",    0     );
-	CREATE_FLOAT( nAttr,  aShutterEfficiency,          "shutterEfficiency",            "shef",   1.0   );
-	CREATE_INT(   nAttr,  aMotionBlurSamples,          "motionBlurSamples",            "mbs",    2     );
-	CREATE_BOOL(  nAttr,  aRelativeMotion,             "relativeMotion",            	"rmot",   false );
-	CREATE_FLOAT( nAttr,  aMotionFactor,               "motionFactor",                 "mf",     1.0   );
-	CREATE_BOOL(  nAttr,  aDepthOfField,               "depthOfField",                 "dof",    false );
+	CREATE_BOOL(  nAttr,  aCameraBlur,                "cameraBlur",                   "cb",     false  );
+	CREATE_BOOL(  nAttr,  aTransformationBlur,        "transformationBlur",           "tb",     false  );
+	CREATE_BOOL(  nAttr,  aDeformationBlur,           "deformationBlur",              "db",     false  );
+	CREATE_INT(   nAttr,  aShutterConfig,             "shutterConfig",                "shc",    0     );
+	CREATE_FLOAT( nAttr,  aShutterEfficiency,         "shutterEfficiency",            "shef",   1.0   );
+	CREATE_INT(   nAttr,  aMotionBlurSamples,         "motionBlurSamples",            "mbs",    2     );
+	CREATE_BOOL(  nAttr,  aRelativeMotion,            "relativeMotion",            	  "rmot",   false );
+	CREATE_FLOAT( nAttr,  aMotionFactor,              "motionFactor",                 "mf",     1.0   );
+	CREATE_BOOL(  nAttr,  aDepthOfField,              "depthOfField",                 "dof",    false );
 
-	CREATE_INT(   nAttr,  aPixelSamples,               "pixelSamples",                 "ps",     4     );
-	CREATE_FLOAT( nAttr,  aShadingRate,                "shadingRate",                  "sr",     1.0   );
+	CREATE_INT(   nAttr,  aPixelSamples,              "pixelSamples",                 "ps",     4     );
+	CREATE_FLOAT( nAttr,  aShadingRate,               "shadingRate",                  "sr",     1.0   );
 
-	CREATE_COLOR( nAttr,  aLimitsOThreshold,           "limitsOThreshold",             "lot",    0.996, 0.996, 0.996  );
-	CREATE_COLOR( nAttr,  aLimitsZThreshold,           "limitsZThreshold",             "lzt",    0.996, 0.996, 0.996  );
-	CREATE_INT(   nAttr,  aLimitsBucketXSize,          "limitsBucketXSize",            "lbsx",   16    );
-	CREATE_INT(   nAttr,  aLimitsBucketYSize,          "limitsBucketYSize",            "lbsy",   16    );
-	CREATE_INT(   nAttr,  aLimitsGridSize,             "limitsGridSize",               "lgs",    256   );
-	CREATE_LONG(  nAttr,  aLimitsTextureMemory,        "limitsTextureMemory",          "ltm",    65536 );
-	CREATE_INT(   nAttr,  aLimitsEyeSplits,            "limitsEyeSplits",              "les",    10    );
-	CREATE_INT(   nAttr,  aLimitsGPrimSplits,          "limitsGPrimSplits",            "lges",   4     );
+	CREATE_COLOR( nAttr,  aLimitsOThreshold,          "limitsOThreshold",             "lot",    0.996, 0.996, 0.996  );
+	CREATE_COLOR( nAttr,  aLimitsZThreshold,          "limitsZThreshold",             "lzt",    0.996, 0.996, 0.996  );
+	CREATE_INT(   nAttr,  aLimitsBucketXSize,         "limitsBucketXSize",            "lbsx",   16    );
+	CREATE_INT(   nAttr,  aLimitsBucketYSize,         "limitsBucketYSize",            "lbsy",   16    );
+	CREATE_INT(   nAttr,  aLimitsGridSize,            "limitsGridSize",               "lgs",    256   );
+	CREATE_LONG(  nAttr,  aLimitsTextureMemory,       "limitsTextureMemory",          "ltm",    65536 );
+	CREATE_INT(   nAttr,  aLimitsEyeSplits,           "limitsEyeSplits",              "les",    10    );
+	CREATE_INT(   nAttr,  aLimitsGPrimSplits,         "limitsGPrimSplits",            "lges",   4     );
 
-	CREATE_BOOL(   nAttr,  aRibRelativeTransforms,     "ribRelativeTransforms",       	"rxf",    false );
+	CREATE_BOOL(   nAttr,  aRibRelativeTransforms,    "ribRelativeTransforms",       	"rxf",    false );
 
-	CREATE_BOOL(   nAttr,  aCleanRib,                  "cleanRib",                     "clr",    false );
-	CREATE_BOOL(   nAttr,  aCleanTex,                  "cleanTex",                     "clt",    false );
-	CREATE_BOOL(   nAttr,  aCleanShad,                 "cleanShad",                    "cls",    false );
-	CREATE_BOOL(   nAttr,  aCleanRenderScript,         "cleanRenderScript",            "clrs",   false );
-	CREATE_BOOL(   nAttr,  aJustRib,                   "justRib",                      "jr",     false );
+	CREATE_BOOL(   nAttr,  aCleanRib,                 "cleanRib",                     "clr",    false );
+	CREATE_BOOL(   nAttr,  aCleanTex,                 "cleanTex",                     "clt",    false );
+	CREATE_BOOL(   nAttr,  aCleanShad,                "cleanShad",                    "cls",    false );
+	CREATE_BOOL(   nAttr,  aCleanRenderScript,        "cleanRenderScript",            "clrs",   false );
+	CREATE_BOOL(   nAttr,  aJustRib,                  "justRib",                      "jr",     false );
 
-	CREATE_STRING( tAttr,  aAlfredTags,                "alfredTags",                   "alft",   "prman"    );
-	CREATE_STRING( tAttr,  aAlfredServices,            "alfredServices",               "alfs",   "pixarRender"    );
-  CREATE_STRING( tAttr,  aDirMaps,                   "dirmaps",                      "dmps",   ""    );
-	CREATE_STRING( tAttr,  aRenderCommand,             "renderCommand",                "rdc",    ""    );
-	CREATE_STRING( tAttr,  aRibgenCommand,             "ribgenCommand",                "rgc",    "liquid"    );
+	CREATE_STRING( tAttr,  aAlfredTags,               "alfredTags",                   "alft",   "prman"    );
+	CREATE_STRING( tAttr,  aAlfredServices,           "alfredServices",               "alfs",   "pixarRender"    );
+  CREATE_STRING( tAttr,  aDirMaps,                  "dirmaps",                      "dmps",   ""    );
+	CREATE_STRING( tAttr,  aRenderCommand,            "renderCommand",                "rdc",    ""    );
+	CREATE_STRING( tAttr,  aRibgenCommand,            "ribgenCommand",                "rgc",    "liquid"    );
 
-	CREATE_STRING( tAttr,  aPreviewer,                 "previewer",                    "prv",    ""    );
-	CREATE_STRING( tAttr,  aPreCommand,                "preCommand",                   "prc",    ""    );
-	CREATE_STRING( tAttr,  aPostFrameCommand,          "postFrameCommand",             "pofc",   ""    );
-	CREATE_STRING( tAttr,  aPreFrameCommand,           "preFrameCommand",              "prfc",   ""    );
-	CREATE_STRING( tAttr,  aPreJobCommand,             "preJobCommand",                "prjc",   ""    );
-	CREATE_STRING( tAttr,  aPostJobCommand,            "postJobCommand",               "pojc",   ""    );
-	CREATE_STRING( tAttr,  aKey,                       "key",                          "k",      "liquid"    );
-	CREATE_STRING( tAttr,  aService,                   "service",                      "srv",    "pixarMTOR"    );
-	CREATE_STRING( tAttr,  aLastRenderScript,          "lastRenderScript",             "lrs",    ""    );
-	CREATE_STRING( tAttr,  aLastRibFile,               "lastRibFile",                  "lrf",    ""    );
+	CREATE_STRING( tAttr,  aPreviewer,                "previewer",                    "prv",    ""    );
+	CREATE_STRING( tAttr,  aPreCommand,               "preCommand",                   "prc",    ""    );
+	CREATE_STRING( tAttr,  aPostFrameCommand,         "postFrameCommand",             "pofc",   ""    );
+	CREATE_STRING( tAttr,  aPreFrameCommand,          "preFrameCommand",              "prfc",   ""    );
+	CREATE_STRING( tAttr,  aPreJobCommand,            "preJobCommand",                "prjc",   ""    );
+	CREATE_STRING( tAttr,  aPostJobCommand,           "postJobCommand",               "pojc",   ""    );
+	CREATE_STRING( tAttr,  aKey,                      "key",                          "k",      "liquid"    );
+	CREATE_STRING( tAttr,  aService,                  "service",                      "srv",    "pixarMTOR"    );
+	CREATE_STRING( tAttr,  aLastRenderScript,         "lastRenderScript",             "lrs",    ""    );
+	CREATE_STRING( tAttr,  aLastRibFile,              "lastRibFile",                  "lrf",    ""    );
 
-	CREATE_BOOL(   nAttr,  aSimpleGlobalsWindow,        "simpleGlobalsWindow",          "sgw",    false );
-	CREATE_BOOL(   nAttr,  aLazyCompute,                "lazyCompute",                  "lc",     false );
-	CREATE_FLOAT(  nAttr,  aCropX1,                     "cropX1",                       "cx1",    0.0   );
-	CREATE_FLOAT(  nAttr,  aCropX2,                     "cropX2",                       "cx2",    1.0   );
-	CREATE_FLOAT(  nAttr,  aCropY1,                     "cropY1",                       "cy1",    0.0   );
-	CREATE_FLOAT(  nAttr,  aCropY2,                     "cropY2",                       "cy2",    1.0   );
-	CREATE_BOOL(   nAttr,  aExportReadArchive,          "exportReadArchive",            "era",    false );
-	CREATE_STRING( tAttr,  aRenderJobName,              "renderJobName",                "rjn",    ""    );
-	CREATE_BOOL(   nAttr,  aShortShaderNames,           "shortShaderNames",             "ssn",    false );
+	CREATE_BOOL(   nAttr,  aSimpleGlobalsWindow,      "simpleGlobalsWindow",          "sgw",    false );
+	CREATE_BOOL(   nAttr,  aLazyCompute,              "lazyCompute",                  "lc",     false );
+	CREATE_FLOAT(  nAttr,  aCropX1,                   "cropX1",                       "cx1",    0.0   );
+	CREATE_FLOAT(  nAttr,  aCropX2,                   "cropX2",                       "cx2",    1.0   );
+	CREATE_FLOAT(  nAttr,  aCropY1,                   "cropY1",                       "cy1",    0.0   );
+	CREATE_FLOAT(  nAttr,  aCropY2,                   "cropY2",                       "cy2",    1.0   );
+	CREATE_BOOL(   nAttr,  aExportReadArchive,        "exportReadArchive",            "era",    false );
+	CREATE_STRING( tAttr,  aRenderJobName,            "renderJobName",                "rjn",    ""    );
+	CREATE_BOOL(   nAttr,  aShortShaderNames,         "shortShaderNames",             "ssn",    false );
 
-	CREATE_BOOL( nAttr,    aRelativeFileNames,          "relativeFileNames",            "rfn",    false );
-	CREATE_BOOL( nAttr,    aExpandAlfred,               "expandAlfred",                 "ea",     false );
+	CREATE_BOOL( nAttr,    aRelativeFileNames,        "relativeFileNames",            "rfn",    false );
+	CREATE_BOOL( nAttr,    aExpandAlfred,             "expandAlfred",                 "ea",     false );
 
-	CREATE_STRING( tAttr,  aPreFrameBeginMel,           "preFrameBeginMel",                "prfbm",   ""    );
-	CREATE_STRING( tAttr,  aPreWorldMel,                "preWorldMel",                     "prwm",    ""    );
-	CREATE_STRING( tAttr,  aPostWorldMel,               "postWorldMel",                    "powm",    ""    );
-	CREATE_STRING( tAttr,  aPreGeomMel,                 "preGeomMel",                      "prgm",    ""    );
+	CREATE_STRING( tAttr,  aPreFrameBeginMel,         "preFrameBeginMel",                "prfbm",   ""    );
+	CREATE_STRING( tAttr,  aPreWorldMel,              "preWorldMel",                     "prwm",    ""    );
+	CREATE_STRING( tAttr,  aPostWorldMel,             "postWorldMel",                    "powm",    ""    );
+	CREATE_STRING( tAttr,  aPreGeomMel,               "preGeomMel",                      "prgm",    ""    );
 
-	CREATE_STRING( tAttr,  aPreFrameBegin,              "preFrameBegin",                "prfb",   ""    );
-	CREATE_STRING( tAttr,  aPreWorld,                   "preWorld",                     "prw",    ""    );
-	CREATE_STRING( tAttr,  aPostWorld,                  "postWorld",                    "pow",    ""    );
-	CREATE_STRING( tAttr,  aPreGeom,                    "preGeom",                      "prg",    ""    );
+	CREATE_STRING( tAttr,  aPreFrameBegin,            "preFrameBegin",                "prfb",   ""    );
+	CREATE_STRING( tAttr,  aPreWorld,                 "preWorld",                     "prw",    ""    );
+	CREATE_STRING( tAttr,  aPostWorld,                "postWorld",                    "pow",    ""    );
+	CREATE_STRING( tAttr,  aPreGeom,                  "preGeom",                      "prg",    ""    );
 
-	CREATE_INT( nAttr,     aRenderScriptFormat,         "renderScriptFormat",           "rsf",    2     );
-	CREATE_STRING( tAttr,  aRenderScriptCommand,        "renderScriptCommand",          "rsc",    ""    );
-	CREATE_STRING( tAttr,  aRenderScriptFileName,       "renderScriptFileName",          "rsn",    ""    );
+	CREATE_INT( nAttr,     aRenderScriptFormat,       "renderScriptFormat",           "rsf",    2     );
+	CREATE_STRING( tAttr,  aRenderScriptCommand,      "renderScriptCommand",          "rsc",    ""    );
+	CREATE_STRING( tAttr,  aRenderScriptFileName,     "renderScriptFileName",          "rsn",    ""    );
 
 	CREATE_STRING( tAttr,  aFluidShaderBrowserDefaultPath, "fluidShaderBrowserDefaultPath",  "fsbdp",  "" );
 

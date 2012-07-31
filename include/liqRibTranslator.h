@@ -113,7 +113,9 @@ private: // Methods
   // MString generateShadowArchiveName( bool renderAllFrames, long renderAtframe, MString geometrySet );
   static bool renderFrameSort( const structJob& a, const structJob& b );
 
-private: // Data
+public: // Data
+  static MString magic;
+
   enum MRibStatus {
     kRibOK,
     kRibBegin,
@@ -123,10 +125,76 @@ private: // Data
   };
   MRibStatus ribStatus;
 
+  
+  // Data used to construct output file names
+  MString     outFormat;
+  MString     outExt;
+
+  MString     extension;
+  MString     imageName;
+
+   
+  MString     baseShadowName; // shadow rib archive name
+  MString     baseSceneName;  // scene rib archive name
+
+  // Directories
+  bool        createOutputDirectories;
+  // bool        m_noDirCheck; // UNUSED ???
+  MString     m_systemTempDirectory;
+  MString     m_tmpDir;
+  MString     m_pixDir;
+
+  // Camera
   MDagPath m_camDagPath;
+  bool liqglo_rotateCamera;   // rotates the camera for sideways renderings
   bool m_isStereoCamera;
 
-  // Render Globals and RIB Export Options
+  // Animation
+  bool          m_animation;
+  bool          m_useFrameExt;
+  vector< int > frameNumbers;
+  
+  // Rib
+  bool        m_justRib;
+  // MString     m_beautyRibFile;  // UNUSED ???
+  bool m_exportReadArchive;
+
+  // Shaders
+  bool m_shaderDebug;
+  bool m_illuminateByDefault;
+  bool m_liquidSetLightLinking;
+
+  bool m_ignoreLights;
+  bool m_ignoreSurfaces;
+  bool m_ignoreDisplacements;
+  bool m_ignoreVolumes;
+
+  bool m_skipVisibilityAttributes;
+  bool m_skipShadingAttributes;
+  bool m_skipRayTraceAttributes;
+ 
+
+  // Shadows
+  bool m_lazyCompute;
+  bool m_outputShadersInShadows;
+  bool m_outputShadersInDeepShadows;
+  bool m_outputLightsInDeepShadows;
+
+  // Ribgen
+  bool m_deferredGen;
+  liquidlong m_deferredBlockSize;
+  MString m_defGenKey;
+  MString m_defGenService;
+
+  // Render
+  bool launchRender;
+  bool remoteRender;
+  bool useNetRman;
+  liquidlong    m_minCPU;
+  liquidlong    m_maxCPU;
+  bool m_showProgress;
+
+  // Script Job
   vector<structJob>  jobList;
   vector<structJob>  shadowList;
 
@@ -134,25 +202,10 @@ private: // Data
   vector<structJob>  envList;  // environments list
   vector<structJob>  txtList;  // make textures list
 
-  // MDagPathArray shadowLightArray;            //  UN-USED GLOBAL
-  // MDagPath activeCamera;                     //  UN-USED GLOBAL
+  
 
-  // const MString m_default_tmp_dir;           //  UN-USED GLOBAL
-  MString m_systemTempDirectory;
-
-  liquidlong width, height, depth;
-
-  vector< int > frameNumbers;
-
-  // alfred stuff
   bool useRenderScript;
-  bool cleanRenderScript;
-  bool m_alfShadowRibGen;
-  bool m_alfredExpand;
   MString renderJobName;
-  MString m_alfredTags;
-  MString m_alfredServices;
-  MString m_dirmaps;
   MString m_userRenderScriptFileName;
   MString m_renderScriptCommand;
   enum renderScriptFormat {
@@ -161,23 +214,48 @@ private: // Data
     XML    = 2 }
   m_renderScriptFormat;
 
-  bool useNetRman;
-  bool fullShadowRib;
-  bool remoteRender;
-  bool cleanRib;              // clean the rib files up
+  MString m_dirmaps;
 
+  bool cleanRib;              // clean the rib files up
+  bool cleanRenderScript;
+  bool cleanShadows;          // UN-USED GLOBAL
+  bool cleanTextures;         // UN-USED GLOBAL
+  
+  // alfred stuff
+  bool m_alfShadowRibGen; // not stored in Globals   
+
+  MString m_alfredTags;
+  MString m_alfredServices;
+  bool m_alfredExpand;
+
+  
+  bool fullShadowRib;
+
+  // Image
+  liquidlong width, height, depth;
+  float       aspectRatio;
+  double        m_cropX1,
+                m_cropX2,
+                m_cropY1,
+                m_cropY2;
+
+  float         m_rgain,
+                m_rgamma;
+
+  // REYES
   bool doDof;                 // do camera depth of field
+
+  // Motion blur
+  double        m_blurTime;
   bool doCameraMotion;        // Motion blur for moving cameras
-  bool liqglo_rotateCamera;   // rotates the camera for sideways renderings
+  
   enum shutterConfig {
     OPEN_ON_FRAME         = 0,
     CENTER_ON_FRAME       = 1,
     CENTER_BETWEEN_FRAMES = 2,
     CLOSE_ON_NEXT_FRAME   = 3
   } shutterConfig;
-
-  bool       cleanShadows;                // UN-USED GLOBAL
-  bool       cleanTextures;               // UN-USED GLOBAL
+ 
   liquidlong  pixelSamples;
   float      shadingRate;
   liquidlong  bucketSize[2];
@@ -186,27 +264,14 @@ private: // Data
   liquidlong  eyeSplits;
   MVector     othreshold;
   MVector     zthreshold;
-  // bool        renderAllCameras;   // Render all cameras, or only active ones     UN-USED GLOBAL
+
   bool       ignoreFilmGate;
-//  double      fov_ratio; => mv in cam struct
-//  int         cam_width, => mv in cam struct
-//              cam_height; => mv in cam struct
-  float       aspectRatio;
+  
   liquidlong  quantValue;
-  //MString     renderCamera;
-  MString     baseShadowName; // shadow rib archive name
-  MString     baseSceneName;  // scene rib archive name
-  bool       createOutputDirectories;
 
-  static MString magic;
+  bool m_outputComments;
 
-  // Data used to construct output file names
-  MString       outFormat;
-  MString       outExt;
-  MString       extension;
-  MString       imageName;
 
-  MString       m_beautyRibFile;
   struct MStringCmp
   {
     bool operator() (const MString &a, const MString &b) const
@@ -216,13 +281,6 @@ private: // Data
   };
   std::map<MString, MString, MStringCmp> m_shadowRibFile;
 
-  // MString     outFormatString;                 // UN-USED GLOBAL
-  // liquidlong  outFormatControl;                // UN-USED GLOBAL
-
-  // Data used for choosing output method
-  // MString riboutput;                           // UN-USED GLOBAL
-  bool launchRender;
-
   // Hash table for scene
   boost::shared_ptr< liqRibHT > htable;
 
@@ -231,35 +289,25 @@ private: // Data
   // but this method isn't called anywhere.
   int attributeDepth;
 
-private :
+  
+  bool m_renderSelected;
 
+  // UNUSED ???
+  bool m_outputShadowPass;
+  bool m_outputHeroPass;
+  
+  // long m_currentLiquidJobNumber; 
+
+private :
   M3dView       m_activeView;
 
-  // Old global values
   int           m_errorMode;
-  MString       m_pixDir;
-  MString       m_tmpDir;
-  bool          m_noDirCheck;
-  bool          m_animation;
-  bool          m_useFrameExt;
-  // bool          m_shadowRibGen;                // UN-USED GLOBAL
-  double        m_blurTime;
   MComputation  m_escHandler;
-  float         m_rgain,
-                m_rgamma;
-  bool          m_justRib;
-  liquidlong    m_minCPU;
-  liquidlong    m_maxCPU;
-
-  double        m_cropX1,
-                m_cropX2,
-                m_cropY1,
-                m_cropY2;
 
 #ifdef _WIN32
   int RiNColorSamples;
 #endif
-
+  /*
   // these are little storage variables to keep track of the current graphics state and will eventually be wrapped in
   // a specific class
   struct globals{
@@ -320,35 +368,14 @@ private :
     } rib;
 
   } globals;
+  */
+  
+  // bool m_currentMatteMode; // UNUSED ???
 
-
-  bool m_showProgress;
-  bool m_currentMatteMode;
-  bool m_renderSelected;
-  bool m_exportReadArchive;
+  
+  
   bool m_renderAllCurves;
-  bool m_illuminateByDefault;
-  bool m_liquidSetLightLinking;
-  bool m_ignoreLights;
-  bool m_ignoreSurfaces;
-  bool m_ignoreDisplacements;
-  bool m_ignoreVolumes;
-  bool m_outputShadowPass;
-  bool m_outputHeroPass;
-  bool m_deferredGen;
-  bool m_lazyCompute;
-  bool m_outputShadersInShadows;
-  bool m_outputShadersInDeepShadows;
-  bool m_outputLightsInDeepShadows;
-  liquidlong m_deferredBlockSize;
-  bool m_outputComments;
-  bool m_shaderDebug;
-
-  long m_currentLiquidJobNumber;
-
-  MString m_defGenKey;
-  MString m_defGenService;
-
+  
   MString m_preFrameMel;
   MString m_postFrameMel;
 
@@ -468,9 +495,7 @@ private :
   bool m_exportSpecificList;
   bool m_exportOnlyObjectBlock;
   
-  bool m_skipVisibilityAttributes;
-  bool m_skipShadingAttributes;
-  bool m_skipRayTraceAttributes;
+  
 };
 
 #endif

@@ -194,6 +194,7 @@ MStatus liqRibTranslator::liquidDoArgs( MArgList args )
     } 
     else if ((arg == "-lr") || (arg == "-launchRender"))     launchRender = true;
     else if ((arg == "-nolr") || (arg == "-noLaunchRender")) launchRender = false;
+
     else if ((arg == "-sel") || (arg == "-selected"))        m_renderSelected = true;
     else if ((arg == "-ra") || (arg == "-readArchive"))      m_exportReadArchive = true;
     else if ((arg == "-acv") || (arg == "-allCurves"))       m_renderAllCurves = true;
@@ -491,11 +492,13 @@ MStatus liqRibTranslator::liquidDoArgs( MArgList args )
     else if ((arg == "-no_igd") || (arg == "-noIgnoreDisplacements")) m_ignoreDisplacements = false;
     else if ((arg == "-igv") || (arg == "-ignoreVolumes")) m_ignoreVolumes = true;
     else if ((arg == "-no_igv") || (arg == "-noIgnoreVolumes")) m_ignoreVolumes = false;
+    else if ((arg == "-iglt") || (arg == "-ignoreLights")) m_ignoreLights = true;
+    else if ((arg == "-no_iglt") || (arg == "-noIgnoreLights")) m_ignoreLights = false;
     else if ((arg == "-no_ufe") || (arg == "-noUseFrameExtension")) m_useFrameExt = false;
     else if ((arg == "-skv") || (arg == "-skipVisibilityAttributes")) m_skipVisibilityAttributes = true;
     else if ((arg == "-sks") || (arg == "-skipShadingAttributes")) m_skipShadingAttributes = true;
     else if ((arg == "-skr") || (arg == "-skipRayTraceAttributes")) m_skipRayTraceAttributes = true;
-    else if ((arg == "-easp") || (arg == "-exportAllShadersParams")) 
+    else if ((arg == "-easp") || (arg == "-exportAllShadersParameters")) 
     {
       argValue = args.asString( ++i, &status );
       liqglo_exportAllShadersParams = argValue.asInt();

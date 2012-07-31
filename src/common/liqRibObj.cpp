@@ -53,12 +53,13 @@ extern "C" {
 #include <liqRibLightData.h>
 #include <liqRibLocatorData.h>
 #include <liqRibMeshData.h>
-#include <liqRibParticleData.h>
-#include <liqRibNuCurveData.h>
-#include <liqRibCurvesData.h>
+#include <liqAreaLightData.h>
 #include <liqRibSubdivisionData.h>
 #include <liqRibHierarchicalSubdivisionData.h>
 #include <liqRibMayaSubdivisionData.h>
+#include <liqRibParticleData.h>
+#include <liqRibNuCurveData.h>
+#include <liqRibCurvesData.h>
 #include <liqRibClipPlaneData.h>
 #include <liqRibCoordData.h>
 #include <liqRibGenData.h>
@@ -194,43 +195,49 @@ liqRibObj::liqRibObj( const MDagPath &path, ObjectType objType )
 			}
       else if ( obj.hasFn( MFn::kMesh ) ) 
       {
-        // we know we are dealing with a mesh here, now we check to see if it
-        // needs to be handled as a subdivision surface
-        bool usingSubdiv = false;
-        MPlug subdivPlug = nodeFn.findPlug( "liqSubdiv", &status );
-        if ( status == MS::kSuccess ) subdivPlug.getValue( usingSubdiv );
-
-        bool usingSubdivOld( false );
-        MPlug oldSubdivPlug( nodeFn.findPlug( "subDMesh", &status ) );
-        if ( status == MS::kSuccess ) oldSubdivPlug.getValue( usingSubdivOld );
-
-        // make Liquid understand MTOR subdiv attribute
-        bool usingSubdivMtor( false );
-        if ( liqglo_useMtorSubdiv ) 
+        float   	areaIntensity;
+        // may be explicit "areaLight" attribute would be better ...
+        liquidGetPlugValue( nodeFn, "areaIntensity", areaIntensity, status );
+        if ( status == MS::kSuccess )
         {
-          MPlug mtorSubdivPlug( nodeFn.findPlug( "mtorSubdiv", &status ) );
-          if( status == MS::kSuccess ) mtorSubdivPlug.getValue( usingSubdivMtor );
+          // it should be AreaLight ( until better solution...)
+          type = MRT_Light;
+          data = liqRibDataPtr( new liqAreaLightData( ( !ignoreShapes )? obj : skip ) );
         }
-        usingSubdiv |= usingSubdivMtor | usingSubdivOld;
-        if ( usingSubdiv ) 
-        {
-          // we've got a subdivision surface
-					MPlug hierarchicalSubdivPlug( nodeFn.findPlug( "liqHierarchicalSubdiv", &status ) );
-					bool useHierarchicalSubdiv = 0;
-					if ( status == MS::kSuccess ) hierarchicalSubdivPlug.getValue( useHierarchicalSubdiv );
-          type = MRT_Subdivision;
-					if ( useHierarchicalSubdiv )
-						data = liqRibDataPtr( new liqRibHierarchicalSubdivisionData( ( !ignoreShapes )? obj : skip ) );
-					else
-						data = liqRibDataPtr( new liqRibSubdivisionData( ( !ignoreShapes )? obj : skip ) );
-          type = data->type();
-        } 
-        else 
-        {
-          // it's a regular mesh
-          type = MRT_Mesh;
-          data = liqRibDataPtr( new liqRibMeshData( ( !ignoreShapes )? obj : skip ) );
-          type = data->type();
+        else
+        { 
+          // we know we are dealing with a mesh here, now we check to see if it
+          // needs to be handled as a subdivision surface
+          bool usingSubdiv ( false );
+          liquidGetPlugValue( nodeFn, "liqSubdiv", usingSubdiv, status );
+
+          bool usingSubdivOld ( false );
+          liquidGetPlugValue( nodeFn, "subDMesh", usingSubdivOld, status );
+ 
+          // make Liquid understand MTOR subdiv attribute
+          bool usingSubdivMtor ( false );
+          if ( liqglo_useMtorSubdiv ) 
+            liquidGetPlugValue( nodeFn, "mtorSubdiv", usingSubdivMtor, status );
+
+          usingSubdiv |= usingSubdivMtor | usingSubdivOld;
+          if ( usingSubdiv ) 
+          {
+            // we've got a subdivision surface
+            bool useHierarchicalSubdiv ( false );
+            liquidGetPlugValue( nodeFn, "liqHierarchicalSubdiv", useHierarchicalSubdiv, status );
+            
+            type = MRT_Subdivision;
+					  if ( useHierarchicalSubdiv )
+						  data = liqRibDataPtr( new liqRibHierarchicalSubdivisionData( ( !ignoreShapes )? obj : skip ) );
+					  else
+						  data = liqRibDataPtr( new liqRibSubdivisionData( ( !ignoreShapes )? obj : skip ) );
+          } 
+          else 
+          {
+            // it's a regular mesh
+            type = MRT_Mesh;
+            data = liqRibDataPtr( new liqRibMeshData( ( !ignoreShapes )? obj : skip ) );
+          }
         }
       } 
       else if ( obj.hasFn( MFn::kLight ) ) 

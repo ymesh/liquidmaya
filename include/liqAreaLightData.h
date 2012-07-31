@@ -27,58 +27,34 @@
 
 */
 
-#ifndef liqRibMeshData_H
-#define liqRibMeshData_H
+#ifndef liqAreaLightData_H
+#define liqAreaLightData_H
 
 /* ______________________________________________________________________
 **
-** Liquid Rib Mesh Data Header File
+** Liquid Area Light Data Header File
 ** ______________________________________________________________________
 */
 
 #include <liqRibData.h>
+#include <liqRibMeshData.h>
 
-#include <boost/shared_array.hpp>
-
-using namespace boost;
-
-class liqRibMeshData : public liqRibData {
+class liqAreaLightData : public liqRibMeshData {
 public: // Methods
 
-  liqRibMeshData();
-  liqRibMeshData( MObject mesh, bool useNormals = true );
+  liqAreaLightData( MObject mesh );
+
+  virtual bool       getMayaData( MObject mesh, bool useNormals = true ){ return liqRibMeshData::getMayaData( mesh ); }
 
   virtual void       write();
   virtual bool       compare( const liqRibData & other ) const;
   virtual ObjectType type() const;
 
-  virtual bool  getMayaData( MObject mesh, bool useNormals = true );
-  // void       printMesh();
-  const char* get_name() { return name.asChar(); }
-  MString    get_longName() { return longName; }
-  
-  RtInt      get_numFaces() { return numFaces; }
-  RtInt*     get_nverts() { return nverts.get(); }
-  RtInt*     get_verts() { return verts.get(); }
-  
-  bool       compareMesh( const liqRibMeshData & other, bool useNormals = true ) const;
-  void       writeMesh();
-  
-  MString 	name;
-  MString 	longName;
-  
-  RtInt     numFaces;
-  RtInt     numPoints;
-  RtInt     numNormals;
-
-  shared_array< RtInt > nverts;
-  shared_array< RtInt > verts;
-  
-  const RtFloat* vertexParam;
-  const RtFloat* normalParam;
-  
 private: // Data
   
+  bool    	areaLight;
+  float   	areaIntensity;
+  RtMatrix	transformationMatrix;
   
 };
 
