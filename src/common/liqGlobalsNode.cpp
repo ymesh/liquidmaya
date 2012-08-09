@@ -280,6 +280,7 @@ MObject liqGlobalsNode::aPhotonShadingModel;
 MObject liqGlobalsNode::aPhotonEstimator;
 
 MObject liqGlobalsNode::aUseMtorSubdiv;
+
 MObject liqGlobalsNode::aHider;
 MObject liqGlobalsNode::aJitter;
 // PRMAN 13 BEGIN
@@ -289,7 +290,7 @@ MObject liqGlobalsNode::aHiddenApertureRoundness;
 MObject liqGlobalsNode::aHiddenApertureDensity;
 MObject liqGlobalsNode::aHiddenShutterOpeningOpen;
 MObject liqGlobalsNode::aHiddenShutterOpeningClose;
-// PRMAN 13 END
+
 MObject liqGlobalsNode::aHiddenOcclusionBound;
 MObject liqGlobalsNode::aHiddenMpCache;
 MObject liqGlobalsNode::aHiddenMpMemory;
@@ -298,16 +299,21 @@ MObject liqGlobalsNode::aHiddenSampleMotion;
 MObject liqGlobalsNode::aHiddenSubPixel;
 MObject liqGlobalsNode::aHiddenExtremeMotionDof;
 MObject liqGlobalsNode::aHiddenMaxVPDepth;
-// PRMAN 13 BEGIN
+
 MObject liqGlobalsNode::aHiddenSigma;
 MObject liqGlobalsNode::aHiddenSigmaBlur;
 // PRMAN 13 END
-
+// PRMAN 16 hidden hider
+MObject liqGlobalsNode::aHiddenDofAspect;
+// PRMAN 16 Raytrace hider
+MObject liqGlobalsNode::aRaytraceSampleMode;
+MObject liqGlobalsNode::aRaytraceMinSamples;
+// PIXIE Raytrace hider
 MObject liqGlobalsNode::aRaytraceFalseColor;
-
+// Photon hider
 MObject liqGlobalsNode::aPhotonEmit;
 MObject liqGlobalsNode::aPhotonSampleSpectrum;
-
+// DepthMask hider
 MObject liqGlobalsNode::aDepthMaskZFile;
 MObject liqGlobalsNode::aDepthMaskReverseSign;
 MObject liqGlobalsNode::aDepthMaskDepthBias;
@@ -529,7 +535,6 @@ MStatus liqGlobalsNode::initialize()
 	
 	MFnStringData stringData;
 
-
 	// Create input attributes
 	CREATE_BOOL( nAttr,  aLaunchRender,               "launchRender",                 "lr",     true  );
 	CREATE_STRING( tAttr,  aRenderCamera,             "renderCamera",                 "rc",     ""    );
@@ -747,8 +752,6 @@ MStatus liqGlobalsNode::initialize()
   CREATE_INT( nAttr,     aPhotonShadingModel,         "photonShadingModel",            "pshm",  0    );
   CREATE_INT( nAttr,     aPhotonEstimator,            "photonEstimator",               "pest",  0    );
 
-	CREATE_BOOL( nAttr,    aUseMtorSubdiv,              "useMtorSubdiv",                "ums",    false );
-
 	CREATE_INT( nAttr,     aHider,                      "hider",                        "h",      0     );
 	// "hidden" hider advanced options - PRMAN ONLY
 	CREATE_INT( nAttr,     aJitter,                     "jitter",                       "j",      0     );
@@ -759,7 +762,7 @@ MStatus liqGlobalsNode::initialize()
 	CREATE_FLOAT( nAttr,   aHiddenApertureDensity,      "hiddenApertureDensity",        "had",    0.0   );
 	CREATE_FLOAT( nAttr,   aHiddenShutterOpeningOpen,   "hiddenShutterOpeningOpen",     "hsoo",   0.0   );
 	CREATE_FLOAT( nAttr,   aHiddenShutterOpeningClose,  "hiddenShutterOpeningClose",    "hsoc",   1.0   );
-	// PRMAN 13 END
+
 	CREATE_FLOAT( nAttr,   aHiddenOcclusionBound,       "hiddenOcclusionBound",         "hob",    0.0   );
 	CREATE_BOOL( nAttr,    aHiddenMpCache,              "hiddenMpCache",                "hmpc",   true  );
 	CREATE_INT( nAttr,     aHiddenMpMemory,             "hiddenMpMemory",               "hmpm",   6144  );
@@ -768,16 +771,21 @@ MStatus liqGlobalsNode::initialize()
 	CREATE_INT( nAttr,     aHiddenSubPixel,             "hiddenSubPixel",               "hsp",    1     );
 	CREATE_BOOL( nAttr,    aHiddenExtremeMotionDof,     "hiddenExtremeMotionDof",       "hemd",   false );
 	CREATE_INT( nAttr,     aHiddenMaxVPDepth,           "hiddenMaxVPDepth",             "hmvd",  -1     );
-	// PRMAN 13 BEGIN
+
 	CREATE_BOOL( nAttr,    aHiddenSigma,                "hiddenSigmaHiding",            "hsh",    false );
 	CREATE_FLOAT( nAttr,   aHiddenSigmaBlur,            "hiddenSigmaBlur",              "hshb",   1.0   );
 	// PRMAN 13 END
-
+	// PRMAN 16 hidden hider
+	CREATE_FLOAT( nAttr,   aHiddenDofAspect,            "hiddenDofAspect",              "hdofasp",   1.0   );
+	// PRMAN 16 Raytrace hider
+	CREATE_INT( nAttr,  aRaytraceSampleMode,         "raytraceSampleMode",           "rtsm",    0   );
+	CREATE_INT( nAttr,     aRaytraceMinSamples,         "raytraceMinSamples",            "rtms",   2     );
+  // PIXIE Raytrace hider
 	CREATE_INT( nAttr,     aRaytraceFalseColor,         "raytraceFalseColor",            "rfc",   0     );
-
+  // Photon hider
 	CREATE_INT( nAttr,     aPhotonEmit,                 "photonEmit",                    "phe",   0     );
 	CREATE_BOOL( nAttr,    aPhotonSampleSpectrum,       "photonSampleSpectrum",          "phss",  false );
-
+  // DepthMask hider
 	CREATE_STRING( tAttr,  aDepthMaskZFile,             "depthMaskZFile",               "dmzf",   ""    );
 	CREATE_BOOL( nAttr,    aDepthMaskReverseSign,       "depthMaskReverseSign",         "dmrs",   false );
 	CREATE_FLOAT( nAttr,   aDepthMaskDepthBias,         "depthMaskDepthBias",           "dmdb",   0.01  );
@@ -866,6 +874,8 @@ MStatus liqGlobalsNode::initialize()
 
 	CREATE_STRING( tAttr,  aShotName,                   "shotName",                     "sn",     ""    );
 	CREATE_STRING( tAttr,  aShotVersion,                "shotVersion",                  "sv",     ""    );
+	
+	CREATE_BOOL( nAttr,    aUseMtorSubdiv,              "useMtorSubdiv",                "ums",    false );
 
 
 	return MS::kSuccess;

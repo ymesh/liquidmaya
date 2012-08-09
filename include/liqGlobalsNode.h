@@ -285,8 +285,6 @@ class liqGlobalsNode : public MPxNode
     static MObject aPhotonEstimator;
 
     static MObject aUseMtorSubdiv;
-    static MObject aHider;
-    static MObject aJitter;
     static MObject aRenderCmdFlags;
 
     static MObject aShaderInfo;
@@ -345,6 +343,9 @@ class liqGlobalsNode : public MPxNode
     static MObject aShadersIgnoreOutputParams;
     static MObject aShadersOutputParamsFilter;
     static MObject aShadersMaxCachedAELayouts;
+    
+    static MObject aHider;
+    static MObject aJitter;
 
     // PRMAN 13 BEGIN
     static MObject aHiddenApertureNSides;
@@ -353,7 +354,7 @@ class liqGlobalsNode : public MPxNode
     static MObject aHiddenApertureDensity;
     static MObject aHiddenShutterOpeningOpen;
     static MObject aHiddenShutterOpeningClose;
-    // PRMAN 13 END
+
     static MObject aHiddenOcclusionBound;
     static MObject aHiddenMpCache;
     static MObject aHiddenMpMemory;
@@ -362,16 +363,26 @@ class liqGlobalsNode : public MPxNode
     static MObject aHiddenSubPixel;
     static MObject aHiddenExtremeMotionDof;
     static MObject aHiddenMaxVPDepth;
-    // PRMAN 13 BEGIN
+
     static MObject aHiddenSigma;
     static MObject aHiddenSigmaBlur;
     // PRMAN 13 END
+    
+    // PRMAN 16 hidden hider
+    static MObject aHiddenDofAspect;
+    
+    // PRMAN 16 Raytrace hider
+    static MObject aRaytraceSampleMode;
+    static MObject aRaytraceMinSamples;
 
+    // PIXIE Raytrace hider
     static MObject aRaytraceFalseColor;
-
+    
+    // Photon hider
     static MObject aPhotonEmit;
     static MObject aPhotonSampleSpectrum;
 
+    // DepthMask hider
     static MObject aDepthMaskZFile;
     static MObject aDepthMaskReverseSign;
     static MObject aDepthMaskDepthBias;

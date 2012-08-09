@@ -405,7 +405,7 @@ void liqRibTranslator::liquidReadGlobals()
   liquidGetPlugValue( rGlobalNode, "hiddenApertureDensity", m_hiddenAperture[3], gStatus );   
   liquidGetPlugValue( rGlobalNode, "hiddenShutterOpeningOpen", m_hiddenShutterOpening[0], gStatus );     
   liquidGetPlugValue( rGlobalNode, "hiddenShutterOpeningClose", m_hiddenShutterOpening[1], gStatus );   
-  // PRMAN 13 END
+
   liquidGetPlugValue( rGlobalNode, "hiddenOcclusionBound", m_hiddenOcclusionBound, gStatus );  
   liquidGetPlugValue( rGlobalNode, "hiddenMpCache", m_hiddenMpCache, gStatus ); 
   liquidGetPlugValue( rGlobalNode, "hiddenMpMemory", m_hiddenMpMemory, gStatus ); 
@@ -414,13 +414,22 @@ void liqRibTranslator::liquidReadGlobals()
   liquidGetPlugValue( rGlobalNode, "hiddenSubPixel", m_hiddenSubPixel, gStatus );  
   liquidGetPlugValue( rGlobalNode, "hiddenExtremeMotionDof", m_hiddenExtremeMotionDof, gStatus ); 
   liquidGetPlugValue( rGlobalNode, "hiddenMaxVPDepth", m_hiddenMaxVPDepth, gStatus ); 
-  // PRMAN 13 BEGIN  
+  
   liquidGetPlugValue( rGlobalNode, "hiddenSigmaHiding", m_hiddenSigma, gStatus );   
   liquidGetPlugValue( rGlobalNode, "hiddenSigmaBlur", m_hiddenSigmaBlur, gStatus );   
-  // PRMAN 13 END  
-  liquidGetPlugValue( rGlobalNode, "raytraceFalseColor", m_raytraceFalseColor, gStatus );     
+  // PRMAN 13 END 
+  
+  // PRMAN 16 hidden hider
+  liquidGetPlugValue( rGlobalNode, "hiddenDofAspect", m_hiddenDofAspect, gStatus );
+  // PRMAN 16 Raytrace hider
+  liquidGetPlugValue( rGlobalNode, "raytraceSampleMode", m_raytraceSampleMode, gStatus ); 
+  liquidGetPlugValue( rGlobalNode, "raytraceMinSamples", m_raytraceMinSamples, gStatus ); 
+  // PIXIE Raytrace hider
+  liquidGetPlugValue( rGlobalNode, "raytraceFalseColor", m_raytraceFalseColor, gStatus );   
+  // Photon hider
   liquidGetPlugValue( rGlobalNode, "photonEmit", m_photonEmit, gStatus );   
   liquidGetPlugValue( rGlobalNode, "photonSampleSpectrum", m_photonSampleSpectrum, gStatus );  
+  // DepthMask hider
   liquidGetPlugValue( rGlobalNode, "depthMaskZFile", varVal, gStatus );
   if ( gStatus == MS::kSuccess ) 
     m_depthMaskZFile = parseString( varVal, false );  //  doEscaped = false

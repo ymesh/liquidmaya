@@ -2051,10 +2051,10 @@ void liqRibTranslator::exportJobCamera(const structJob &job, const structCamera 
 		// if we are describing a shadow map camera,
 		// we need to set the screenwindow to the default,
 		// as shadow maps are always square.
-		if ( job.pass == rpShadowMap ) 
+		// if ( job.pass == rpShadowMap ) 
       RiScreenWindow( -frameWidth, frameWidth, -frameHeight, frameHeight );
-		else 			                 
-      RiScreenWindow( -1.0, 1.0, -1.0, 1.0 );
+		//else 			                 
+    //  RiScreenWindow( -1.0, 1.0, -1.0, 1.0 );
 	}
 	else
 	{
@@ -3149,13 +3149,15 @@ MStatus liqRibTranslator::ribPrologue()
 	  //RiOrientation( RI_RH ); // Right-hand coordinates
     if ( liqglo_currentJob.pass == rpShadowMap ) 
     {
-      RiPixelSamples( liqglo_currentJob.samples, liqglo_currentJob.samples );
       RiShadingRate( liqglo_currentJob.shadingRateFactor );
-      // Need to use Box filter for deep shadows.
-      RiPixelFilter( RiBoxFilter, 1, 1 );
       RtString option;
-      if ( liqglo_currentJob.shadowType == stDeep ) 
+      if ( liqglo_currentJob.shadowType == stDeep )
+      { 
+        RiPixelSamples( liqglo_currentJob.samples, liqglo_currentJob.samples );
+        // Need to use Box filter for deep shadows.
+        RiPixelFilter( RiBoxFilter, 1, 1 );
         option = "deepshadow";
+      }
       else                                 
         option = "shadow";
       RiOption( "user", "string pass", ( RtPointer )&option, RI_NULL );
@@ -3186,52 +3188,59 @@ MStatus liqRibTranslator::ribPrologue()
       }
       MString hiderOptions = getHiderOptions( liquidRenderer.renderName, hiderName );
       RiArchiveRecord( RI_VERBATIM, "Hider \"%s\" %s\n", hiderName, ( char* )hiderOptions.asChar() );
-      RiPixelSamples( pixelSamples, pixelSamples );
       RiShadingRate( shadingRate );
-      if ( m_rFilterX > 1 || m_rFilterY > 1 ) 
+      // Skip RiPixelSamples and RiPixelFilter calls
+      // in case when user chooses "zbuffer" hider for depthmap rendering 
+      // in "beauty" pass 
+      if ( liqglo_hider != htZbuffer )
       {
-        switch ( m_rFilter ) 
+        RiPixelSamples( pixelSamples, pixelSamples );
+      
+        if ( m_rFilterX > 1 || m_rFilterY > 1 ) 
         {
-          case pfBoxFilter:
-            RiPixelFilter( RiBoxFilter, m_rFilterX, m_rFilterY );
-            break;
-          case pfTriangleFilter:
-            RiPixelFilter( RiTriangleFilter, m_rFilterX, m_rFilterY );
-            break;
-          case pfCatmullRomFilter:
-            RiPixelFilter( RiCatmullRomFilter, m_rFilterX, m_rFilterY );
-            break;
-          case pfGaussianFilter:
-            RiPixelFilter( RiGaussianFilter, m_rFilterX, m_rFilterY );
-            break;
-          case pfSincFilter:
-            RiPixelFilter( RiSincFilter, m_rFilterX, m_rFilterY );
-            break;
+          switch ( m_rFilter ) 
+          {
+            case pfBoxFilter:
+              RiPixelFilter( RiBoxFilter, m_rFilterX, m_rFilterY );
+              break;
+            case pfTriangleFilter:
+              RiPixelFilter( RiTriangleFilter, m_rFilterX, m_rFilterY );
+              break;
+            case pfCatmullRomFilter:
+              RiPixelFilter( RiCatmullRomFilter, m_rFilterX, m_rFilterY );
+              break;
+            case pfGaussianFilter:
+              RiPixelFilter( RiGaussianFilter, m_rFilterX, m_rFilterY );
+              break;
+            case pfSincFilter:
+              RiPixelFilter( RiSincFilter, m_rFilterX, m_rFilterY );
+              break;
 #if defined ( DELIGHT ) || defined ( PRMAN ) || defined ( GENERIC_RIBLIB )
-          case pfBlackmanHarrisFilter:
-            RiArchiveRecord( RI_VERBATIM, "PixelFilter \"blackman-harris\" %g %g\n", m_rFilterX, m_rFilterY);
-            break;
-          case pfMitchellFilter:
-            RiArchiveRecord( RI_VERBATIM, "PixelFilter \"mitchell\" %g %g\n", m_rFilterX, m_rFilterY);
-            break;
-          case pfSepCatmullRomFilter:
-            RiArchiveRecord( RI_VERBATIM, "PixelFilter \"separable-catmull-rom\" %g %g\n", m_rFilterX, m_rFilterY);
-            break;
-          case pfBesselFilter:
-            RiArchiveRecord( RI_VERBATIM, "PixelFilter \"bessel\" %g %g\n", m_rFilterX, m_rFilterY);
-            break;
+            case pfBlackmanHarrisFilter:
+              RiArchiveRecord( RI_VERBATIM, "PixelFilter \"blackman-harris\" %g %g\n", m_rFilterX, m_rFilterY);
+              break;
+            case pfMitchellFilter:
+              RiArchiveRecord( RI_VERBATIM, "PixelFilter \"mitchell\" %g %g\n", m_rFilterX, m_rFilterY);
+              break;
+            case pfSepCatmullRomFilter:
+              RiArchiveRecord( RI_VERBATIM, "PixelFilter \"separable-catmull-rom\" %g %g\n", m_rFilterX, m_rFilterY);
+              break;
+            case pfBesselFilter:
+              RiArchiveRecord( RI_VERBATIM, "PixelFilter \"bessel\" %g %g\n", m_rFilterX, m_rFilterY);
+              break;
 #endif
 #if defined ( PRMAN ) || defined ( GENERIC_RIBLIB )
-          case pfLanczosFilter:
-            RiArchiveRecord( RI_VERBATIM, "PixelFilter \"lanczos\" %g %g\n", m_rFilterX, m_rFilterY);
-            break;
-          case pfDiskFilter:
-            RiArchiveRecord( RI_VERBATIM, "PixelFilter \"disk\" %g %g\n", m_rFilterX, m_rFilterY);
-            break;
+            case pfLanczosFilter:
+              RiArchiveRecord( RI_VERBATIM, "PixelFilter \"lanczos\" %g %g\n", m_rFilterX, m_rFilterY);
+              break;
+            case pfDiskFilter:
+              RiArchiveRecord( RI_VERBATIM, "PixelFilter \"disk\" %g %g\n", m_rFilterX, m_rFilterY);
+              break;
 #endif
-          default:
-            RiArchiveRecord( RI_COMMENT, "Unknown Pixel Filter selected" );
-            break;
+            default:
+              RiArchiveRecord( RI_COMMENT, "Unknown Pixel Filter selected" );
+              break;
+          }
         }
       }
       RtString option( "beauty" );
@@ -4086,57 +4095,41 @@ MStatus liqRibTranslator::framePrologue( long lframe )
 	if ( !m_exportReadArchive )
 	{
 		RiFrameBegin( lframe );
+		int width = liqglo_currentJob.width;
+    int height = liqglo_currentJob.height;
+    if ( liqglo_currentJob.pass != rpShadowMap && liqglo_rotateCamera  == true )
+    { // philippe : Rotated Camera Case
+		  width = liqglo_currentJob.height;
+      height = liqglo_currentJob.width;
+    }	
+		RiFormat( width, height, liqglo_currentJob.aspectRatio );
 
-		if ( liqglo_currentJob.pass != rpShadowMap && liqglo_rotateCamera  == true )
-			// philippe : Rotated Camera Case
-			RiFormat( liqglo_currentJob.height, liqglo_currentJob.width, liqglo_currentJob.aspectRatio );
-		else
-			RiFormat( liqglo_currentJob.width, liqglo_currentJob.height, liqglo_currentJob.aspectRatio );
-		if ( liqglo_currentJob.pass != rpShadowMap )
-		{
-			// Smooth Shading
-			RiShadingInterpolation( "smooth" );
-			// Quantization
-			// overriden to floats when in rendering to Maya's renderView
-			if ( !m_renderView && quantValue != 0 )
-			{
-				int whiteValue = (int) pow( 2.0, quantValue ) - 1;
-				RiQuantize( RI_RGBA, whiteValue, 0, whiteValue, 0.5 );
-			}
-			else
-				RiQuantize( RI_RGBA, 0, 0, 0, 0 );
-			if ( m_rgain != 1.0 || m_rgamma != 1.0 ) RiExposure( m_rgain, m_rgamma );
-		}
-		if ( liqglo_currentJob.pass == rpShadowMap &&
-			 ( liqglo_currentJob.shadowType != stDeep ||
-			   liqglo_currentJob.samples == 1 ) )
-		{
-			if ( liquidRenderer.renderName == MString("Pixie") )
-			{
-				RtFloat zero = 0;
-				RiHider( "hidden", "jitter", &zero, RI_NULL );
-			}
-			else
-			{
-				RtInt zero = 0;
-				RiHider( "hidden", "int jitter", &zero, RI_NULL );
-			}
-		}
-		if ( liqglo_currentJob.pass == rpShadowMap && liqglo_currentJob.shadowType == stMidPoint )
-		{
-			RtString midPoint = "midpoint";
-			RtFloat midRatio = liqglo_currentJob.midPointRatio;
-
-			RiHider( "hidden", "depthfilter", &midPoint, RI_NULL );
-			
-			if ( liqglo_currentJob.midPointRatio != 0 )
-				RiHider( "hidden", "midpointratio", &midRatio, RI_NULL ); // Output to rib jami
-		}
-
-		LIQDEBUGPRINTF( "-> Setting Display Options\n" );
+		RtString hiderName = "hidden";
+    // LIQDEBUGPRINTF( "-> Setting Display Options\n" );
 		if ( liqglo_currentJob.pass == rpShadowMap )
 		{
-			//MString relativeShadowName( liquidSanitizePath( liquidGetRelativePath( liqglo_relativeFileNames, liqglo_currentJob.imageName, liqglo_projectDir ) ) );
+			if ( liqglo_currentJob.shadowType != stDeep || liqglo_currentJob.samples == 1 )
+		  {
+			  if ( liquidRenderer.renderName == MString("Pixie") )
+			  {
+				  RtFloat zero = 0;
+				  RiHider( hiderName, "jitter", &zero, RI_NULL );
+			  }
+			  else
+			  {
+				  RtInt zero = 0;
+				  RiHider( hiderName, "int jitter", &zero, RI_NULL );
+			  }
+		  }
+		  if ( liqglo_currentJob.shadowType == stMidPoint )
+		  {
+			  RtString midPoint = "midpoint";
+			  RtFloat midRatio = liqglo_currentJob.midPointRatio;
+			  RiHider( hiderName, "depthfilter", &midPoint, RI_NULL );
+			  if ( liqglo_currentJob.midPointRatio != 0 )
+				  RiHider( hiderName, "midpointratio", &midRatio, RI_NULL ); // Output to rib jami
+		  }
+      //MString relativeShadowName( liquidSanitizePath( liquidGetRelativePath( liqglo_relativeFileNames, liqglo_currentJob.imageName, liqglo_projectDir ) ) );
 			if ( liqglo_currentJob.shadowType != stMinMax )
 			{
 				if ( liqglo_currentJob.shadowType == stDeep )
@@ -4192,21 +4185,36 @@ MStatus liqRibTranslator::framePrologue( long lframe )
 					"minmax", &minmax,
 					RI_NULL );
 			}
-      exportJobCamera( liqglo_currentJob, liqglo_currentJob.camera );
+      
+      exportJobCamera ( liqglo_currentJob, liqglo_currentJob.camera );
 		}
 	  else
 	  {
+      // Smooth Shading
+			RiShadingInterpolation( "smooth" );
+			// Quantization
+			// overriden to floats when in rendering to Maya's renderView
+			if ( !m_renderView && quantValue != 0 )
+			{
+				int whiteValue = (int) pow( 2.0, quantValue ) - 1;
+				RiQuantize( RI_RGBA, whiteValue, 0, whiteValue, 0.5 );
+			}
+			else
+				RiQuantize( RI_RGBA, 0, 0, 0, 0 );
+			if ( m_rgain != 1.0 || m_rgamma != 1.0 ) RiExposure( m_rgain, m_rgamma );
+      
       if ( ( m_cropX1 != 0.0 ) || ( m_cropY1 != 0.0 ) || ( m_cropX2 != 1.0 ) || ( m_cropY2 != 1.0 ) ) 
       {
         // philippe : handle the rotated camera case
         if ( liqglo_rotateCamera == true ) RiCropWindow( m_cropY2, m_cropY1, 1 - m_cropX1, 1 - m_cropX2 );
         else                               RiCropWindow( m_cropX1, m_cropX2, m_cropY1, m_cropY2 );
       }
-			if ( !liqglo_currentJob.isStereoPass ) 
-        exportJobCamera( liqglo_currentJob, liqglo_currentJob.camera );
-			else
-			{
-				// export right camera
+			if ( !liqglo_currentJob.isStereoPass )
+      { 
+        exportJobCamera ( liqglo_currentJob, liqglo_currentJob.camera );
+			}
+      else
+			{ // export right camera
 				RiTransformBegin();
 				exportJobCamera( liqglo_currentJob, liqglo_currentJob.rightCamera );
 				RiCameraV( "right", 0, (char**)RI_NULL, (void**)RI_NULL );
@@ -6093,13 +6101,44 @@ bool liqRibTranslator::renderFrameSort( const structJob& a, const structJob& b )
 MString liqRibTranslator::getHiderOptions( MString rendername, MString hidername )
 {
   stringstream ss;
-  // PRMAN
-  if ( rendername == "PRMan" ) 
+  
+  if ( hidername == "photon" ) 
   {
-    if ( hidername == "hidden" ) 
+    if ( rendername == "PRMan" || rendername == "3Delight" || rendername == "Pixie" ) 
     {
-      ss << "\"int jitter\" [" << m_hiddenJitter << "] ";
+      if ( m_photonEmit != 0 ) ss << " \"int emit\" [" << m_photonEmit << "] ";
+      if ( rendername == "Pixie" )
+        if ( m_photonSampleSpectrum ) ss << " \"int samplespectrum\" [1] ";
+    }
+  }
+  else if ( hidername == "raytrace" )
+  { 
+    if ( rendername == "PRMan" )
+    {
+      const char *sampleMode[] = { "fixed", "adaptive" };
+      ss << " \"string samplemode\" [\"" << sampleMode[ m_raytraceSampleMode ] << "\"] \"int minsamples\" [" << m_raytraceMinSamples << "] ";
+    }
+    else if ( rendername == "Pixie" )
+    {
+      if ( m_raytraceFalseColor != 0 ) ss << "\"int falsecolor\" [1] ";
+    }
+  } 
+  else if ( hidername == "depthmask" ) 
+  {
+    if ( rendername == "PRMan" )
+    {
+      ss << "\"zfile\" [\"" << m_depthMaskZFile.asChar() << "\"] ";
+      ss << "\"reversesign\" [\"" << m_depthMaskReverseSign << "\"] ";
+      ss << "\"depthbias\" [" << m_depthMaskDepthBias << "] ";
+    }
+  }
+  // All options for "hidden" are valid for all other hiders
+  // if ( hidername == "hidden" ) 
+  {
+    ss << "\"" << (( rendername == "Pixie" )? "float" : "int" ) << " jitter\" [" << m_hiddenJitter << "] ";
 
+    if ( rendername == "PRMan" )
+    {
       // PRMAN 13 BEGIN
       if ( m_hiddenAperture[0] != 0.0 ||
           m_hiddenAperture[1] != 0.0 ||
@@ -6109,58 +6148,26 @@ MString liqRibTranslator::getHiderOptions( MString rendername, MString hidername
 
       if ( m_hiddenShutterOpening[0] != 0.0 && m_hiddenShutterOpening[1] != 1.0 ) 
         ss << "\"float[2] shutteropening\" ["<< m_hiddenShutterOpening[0] << " " << m_hiddenShutterOpening[1] << "] ";
-      // PRMAN 13 END
       
       if ( m_hiddenOcclusionBound != 0.0 ) ss << "\"occlusionbound\" [" << m_hiddenOcclusionBound << "] ";
       if ( m_hiddenMpCache != true )       ss << "\"int mpcache\" [0] ";
       if ( m_hiddenMpMemory != 6144 )      ss << "\"mpcache\" [" << m_hiddenMpMemory << "] ";
       if ( m_hiddenMpCacheDir != "" )      ss << "\"mpcachedir\" [\"" << m_hiddenMpCacheDir.asChar() << "\"] ";
-      if ( m_hiddenSampleMotion != true )  ss << "\"int samplemotion\" [0] ";
       if ( m_hiddenSubPixel != 1 )         ss << "\"subpixel\" [" << m_hiddenSubPixel << "] ";
-      if ( m_hiddenExtremeMotionDof != false ) ss << "\"extrememotiondof\" [1] ";
       if ( m_hiddenMaxVPDepth != -1 )      ss << "\"maxvpdepth\" [" << m_hiddenMaxVPDepth << "] ";
 
-      // PRMAN 13 BEGIN
       if ( m_hiddenSigma != false )        ss << "\"int sigma\" [1] " << "\"sigmablur\" [" << m_hiddenSigmaBlur << "] ";
       // PRMAN 13 END
+      // PRMAN 16 hidden hider
+      if ( m_hiddenDofAspect != 1.0 )      ss << "\"float dofaspect\" [" << m_hiddenDofAspect << "] ";
     } 
-    else if ( hidername == "photon" ) 
+    if ( rendername == "3Delight" || rendername == "PRMan" ) 
     {
-      if ( m_photonEmit != 0 ) ss << " \"int emit\" [" << m_photonEmit << "] ";
-    } 
-    else if ( hidername == "depthmask" ) 
-    {
-      ss << "\"zfile\" [\"" << m_depthMaskZFile.asChar() << "\"] ";
-      ss << "\"reversesign\" [\"" << m_depthMaskReverseSign << "\"] ";
-      ss << "\"depthbias\" [" << m_depthMaskDepthBias << "] ";
-    }
-  }
-  // 3DELIGHT
-  if ( rendername == "3Delight" ) 
-  {
-    if ( hidername == "hidden" ) 
-    {
-      ss << "\"jitter\" [" << m_hiddenJitter << "] ";
       if ( m_hiddenSampleMotion != true )      ss << "\"int samplemotion\" [0] ";
       if ( m_hiddenExtremeMotionDof != false ) ss << "\"int extrememotiondof\" [1] ";
     }
-    else if ( hidername == "photon" ) 
-    {
-      if ( m_photonEmit != 0 ) ss << " \"int emit\" [" << m_photonEmit << "] ";
-    } 
-  }
-  // PIXIE
-  if ( rendername == "Pixie" ) 
-  {
-    if ( hidername == "hidden" ) ss << "\"float jitter\" [" << m_hiddenJitter << "] ";
-    else if ( hidername == "raytrace" ) 
-      if ( m_raytraceFalseColor != 0 ) ss << "\"int falsecolor\" [1] ";
-    else if ( hidername == "photon" ) 
-    {
-      if ( m_photonEmit != 0 ) ss << " \"int emit\" [" << m_photonEmit << "] ";
-      if ( m_photonSampleSpectrum ) ss << " \"int samplespectrum\" [1] ";
-    }
-  }
+  } 
+  /*
   // AQSIS
   if ( rendername == "Aqsis" ) 
   {
@@ -6171,6 +6178,7 @@ MString liqRibTranslator::getHiderOptions( MString rendername, MString hidername
   {
     // no known options
   }
+  */
   MString options( ss.str().c_str() );
   return options;
 }

@@ -226,6 +226,10 @@ enum HiderType {
   htDepthMask = 5
 };
 
+enum RaytraceHiderSampleMode {
+  rtFixed    = 0,
+  rtAdaptive = 1
+};
 
 enum VolumeInterpretation {
   viNone       = 0, // renderer doesn't support DSMs

@@ -464,7 +464,7 @@ private :
   // PRMAN 13 BEGIN
   float         m_hiddenAperture[4];
   float         m_hiddenShutterOpening[2];
-  // PRMAN 13 END
+
   float         m_hiddenOcclusionBound;
   bool          m_hiddenMpCache;
   int           m_hiddenMpMemory;
@@ -473,14 +473,21 @@ private :
   int           m_hiddenSubPixel;
   bool          m_hiddenExtremeMotionDof;
   int           m_hiddenMaxVPDepth;
-  // PRMAN 13 BEGIN
+
   bool          m_hiddenSigma;
   float         m_hiddenSigmaBlur;
   // PRMAN 13 END
+  // PRMAN 16 hidden hider
+  float         m_hiddenDofAspect;
+  // PRMAN 16 Raytrace hider
+  int           m_raytraceSampleMode; // this is index value
+  int           m_raytraceMinSamples;
+  // PIXIE Raytrace hider
   int           m_raytraceFalseColor;
+  // Photon hider
   int           m_photonEmit;
   int           m_photonSampleSpectrum;
-
+  // DepthMask hider
   MString       m_depthMaskZFile;
   bool          m_depthMaskReverseSign;
   float         m_depthMaskDepthBias;

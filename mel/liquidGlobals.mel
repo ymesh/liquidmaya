@@ -737,7 +737,8 @@ global proc liquidInitGlobalVals()
     "Photon",
     "Raytrace",
     "OpenGL",
-    "ZBuffer"
+    "ZBuffer",
+    "DepthMask"
   };
 
   global string $liqFeaturesList[6];
@@ -2674,7 +2675,8 @@ global proc liquidHiderOptions_buildIt( string $prefix )
             liquidShowIntGlobalPlus   "hiddenMaxVPDepth"        "Max Visible Point Depth"
                                       ("control over the maximum number of visible\n"+
                                        "points considered for compositing or deep\n"+
-                                       "shadow map creation") "";
+                                       "shadow map creation") $prefix;
+            liquidShowFloatGlobalPlus "hiddenDofAspect"    "Dof Aspect"  "The dofaspect option controls the eccentricity of the blur applied to objects that are out of focus." "";
             // PRMAN 13
             frameLayout -bs "etchedIn" -l "Aperture" -cll true -cl true;
               columnLayout -adj true;
@@ -2715,7 +2717,7 @@ global proc liquidHiderOptions_buildIt( string $prefix )
         if ( !`columnLayout -q -ex $theLayout`) 
         {
           columnLayout -adj true -co "right" 20 -vis false $theLayout;
-            liquidShowBoolGlobal      "jitter"                  "Jitter" $prefix;
+            liquidShowBoolGlobal "jitter" "Jitter" $prefix;
           setParent ..;
           columnLayout -e -vis true $theLayout;
         }
@@ -2725,7 +2727,7 @@ global proc liquidHiderOptions_buildIt( string $prefix )
         if ( !`columnLayout -q -ex $theLayout`) 
         {
           columnLayout -adj true -co "right" 20 -vis false $theLayout;
-            liquidShowBoolGlobal      "jitter"                  "Jitter" $prefix;
+            liquidShowBoolGlobal      "jitter" "Jitter" $prefix;
             liquidShowBoolGlobalPlus  "hiddenSampleMotion"      "Sample Motion"
                                       ("This controls motion-blurred\n"+
                                        "micro-polygon output. if set to OFF, the\n"+
@@ -2777,14 +2779,19 @@ global proc liquidHiderOptions_buildIt( string $prefix )
 
     case 3:
       // RAYTRACE
-      if ( $renderer == "pixie" ) 
-      {
-        if ( !`columnLayout -q -ex $theLayout`) 
+      if ( !`columnLayout -q -ex $theLayout`) 
           columnLayout -adj true -vis false $theLayout;
+      if ( $renderer == "prman" )
+      {
+        liquidShowIntGlobalMenu "raytraceSampleMode" "Sample Mode" {"fixed", "adaptive" } $prefix; 
+        liquidShowIntGlobal     "raytraceMinSamples"    "Min Samples";
+        setParent ..;
+      }
+      else if ( $renderer == "pixie" ) 
+      {
         liquidShowIntGlobal     "raytraceFalseColor"    "False Color";
+        setParent ..;
       } 
-      else if ( !`columnLayout -q -ex $theLayout`) 
-        columnLayout -adj true $theLayout;
       columnLayout -e -vis true $theLayout;
       break;
 
@@ -3128,6 +3135,7 @@ global proc liquidGlobalsOptionsTab_buildIt( string $prefix )
         liquidShowBoolGlobal "exportReadArchive" 					"Read-Archivable RIB" $prefix;
         liquidShowBoolGlobal "outputMayaPolyCreases" 			"Use Maya Poly Creases" $prefix;
         liquidShowBoolGlobal "renderAllCurves"   					"Render All Curves" $prefix;
+        liquidShowBoolGlobal "useMtorSubdiv" 			        "Use MtoR subdivisions" $prefix;
         liquidShowBoolGlobal "outputMeshUVs"     					"Extra MtoR Mesh UVs" $prefix;
 				liquidShowBoolGlobal "outputMeshAsRMSArrays"      "Mesh UV as RMS arrays" $prefix;
         liquidShowBoolGlobal "exportAllShadersParameters" "Export all shaders params" $prefix;
